@@ -1,0 +1,34 @@
+name: pm_monitor
+description: App para mantenimiento preventivo de equipos
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # UI
+  cupertino_icons: ^1.0.2
+  
+  # Navigation
+  go_router: ^12.1.3
+  
+  # Utils
+  shared_preferences: ^2.2.2
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+  - assets/images/
