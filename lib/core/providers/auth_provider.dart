@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
+import '../services/firebase_auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final FirebaseAuthService _authService = FirebaseAuthService();
   UserModel? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
@@ -13,77 +15,35 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
-  // Usuarios mock para pruebas (luego reemplazaremos con Firebase)
-  final List<Map<String, dynamic>> _mockUsers = [
-    {
-      'email': 'admin@pmmonitor.com',
-      'password': '123456',
-      'user': UserModel(
-        id: '1',
-        email: 'admin@pmmonitor.com',
-        name: 'Administrador Principal',
-        phone: '+1-809-555-0001',
-        role: UserRole.admin,
-      ),
-    },
-    {
-      'email': 'supervisor@pmmonitor.com',
-      'password': '123456',
-      'user': UserModel(
-        id: '2',
-        email: 'supervisor@pmmonitor.com',
-        name: 'Carlos Supervisor',
-        phone: '+1-809-555-0002',
-        role: UserRole.supervisor,
-      ),
-    },
-    {
-      'email': 'tecnico@pmmonitor.com',
-      'password': '123456',
-      'user': UserModel(
-        id: '3',
-        email: 'tecnico@pmmonitor.com',
-        name: 'Juan Técnico',
-        phone: '+1-809-555-0003',
-        role: UserRole.technician,
-      ),
-    },
-    {
-      'email': 'cliente@pmmonitor.com',
-      'password': '123456',
-      'user': UserModel(
-        id: '4',
-        email: 'cliente@pmmonitor.com',
-        name: 'Empresa Cliente',
-        phone: '+1-809-555-0004',
-        role: UserRole.client,
-      ),
-    },
-  ];
+  // Constructor - Escuchar cambios de autenticación
+  AuthProvider() {
+    _initializeAuth();
+  }
 
-  // Inicializar - verificar si hay sesión guardada
+  // Inicializar autenticación
+  void _initializeAuth() {
+    _authService.authStateChanges.listen((User? user) async {
+      if (user != null) {
+        // Usuario logueado - obtener datos completos
+        _currentUser = await _authService.getUserData(user.uid);
+      } else {
+        // Usuario no logueado
+        _currentUser = null;
+      }
+      notifyListeners();
+    });
+  }
+
+  // Verificar sesión inicial
   Future<void> initializeAuth() async {
     _setLoading(true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userJson = prefs.getString('current_user');
-
-      if (userJson != null) {
-        // Simular delay de red
-        await Future.delayed(const Duration(seconds: 1));
-
-        // Aquí normalmente verificaríamos el token con el servidor
-        final userData = _mockUsers.firstWhere(
-          (u) => u['user'].email == userJson,
-          orElse: () => {},
-        );
-
-        if (userData.isNotEmpty) {
-          _currentUser = userData['user'] as UserModel;
-        }
+      final currentUser = _authService.currentUser;
+      if (currentUser != null) {
+        _currentUser = await _authService.getUserData(currentUser.uid);
       }
     } catch (e) {
-      _setError('Error al inicializar sesión');
+      _setError('Error al inicializar sesión: $e');
     } finally {
       _setLoading(false);
     }
@@ -95,30 +55,18 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      // Simular delay de red
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Buscar usuario en datos mock
-      final userData = _mockUsers.firstWhere(
-        (user) => user['email'] == email && user['password'] == password,
-        orElse: () => {},
-      );
-
-      if (userData.isEmpty) {
-        _setError('Credenciales incorrectas');
+      final user =
+          await _authService.signInWithEmailAndPassword(email, password);
+      if (user != null) {
+        _currentUser = user;
+        _setLoading(false);
+        return true;
+      } else {
+        _setError('Error al iniciar sesión');
         return false;
       }
-
-      _currentUser = userData['user'] as UserModel;
-
-      // Guardar sesión
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('current_user', email);
-
-      _setLoading(false);
-      return true;
     } catch (e) {
-      _setError('Error al iniciar sesión: $e');
+      _setError(e.toString());
       return false;
     }
   }
@@ -135,42 +83,24 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      // Simular delay de red
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Verificar si el email ya existe
-      final existingUser = _mockUsers.any((user) => user['email'] == email);
-      if (existingUser) {
-        _setError('El email ya está registrado');
-        return false;
-      }
-
-      // Crear nuevo usuario
-      final newUser = UserModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+      final user = await _authService.registerWithEmailAndPassword(
         email: email,
+        password: password,
         name: name,
         phone: phone,
         role: role,
       );
 
-      // Agregar a la lista mock (en producción sería guardado en Firebase)
-      _mockUsers.add({
-        'email': email,
-        'password': password,
-        'user': newUser,
-      });
-
-      _currentUser = newUser;
-
-      // Guardar sesión
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('current_user', email);
-
-      _setLoading(false);
-      return true;
+      if (user != null) {
+        _currentUser = user;
+        _setLoading(false);
+        return true;
+      } else {
+        _setError('Error al crear cuenta');
+        return false;
+      }
     } catch (e) {
-      _setError('Error al registrar usuario: $e');
+      _setError(e.toString());
       return false;
     }
   }
@@ -179,11 +109,22 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _setLoading(true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('current_user');
+      await _authService.signOut();
       _currentUser = null;
     } catch (e) {
-      _setError('Error al cerrar sesión');
+      _setError('Error al cerrar sesión: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Crear usuarios iniciales (solo para desarrollo)
+  Future<void> createInitialUsers() async {
+    _setLoading(true);
+    try {
+      await _authService.createInitialUsers();
+    } catch (e) {
+      _setError('Error creando usuarios iniciales: $e');
     } finally {
       _setLoading(false);
     }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "84858650792",
+    "project_id": "pm-monitor-system-1bef4",
+    "storage_bucket": "pm-monitor-system-1bef4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:84858650792:android:fd188464434f63e9dfc29d",
+        "android_client_info": {
+          "package_name": "com.example.pm_monitor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8vYHDlC7y_WE3f1sOse9ccvsoA1zesgo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

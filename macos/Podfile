@@ -1,4 +1,4 @@
-platform :osx, '10.14'
+platform :osx, '10.15'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -35,7 +35,28 @@ target 'Runner' do
   end
 end
 
+
 post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '10.15'
+      
+      # Fix C++ language standard for gRPC
+      if target.name.include?('gRPC')
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -std=c++17'
+      end
+    end
+    
+    # Fix the build phase warnings
+    target.build_phases.each do |phase|
+      if phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase)
+        phase.always_out_of_date = '1'
+      end
+    end
+  end
+  
+  # Fix Flutter macOS builds
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
   end

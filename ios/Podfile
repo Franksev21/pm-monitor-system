@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-# platform :ios, '12.0'
+platform :ios, '18.5'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -29,6 +29,7 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks!
+  use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
@@ -38,6 +39,27 @@ end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.5'
+      
+      # Fix the -G flag issue
+      if target.name == 'BoringSSL-GRPC'
+        # Safely handle OTHER_CFLAGS
+        flags = config.build_settings['OTHER_CFLAGS']
+        if flags && flags.is_a?(String)
+          config.build_settings['OTHER_CFLAGS'] = flags.gsub('-GCC_WARN_INHIBIT_ALL_WARNINGS', '-w')
+        elsif flags && flags.is_a?(Array)
+          config.build_settings['OTHER_CFLAGS'] = flags.map { |f| f.gsub('-GCC_WARN_INHIBIT_ALL_WARNINGS', '-w') }
+        end
+        
+        # Safely handle COMPILER_FLAGS
+        compiler_flags = config.build_settings['COMPILER_FLAGS']
+        if compiler_flags && compiler_flags.is_a?(String)
+          config.build_settings['COMPILER_FLAGS'] = compiler_flags.gsub('-GCC_WARN_INHIBIT_ALL_WARNINGS', '-w')
+        end
+      end
+    end
     flutter_additional_ios_build_settings(target)
   end
 end
