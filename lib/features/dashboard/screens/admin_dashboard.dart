@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/features/auth/screens/client_list_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../config/theme/app_theme.dart';
@@ -60,7 +61,13 @@ class AdminDashboard extends StatelessWidget {
                         Icons.business,
                         '8',
                         Colors.purple,
-                        () {},
+                        () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const ClientListScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
