@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/providers/client_provider.dart';
+import 'package:pm_monitor/core/providers/equipment_provider.dart';
+import 'package:pm_monitor/core/providers/tecnician_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -15,7 +17,6 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    // Si ya está inicializado, ignorar el error pero mas adelante tengo que poner los Logs.
     print(e);
   }
 
@@ -24,6 +25,8 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ClientProvider()..initialize()),
+        ChangeNotifierProvider(create: (_) => EquipmentProvider()..initialize()),
+        ChangeNotifierProvider(create: (_) => TechnicianProvider()),
       ],
       child: const PMMonitorApp(),
     ),

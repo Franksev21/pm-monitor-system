@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/auth/screens/client_list_screen.dart';
+import 'package:pm_monitor/features/auth/screens/tecnician_list_screen.dart';
+import 'package:pm_monitor/features/auth/screens/user_managament_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../config/theme/app_theme.dart';
@@ -54,7 +56,15 @@ class AdminDashboard extends StatelessWidget {
                         Icons.engineering,
                         '12',
                         Colors.orange,
-                        () {},
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const TechniciansListScreen(),
+                            ),
+                          );
+                        },
                       ),
                       _buildDashboardCard(
                         'Clientes',
@@ -65,6 +75,38 @@ class AdminDashboard extends StatelessWidget {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) => const ClientListScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      // NUEVO BOTÓN - Gestión de Usuarios
+                      _buildDashboardCard(
+                        'Gestión de Usuarios',
+                        Icons.manage_accounts,
+                        'Todo',
+                        Colors.teal,
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const UserManagementScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      // Espacio para futuro botón (Indicadores, Reportes, etc.)
+                      _buildDashboardCard(
+                        'Indicadores',
+                        Icons.analytics,
+                        'KPI',
+                        Colors.indigo,
+                        () {
+                          // Implementar más adelante
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Indicadores - Próximamente'),
+                              backgroundColor: Colors.indigo,
                             ),
                           );
                         },

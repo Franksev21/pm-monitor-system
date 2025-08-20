@@ -223,92 +223,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 32),
-
-                // Usuarios de prueba
-                _buildTestUsersCard(),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTestUsersCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  color: Colors.blue[600],
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Usuarios de Prueba',
-                  style: AppTheme.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue[600],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildTestUser('Administrador', 'admin@pmmonitor.com'),
-            _buildTestUser('Supervisor', 'supervisor@pmmonitor.com'),
-            _buildTestUser('Técnico', 'tecnico@pmmonitor.com'),
-            _buildTestUser('Cliente', 'cliente@pmmonitor.com'),
-            const SizedBox(height: 8),
-            Text(
-              'Contraseña para todos: 123456',
-              style: AppTheme.bodySmall.copyWith(
-                fontStyle: FontStyle.italic,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTestUser(String role, String email) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: GestureDetector(
-        onTap: () {
-          _emailController.text = email;
-          _passwordController.text = '123456';
-        },
-        child: Row(
-          children: [
-            Text(
-              '$role: ',
-              style: AppTheme.bodySmall.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Expanded(
-              child: Text(
-                email,
-                style: AppTheme.bodySmall.copyWith(
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-            ),
-            Icon(
-              Icons.touch_app,
-              size: 16,
-              color: Colors.grey[400],
-            ),
-          ],
         ),
       ),
     );

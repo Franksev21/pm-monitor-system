@@ -1,27 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/client_provider.dart';
+import '../../../core/providers/equipment_provider.dart'; // ✅ Agregado
 import '../../../core/models/client_model.dart';
 import '../../../config/theme/app_theme.dart';
 import 'add_client_screen.dart';
+import 'add_equipment_screen.dart';
+import 'equipment_list_screen.dart';
 
-class ClientDetailScreen extends StatelessWidget {
+class ClientDetailScreen extends StatefulWidget {
+  // ✅ Cambiado a StatefulWidget
   final ClientModel client;
 
   const ClientDetailScreen({super.key, required this.client});
 
   @override
+  State<ClientDetailScreen> createState() => _ClientDetailScreenState();
+}
+
+class _ClientDetailScreenState extends State<ClientDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Cargar equipos del cliente al inicializar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final equipmentProvider =
+          Provider.of<EquipmentProvider>(context, listen: false);
+      equipmentProvider.loadEquipmentsByClient(widget.client.id);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(client.name),
+        title: Text(widget.client.name),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => AddClientScreen(client: client),
+                  builder: (context) => AddClientScreen(client: widget.client),
                 ),
               );
             },
@@ -59,22 +79,32 @@ class ClientDetailScreen extends StatelessWidget {
             _buildHeader(),
             _buildBasicInfo(),
             _buildAddressInfo(),
-            if (client.branches.isNotEmpty) _buildBranchesInfo(),
-            if (client.contacts.isNotEmpty) _buildContactsInfo(),
-            if (client.notes.isNotEmpty) _buildNotesInfo(),
+            if (widget.client.branches.isNotEmpty) _buildBranchesInfo(),
+            if (widget.client.contacts.isNotEmpty) _buildContactsInfo(),
+            if (widget.client.notes.isNotEmpty) _buildNotesInfo(),
             _buildActions(context),
             const SizedBox(height: 100), // Espacio para FAB
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: Navegar a crear equipo para este cliente
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Próximamente: Agregar equipo'),
+        onPressed: () async {
+          // ✅ Navegar y esperar resultado
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddEquipmentScreen(
+                client: widget.client,
+              ),
             ),
           );
+
+          // ✅ Si se agregó un equipo, recargar la lista
+          if (result == true && mounted) {
+            final equipmentProvider =
+                Provider.of<EquipmentProvider>(context, listen: false);
+            equipmentProvider.loadEquipmentsByClient(widget.client.id);
+          }
         },
         icon: const Icon(Icons.add),
         label: const Text('Agregar Equipo'),
@@ -104,7 +134,7 @@ class ClientDetailScreen extends StatelessWidget {
               radius: 40,
               backgroundColor: Colors.white,
               child: Text(
-                client.name[0].toUpperCase(),
+                widget.client.name[0].toUpperCase(),
                 style: TextStyle(
                   color: AppTheme.primaryColor,
                   fontSize: 32,
@@ -117,7 +147,7 @@ class ClientDetailScreen extends StatelessWidget {
 
             // Nombre del cliente
             Text(
-              client.name,
+              widget.client.name,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -143,13 +173,13 @@ class ClientDetailScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        _getTypeIcon(client.type),
+                        _getTypeIcon(widget.client.type),
                         size: 16,
                         color: Colors.white,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        client.type.displayName,
+                        widget.client.type.displayName,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -164,11 +194,11 @@ class ClientDetailScreen extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: client.statusColor.withOpacity(0.9),
+                    color: widget.client.statusColor.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    client.status.displayName,
+                    widget.client.status.displayName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -181,13 +211,71 @@ class ClientDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Estadísticas rápidas
+            // ✅ Estadísticas rápidas con contador de equipos en tiempo real
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildStatItem('Sucursales', client.totalBranches.toString()),
-                _buildStatItem('Contactos', client.totalContacts.toString()),
-                _buildStatItem('Equipos', '0'), // TODO: Contar equipos reales
+                _buildStatItem(
+                    'Sucursales', widget.client.totalBranches.toString()),
+                _buildStatItem(
+                    'Contactos', widget.client.totalContacts.toString()),
+                // ✅ Consumer para equipos en tiempo real
+                Consumer<EquipmentProvider>(
+                  builder: (context, equipmentProvider, child) {
+                    int equipmentCount =
+                        equipmentProvider.clientEquipments.length;
+                    return GestureDetector(
+                      onTap: equipmentCount > 0
+                          ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ClientEquipmentListScreen(
+                                    client: widget.client,
+                                  ),
+                                ),
+                              );
+                            }
+                          : () {
+                              // Si no hay equipos, ir directo a agregar
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AddEquipmentScreen(
+                                    client: widget.client,
+                                  ),
+                                ),
+                              ).then((result) {
+                                if (result == true) {
+                                  // Recargar equipos cuando regrese
+                                  equipmentProvider
+                                      .loadEquipmentsByClient(widget.client.id);
+                                }
+                              });
+                            },
+                      child: Column(
+                        children: [
+                          Text(
+                            '$equipmentCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text(
+                            'Equipos',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ],
@@ -196,6 +284,7 @@ class ClientDetailScreen extends StatelessWidget {
     );
   }
 
+  // ✅ Método simplificado sin bordes ni subrayado
   Widget _buildStatItem(String label, String value) {
     return Column(
       children: [
@@ -224,13 +313,13 @@ class ClientDetailScreen extends StatelessWidget {
       icon: Icons.business,
       child: Column(
         children: [
-          _buildInfoRow(Icons.email, 'Email', client.email),
-          _buildInfoRow(Icons.phone, 'Teléfono', client.phone),
-          if (client.website != null)
-            _buildInfoRow(Icons.language, 'Sitio Web', client.website!),
-          _buildInfoRow(Icons.badge, 'RNC/Cédula', client.taxId),
+          _buildInfoRow(Icons.email, 'Email', widget.client.email),
+          _buildInfoRow(Icons.phone, 'Teléfono', widget.client.phone),
+          if (widget.client.website != null)
+            _buildInfoRow(Icons.language, 'Sitio Web', widget.client.website!),
+          _buildInfoRow(Icons.badge, 'RNC/Cédula', widget.client.taxId),
           _buildInfoRow(Icons.calendar_today, 'Cliente desde',
-              _formatDate(client.createdAt)),
+              _formatDate(widget.client.createdAt)),
         ],
       ),
     );
@@ -245,7 +334,7 @@ class ClientDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              client.mainAddress.fullAddress,
+              widget.client.mainAddress.fullAddress,
               style: AppTheme.bodyLarge,
             ),
             const SizedBox(height: 12),
@@ -294,11 +383,12 @@ class ClientDetailScreen extends StatelessWidget {
 
   Widget _buildBranchesInfo() {
     return _buildSection(
-      title: 'Sucursales (${client.branches.length})',
+      title: 'Sucursales (${widget.client.branches.length})',
       icon: Icons.apartment,
       child: Column(
-        children:
-            client.branches.map((branch) => _buildBranchCard(branch)).toList(),
+        children: widget.client.branches
+            .map((branch) => _buildBranchCard(branch))
+            .toList(),
       ),
     );
   }
@@ -393,10 +483,10 @@ class ClientDetailScreen extends StatelessWidget {
 
   Widget _buildContactsInfo() {
     return _buildSection(
-      title: 'Contactos (${client.contacts.length})',
+      title: 'Contactos (${widget.client.contacts.length})',
       icon: Icons.contacts,
       child: Column(
-        children: client.contacts
+        children: widget.client.contacts
             .map((contact) => _buildContactCard(contact))
             .toList(),
       ),
@@ -515,7 +605,7 @@ class ClientDetailScreen extends StatelessWidget {
       title: 'Notas',
       icon: Icons.note,
       child: Text(
-        client.notes,
+        widget.client.notes,
         style: AppTheme.bodyLarge,
       ),
     );
@@ -669,7 +759,7 @@ class ClientDetailScreen extends StatelessWidget {
       case 'edit':
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => AddClientScreen(client: client),
+            builder: (context) => AddClientScreen(client: widget.client),
           ),
         );
         break;
@@ -684,8 +774,8 @@ class ClientDetailScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Cliente'),
-        content:
-            Text('¿Estás seguro de que quieres eliminar a ${client.name}?'),
+        content: Text(
+            '¿Estás seguro de que quieres eliminar a ${widget.client.name}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -694,8 +784,9 @@ class ClientDetailScreen extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              final success =
-                  await context.read<ClientProvider>().deleteClient(client.id);
+              final success = await context
+                  .read<ClientProvider>()
+                  .deleteClient(widget.client.id);
               if (success && context.mounted) {
                 Navigator.of(context).pop(); // Volver a la lista
                 ScaffoldMessenger.of(context).showSnackBar(
