@@ -11,9 +11,8 @@ class EquipmentService {
         .collection(_collection)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Equipment.fromFirestore(doc))
-            .toList());
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => Equipment.fromFirestore(doc)).toList());
   }
 
   // Obtener equipos por cliente - SIN ÍNDICE COMPUESTO
@@ -22,75 +21,88 @@ class EquipmentService {
         .collection(_collection)
         .where('clientId', isEqualTo: clientId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Equipment.fromFirestore(doc))
-            .toList());
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => Equipment.fromFirestore(doc)).toList());
   }
 
-  // Obtener equipos activos por cliente - SIN ÍNDICE COMPUESTO
+  // Obtener equipos activos por cliente - CORREGIDO
   Stream<List<Equipment>> getActiveEquipmentsByClient(String clientId) {
     return _firestore
         .collection(_collection)
         .where('clientId', isEqualTo: clientId)
-        .where('isActive', isEqualTo: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Equipment.fromFirestore(doc))
+            .where((equipment) => equipment.isActive)
             .toList());
   }
 
-  // Obtener equipos por técnico asignado
+  // Obtener equipos por técnico asignado - CORREGIDO
   Stream<List<Equipment>> getEquipmentsByTechnician(String technicianId) {
     return _firestore
         .collection(_collection)
         .where('assignedTechnicianId', isEqualTo: technicianId)
-        .where('isActive', isEqualTo: true)
-        .orderBy('nextMaintenanceDate')
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Equipment.fromFirestore(doc))
-            .toList());
+            .where((equipment) => equipment.isActive)
+            .toList()
+          ..sort((a, b) {
+            if (a.nextMaintenanceDate == null && b.nextMaintenanceDate == null)
+              return 0;
+            if (a.nextMaintenanceDate == null) return 1;
+            if (b.nextMaintenanceDate == null) return -1;
+            return a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!);
+          }));
   }
 
-  // Obtener equipos que necesitan mantenimiento
+  // Obtener equipos que necesitan mantenimiento - CORREGIDO
   Stream<List<Equipment>> getEquipmentsNeedingMaintenance() {
     DateTime today = DateTime.now();
     DateTime weekFromNow = today.add(Duration(days: 7));
-    
+
     return _firestore
         .collection(_collection)
         .where('isActive', isEqualTo: true)
-        .where('nextMaintenanceDate', isLessThanOrEqualTo: weekFromNow)
-        .orderBy('nextMaintenanceDate')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Equipment.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => Equipment.fromFirestore(doc))
+          .where((equipment) =>
+              equipment.nextMaintenanceDate != null &&
+              equipment.nextMaintenanceDate!.isBefore(weekFromNow))
+          .toList()
+        ..sort(
+            (a, b) => a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!));
+    });
   }
 
-  // Obtener equipos vencidos
+  // Obtener equipos vencidos - CORREGIDO
   Stream<List<Equipment>> getOverdueEquipments() {
     DateTime today = DateTime.now();
-    
+
     return _firestore
         .collection(_collection)
         .where('isActive', isEqualTo: true)
-        .where('nextMaintenanceDate', isLessThan: today)
-        .orderBy('nextMaintenanceDate')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Equipment.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => Equipment.fromFirestore(doc))
+          .where((equipment) =>
+              equipment.nextMaintenanceDate != null &&
+              equipment.nextMaintenanceDate!.isBefore(today))
+          .toList()
+        ..sort(
+            (a, b) => a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!));
+    });
   }
 
   // Obtener equipo por ID
   Future<Equipment?> getEquipmentById(String equipmentId) async {
     try {
-      DocumentSnapshot doc = await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .get();
-      
+      DocumentSnapshot doc =
+          await _firestore.collection(_collection).doc(equipmentId).get();
+
       if (doc.exists) {
         return Equipment.fromFirestore(doc);
       }
@@ -109,7 +121,7 @@ class EquipmentService {
           .where('rfidTag', isEqualTo: rfidTag)
           .limit(1)
           .get();
-      
+
       if (snapshot.docs.isNotEmpty) {
         return Equipment.fromFirestore(snapshot.docs.first);
       }
@@ -128,7 +140,7 @@ class EquipmentService {
           .where('qrCode', isEqualTo: qrCode)
           .limit(1)
           .get();
-      
+
       if (snapshot.docs.isNotEmpty) {
         return Equipment.fromFirestore(snapshot.docs.first);
       }
@@ -147,7 +159,7 @@ class EquipmentService {
           .where('equipmentNumber', isEqualTo: equipmentNumber)
           .limit(1)
           .get();
-      
+
       if (snapshot.docs.isNotEmpty) {
         return Equipment.fromFirestore(snapshot.docs.first);
       }
@@ -162,7 +174,8 @@ class EquipmentService {
   Future<String?> createEquipment(Equipment equipment) async {
     try {
       // Verificar que el número de equipo no exista
-      Equipment? existing = await getEquipmentByNumber(equipment.equipmentNumber);
+      Equipment? existing =
+          await getEquipmentByNumber(equipment.equipmentNumber);
       if (existing != null) {
         throw Exception('Equipment number already exists');
       }
@@ -173,10 +186,9 @@ class EquipmentService {
         throw Exception('RFID tag already exists');
       }
 
-      DocumentReference docRef = await _firestore
-          .collection(_collection)
-          .add(equipment.toFirestore());
-      
+      DocumentReference docRef =
+          await _firestore.collection(_collection).add(equipment.toFirestore());
+
       return docRef.id;
     } catch (e) {
       print('Error creating equipment: $e');
@@ -188,12 +200,12 @@ class EquipmentService {
   Future<bool> updateEquipment(Equipment equipment) async {
     try {
       if (equipment.id == null) return false;
-      
+
       await _firestore
           .collection(_collection)
           .doc(equipment.id)
           .update(equipment.toFirestore());
-      
+
       return true;
     } catch (e) {
       print('Error updating equipment: $e');
@@ -204,16 +216,13 @@ class EquipmentService {
   // Eliminar equipo (soft delete)
   Future<bool> deleteEquipment(String equipmentId, String deletedBy) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'isActive': false,
         'status': 'Eliminado',
         'updatedAt': DateTime.now(),
         'updatedBy': deletedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error deleting equipment: $e');
@@ -229,16 +238,13 @@ class EquipmentService {
     String assignedBy,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'assignedTechnicianId': technicianId,
         'assignedTechnicianName': technicianName,
         'updatedAt': DateTime.now(),
         'updatedBy': assignedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error assigning technician: $e');
@@ -253,15 +259,12 @@ class EquipmentService {
     String updatedBy,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'nextMaintenanceDate': nextDate,
         'updatedAt': DateTime.now(),
         'updatedBy': updatedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error updating next maintenance date: $e');
@@ -276,15 +279,12 @@ class EquipmentService {
     String updatedBy,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'status': status,
         'updatedAt': DateTime.now(),
         'updatedBy': updatedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error updating equipment status: $e');
@@ -299,15 +299,12 @@ class EquipmentService {
     String updatedBy,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'photoUrls': FieldValue.arrayUnion([photoUrl]),
         'updatedAt': DateTime.now(),
         'updatedBy': updatedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error adding photo: $e');
@@ -322,15 +319,12 @@ class EquipmentService {
     String updatedBy,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'photoUrls': FieldValue.arrayRemove([photoUrl]),
         'updatedAt': DateTime.now(),
         'updatedBy': updatedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error removing photo: $e');
@@ -346,16 +340,13 @@ class EquipmentService {
     String updatedBy,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'totalPmCost': pmCost,
         'totalCmCost': cmCost,
         'updatedAt': DateTime.now(),
         'updatedBy': updatedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error updating maintenance costs: $e');
@@ -369,16 +360,13 @@ class EquipmentService {
     String updatedBy,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'totalMaintenances': FieldValue.increment(1),
         'lastMaintenanceDate': DateTime.now(),
         'updatedAt': DateTime.now(),
         'updatedBy': updatedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error incrementing maintenance count: $e');
@@ -392,15 +380,12 @@ class EquipmentService {
     String updatedBy,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'totalFailures': FieldValue.increment(1),
         'updatedAt': DateTime.now(),
         'updatedBy': updatedBy,
       });
-      
+
       return true;
     } catch (e) {
       print('Error incrementing failure count: $e');
@@ -414,14 +399,11 @@ class EquipmentService {
     double temperature,
   ) async {
     try {
-      await _firestore
-          .collection(_collection)
-          .doc(equipmentId)
-          .update({
+      await _firestore.collection(_collection).doc(equipmentId).update({
         'currentTemperature': temperature,
         'updatedAt': DateTime.now(),
       });
-      
+
       return true;
     } catch (e) {
       print('Error updating temperature: $e');
@@ -429,47 +411,27 @@ class EquipmentService {
     }
   }
 
-  // Búsqueda de equipos por texto
+  // Búsqueda de equipos por texto - SIMPLIFICADA
   Future<List<Equipment>> searchEquipments(String searchTerm) async {
     try {
+      // Obtener todos los equipos y filtrar en memoria para evitar múltiples consultas complejas
+      QuerySnapshot snapshot = await _firestore
+          .collection(_collection)
+          .where('isActive', isEqualTo: true)
+          .get();
+
       String searchLower = searchTerm.toLowerCase();
-      
-      // Buscar por diferentes campos
-      List<Future<QuerySnapshot>> futures = [
-        _firestore
-            .collection(_collection)
-            .where('name', isGreaterThanOrEqualTo: searchLower)
-            .where('name', isLessThan: searchLower + 'z')
-            .get(),
-        _firestore
-            .collection(_collection)
-            .where('brand', isGreaterThanOrEqualTo: searchLower)
-            .where('brand', isLessThan: searchLower + 'z')
-            .get(),
-        _firestore
-            .collection(_collection)
-            .where('model', isGreaterThanOrEqualTo: searchLower)
-            .where('model', isLessThan: searchLower + 'z')
-            .get(),
-        _firestore
-            .collection(_collection)
-            .where('equipmentNumber', isGreaterThanOrEqualTo: searchLower)
-            .where('equipmentNumber', isLessThan: searchLower + 'z')
-            .get(),
-      ];
 
-      List<QuerySnapshot> results = await Future.wait(futures);
-      Set<String> equipmentIds = {};
-      List<Equipment> equipments = [];
-
-      for (QuerySnapshot snapshot in results) {
-        for (DocumentSnapshot doc in snapshot.docs) {
-          if (!equipmentIds.contains(doc.id)) {
-            equipmentIds.add(doc.id);
-            equipments.add(Equipment.fromFirestore(doc));
-          }
-        }
-      }
+      List<Equipment> equipments = snapshot.docs
+          .map((doc) => Equipment.fromFirestore(doc))
+          .where((equipment) =>
+              equipment.name.toLowerCase().contains(searchLower) ||
+              equipment.brand.toLowerCase().contains(searchLower) ||
+              equipment.model.toLowerCase().contains(searchLower) ||
+              equipment.equipmentNumber.toLowerCase().contains(searchLower) ||
+              equipment.location.toLowerCase().contains(searchLower) ||
+              equipment.branch.toLowerCase().contains(searchLower))
+          .toList();
 
       return equipments;
     } catch (e) {
@@ -479,29 +441,31 @@ class EquipmentService {
   }
 
   // Obtener estadísticas de equipos por cliente
-  Future<Map<String, dynamic>> getEquipmentStatsByClient(String clientId) async {
+  Future<Map<String, dynamic>> getEquipmentStatsByClient(
+      String clientId) async {
     try {
       QuerySnapshot snapshot = await _firestore
           .collection(_collection)
           .where('clientId', isEqualTo: clientId)
           .get();
 
-      List<Equipment> equipments = snapshot.docs
-          .map((doc) => Equipment.fromFirestore(doc))
-          .toList();
+      List<Equipment> equipments =
+          snapshot.docs.map((doc) => Equipment.fromFirestore(doc)).toList();
 
       int total = equipments.length;
       int active = equipments.where((e) => e.isActive).length;
-      int needingMaintenance = equipments.where((e) => e.needsMaintenance).length;
+      int needingMaintenance =
+          equipments.where((e) => e.needsMaintenance).length;
       int overdue = equipments.where((e) => e.isOverdue).length;
-      
+
       double totalCost = equipments.fold(0, (sum, e) => sum + e.totalCost);
       double totalPmCost = equipments.fold(0, (sum, e) => sum + e.totalPmCost);
       double totalCmCost = equipments.fold(0, (sum, e) => sum + e.totalCmCost);
-      
-      double averageEfficiency = equipments.isEmpty 
-          ? 0.0 
-          : equipments.fold(0.0, (sum, e) => sum + e.maintenanceEfficiency) / equipments.length;
+
+      double averageEfficiency = equipments.isEmpty
+          ? 0.0
+          : equipments.fold(0.0, (sum, e) => sum + e.maintenanceEfficiency) /
+              equipments.length;
 
       return {
         'total': total,
@@ -521,64 +485,63 @@ class EquipmentService {
 
   // Generar próximo número de equipo automáticamente - SIN ÍNDICE
   Future<String> generateEquipmentNumber(String clientId) async {
-  try {
-    // Validar que el clientId tenga al menos 3 caracteres
-    if (clientId.length < 3) {
-      // Si es muy corto, usar el ID completo o rellenar
-      String prefix = clientId.toUpperCase().padRight(3, 'X');
-      return '$prefix-001';
-    }
+    try {
+      // Validar que el clientId tenga al menos 3 caracteres
+      if (clientId.length < 3) {
+        // Si es muy corto, usar el ID completo o rellenar
+        String prefix = clientId.toUpperCase().padRight(3, 'X');
+        return '$prefix-001';
+      }
 
-    // Obtener todos los equipos del cliente (sin orderBy para evitar índice)
-    QuerySnapshot snapshot = await _firestore
-        .collection(_collection)
-        .where('clientId', isEqualTo: clientId)
-        .get();
+      // Obtener todos los equipos del cliente (sin orderBy para evitar índice)
+      QuerySnapshot snapshot = await _firestore
+          .collection(_collection)
+          .where('clientId', isEqualTo: clientId)
+          .get();
 
-    if (snapshot.docs.isEmpty) {
-      // Primer equipo del cliente
-      return '${clientId.substring(0, 3).toUpperCase()}-001';
-    }
+      if (snapshot.docs.isEmpty) {
+        // Primer equipo del cliente
+        return '${clientId.substring(0, 3).toUpperCase()}-001';
+      }
 
-    // Encontrar el número más alto
-    int maxNumber = 0;
-    String prefix = '${clientId.substring(0, 3).toUpperCase()}-';
-    
-    for (DocumentSnapshot doc in snapshot.docs) {
-      Equipment equipment = Equipment.fromFirestore(doc);
-      String equipmentNumber = equipment.equipmentNumber;
-      
-      if (equipmentNumber.startsWith(prefix)) {
-        // Extraer el número del final
-        // Expresión regular corregida: busca un guión seguido de dígitos al final
-        RegExp regex = RegExp(r'-(\d+)$');
-        Match? match = regex.firstMatch(equipmentNumber);
-        
-        if (match != null) {
-          int number = int.parse(match.group(1)!);
-          if (number > maxNumber) {
-            maxNumber = number;
+      // Encontrar el número más alto
+      int maxNumber = 0;
+      String prefix = '${clientId.substring(0, 3).toUpperCase()}-';
+
+      for (DocumentSnapshot doc in snapshot.docs) {
+        Equipment equipment = Equipment.fromFirestore(doc);
+        String equipmentNumber = equipment.equipmentNumber;
+
+        if (equipmentNumber.startsWith(prefix)) {
+          // Extraer el número del final
+          // Expresión regular corregida: busca un guión seguido de dígitos al final
+          RegExp regex = RegExp(r'-(\d+)$');
+          Match? match = regex.firstMatch(equipmentNumber);
+
+          if (match != null) {
+            int number = int.parse(match.group(1)!);
+            if (number > maxNumber) {
+              maxNumber = number;
+            }
           }
         }
       }
+
+      // Generar el siguiente número
+      int nextNumber = maxNumber + 1;
+      return '$prefix${nextNumber.toString().padLeft(3, '0')}';
+    } catch (e) {
+      print('Error generating equipment number: $e');
+      // Fallback con timestamp para evitar duplicados
+      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      // Tomar los últimos 6 dígitos del timestamp para mantenerlo corto
+      String shortTimestamp = timestamp.substring(timestamp.length - 6);
+
+      // Si el clientId es muy corto, usar un prefijo genérico
+      String prefix =
+          clientId.length >= 3 ? clientId.substring(0, 3).toUpperCase() : 'EQP';
+
+      return '$prefix-$shortTimestamp';
     }
-    
-    // Generar el siguiente número
-    int nextNumber = maxNumber + 1;
-    return '$prefix${nextNumber.toString().padLeft(3, '0')}';
-    
-  } catch (e) {
-    print('Error generating equipment number: $e');
-    // Fallback con timestamp para evitar duplicados
-    String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-    // Tomar los últimos 6 dígitos del timestamp para mantenerlo corto
-    String shortTimestamp = timestamp.substring(timestamp.length - 6);
-    
-    // Si el clientId es muy corto, usar un prefijo genérico
-    String prefix = clientId.length >= 3 
-        ? clientId.substring(0, 3).toUpperCase() 
-        : 'EQP';
-    
-    return '$prefix-$shortTimestamp';
   }
-}}
+}

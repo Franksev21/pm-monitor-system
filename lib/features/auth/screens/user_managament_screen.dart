@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/services/user_management_service.dart';
 import 'package:pm_monitor/features/auth/screens/assign_equipment_screen.dart';
+import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({Key? key}) : super(key: key);
@@ -389,7 +390,16 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             ),
                           ),
                           const SizedBox(width: 8),
-                          if (user.assignmentsText.isNotEmpty)
+                          // CORREGIDO: Usar TechnicianEquipmentCount para técnicos
+                          if (user.role == 'technician')
+                            TechnicianEquipmentCount(
+                              technicianId: user.id,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            )
+                          else if (user.assignmentsText.isNotEmpty)
                             Text(
                               user.assignmentsText,
                               style: const TextStyle(
@@ -615,7 +625,15 @@ class _UserManagementScreenState extends State<UserManagementScreen>
               _buildDetailRow('Teléfono:', user.phone),
               _buildDetailRow('Rol:', user.roleInSpanish),
               _buildDetailRow('Estado:', user.statusText),
-              if (user.assignmentsText.isNotEmpty)
+              // CORREGIDO: Usar TechnicianEquipmentCount para técnicos en el diálogo
+              if (user.role == 'technician')
+                _buildDetailRowWithWidget(
+                    'Asignaciones:',
+                    TechnicianEquipmentCount(
+                      technicianId: user.id,
+                      style: const TextStyle(fontSize: 14),
+                    ))
+              else if (user.assignmentsText.isNotEmpty)
                 _buildDetailRow('Asignaciones:', user.assignmentsText),
               if (user.hourlyRate != null)
                 _buildDetailRow(
@@ -650,6 +668,26 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           Expanded(
             child: Text(value),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Agregar este método que faltaba
+  Widget _buildDetailRowWithWidget(String label, Widget valueWidget) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(child: valueWidget),
         ],
       ),
     );

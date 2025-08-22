@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/models/tecnician_model.dart';
+import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/providers/tecnician_provider.dart';
+import 'package:pm_monitor/features/auth/screens/assign_equipment_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 import 'package:provider/provider.dart';
 
@@ -100,7 +102,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
         children: [
           _buildStatItem('Total', stats['total'] ?? 0, Colors.blue),
           _buildStatItem('Activos', stats['active'] ?? 0, Colors.green),
-          _buildStatItem('Con Equipos', stats['withEquipments'] ?? 0, Colors.orange),
+          _buildStatItem(
+              'Con Equipos', stats['withEquipments'] ?? 0, Colors.orange),
         ],
       ),
     );
@@ -253,7 +256,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     );
   }
 
-  Widget _buildTechnicianCard(TechnicianModel technician, TechnicianProvider provider) {
+  Widget _buildTechnicianCard(
+      TechnicianModel technician, TechnicianProvider provider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Card(
@@ -325,7 +329,9 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: technician.isActive ? Colors.green : Colors.red,
+                              color: technician.isActive
+                                  ? Colors.green
+                                  : Colors.red,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -347,7 +353,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                           Expanded(
                             child: Text(
                               technician.email,
-                              style: const TextStyle(fontSize: 14, color: Colors.grey),
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.grey),
                             ),
                           ),
                         ],
@@ -356,11 +363,13 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            const Icon(Icons.phone, size: 14, color: Colors.grey),
+                            const Icon(Icons.phone,
+                                size: 14, color: Colors.grey),
                             const SizedBox(width: 4),
                             Text(
                               technician.phone,
-                              style: const TextStyle(fontSize: 14, color: Colors.grey),
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.grey),
                             ),
                           ],
                         ),
@@ -372,10 +381,12 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                           const SizedBox(width: 4),
                           TechnicianEquipmentCount(
                             technicianId: technician.id!,
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
                           ),
                           if (technician.hourlyRate != null) ...[
-                            const Text(' • ', style: TextStyle(color: Colors.grey)),
+                            const Text(' • ',
+                                style: TextStyle(color: Colors.grey)),
                             Text(
                               '\$${technician.hourlyRate!.toStringAsFixed(2)}/hr',
                               style: const TextStyle(
@@ -391,7 +402,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  onSelected: (value) => _handleMenuAction(value, technician, provider),
+                  onSelected: (value) =>
+                      _handleMenuAction(value, technician, provider),
                   itemBuilder: (context) => [
                     const PopupMenuItem(
                       value: 'edit',
@@ -408,7 +420,9 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                       child: Row(
                         children: [
                           Icon(
-                            technician.isActive ? Icons.block : Icons.check_circle,
+                            technician.isActive
+                                ? Icons.block
+                                : Icons.check_circle,
                             size: 18,
                           ),
                           const SizedBox(width: 8),
@@ -420,7 +434,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                       value: 'assign_equipment',
                       child: Row(
                         children: [
-                          Icon(Icons.assignment, size: 18),
+                          Icon(Icons.precision_manufacturing, size: 18),
                           SizedBox(width: 8),
                           Text('Asignar Equipos'),
                         ],
@@ -456,7 +470,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     );
   }
 
-  void _handleMenuAction(String action, TechnicianModel technician, TechnicianProvider provider) {
+  void _handleMenuAction(
+      String action, TechnicianModel technician, TechnicianProvider provider) {
     switch (action) {
       case 'edit':
         _editTechnician(technician, provider);
@@ -489,14 +504,15 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
               _buildDetailRow('Email:', technician.email),
               _buildDetailRow('Teléfono:', technician.phone),
               _buildDetailRow('Estado:', technician.statusText),
-              _buildDetailRowWithWidget('Equipos Asignados:', 
-                TechnicianEquipmentCount(
-                  technicianId: technician.id!,
-                  style: const TextStyle(fontSize: 14),
-                )
-              ),
+              _buildDetailRowWithWidget(
+                  'Equipos Asignados:',
+                  TechnicianEquipmentCount(
+                    technicianId: technician.id!,
+                    style: const TextStyle(fontSize: 14),
+                  )),
               if (technician.hourlyRate != null)
-                _buildDetailRow('Tarifa/Hora:', '\$${technician.hourlyRate!.toStringAsFixed(2)}'),
+                _buildDetailRow('Tarifa/Hora:',
+                    '\$${technician.hourlyRate!.toStringAsFixed(2)}'),
               if (technician.specialization != null)
                 _buildDetailRow('Especialización:', technician.specialization!),
               _buildDetailRow('Registrado:', technician.formattedCreatedDate),
@@ -521,7 +537,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           Expanded(child: Text(value)),
         ],
@@ -537,7 +554,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           Expanded(child: valueWidget),
         ],
@@ -554,7 +572,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     );
   }
 
-  void _editTechnician(TechnicianModel technician, TechnicianProvider provider) {
+  void _editTechnician(
+      TechnicianModel technician, TechnicianProvider provider) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Editar técnico: ${technician.fullName}'),
@@ -563,11 +582,13 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     );
   }
 
-  void _toggleTechnicianStatus(TechnicianModel technician, TechnicianProvider provider) {
+  void _toggleTechnicianStatus(
+      TechnicianModel technician, TechnicianProvider provider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${technician.isActive ? 'Desactivar' : 'Activar'} Técnico'),
+        title:
+            Text('${technician.isActive ? 'Desactivar' : 'Activar'} Técnico'),
         content: Text(
             '¿Estás seguro de que deseas ${technician.isActive ? 'desactivar' : 'activar'} a ${technician.fullName}?'),
         actions: [
@@ -601,17 +622,40 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     );
   }
 
-  void _assignEquipment(TechnicianModel technician, TechnicianProvider provider) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Asignar equipos a: ${technician.fullName}'),
-        backgroundColor: Colors.orange,
+  // MÉTODO ACTUALIZADO: Ahora navega a AssignEquipmentScreen igual que en UserManagementScreen
+  void _assignEquipment(
+      TechnicianModel technician, TechnicianProvider provider) async {
+    // Convertir TechnicianModel a UserManagementModel para compatibilidad
+    final userModel = UserManagementModel(
+      id: technician.id!,
+      name: technician.fullName,
+      email: technician.email,
+      phone: technician.phone,
+      role: 'technician',
+      isActive: technician.isActive,
+      hourlyRate: technician.hourlyRate,
+      createdAt: technician.createdAt,
+      photoUrl: technician.profileImageUrl,
+    );
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssignEquipmentScreen(technician: userModel),
       ),
     );
+
+    // Si se asignaron equipos, refrescar la lista
+    if (result == true) {
+      provider.refresh();
+      provider.loadStats();
+    }
   }
 
-  void _updateTechnicianRate(TechnicianModel technician, TechnicianProvider provider) {
-    final rateController = TextEditingController(text: technician.hourlyRate?.toString() ?? '');
+  void _updateTechnicianRate(
+      TechnicianModel technician, TechnicianProvider provider) {
+    final rateController =
+        TextEditingController(text: technician.hourlyRate?.toString() ?? '');
 
     showDialog(
       context: context,
@@ -637,7 +681,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                 final rate = double.tryParse(rateText);
                 if (rate != null && rate > 0) {
                   Navigator.of(context).pop();
-                  final success = await provider.updateTechnicianRate(technician.id, rate);
+                  final success =
+                      await provider.updateTechnicianRate(technician.id, rate);
 
                   if (success) {
                     ScaffoldMessenger.of(context).showSnackBar(

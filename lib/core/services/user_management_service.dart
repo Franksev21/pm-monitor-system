@@ -11,13 +11,15 @@ class UserManagementService {
       // Para clientes, usar una implementación que combine ambas colecciones
       return Stream.periodic(const Duration(seconds: 2), (i) => i)
           .asyncMap((_) => _getCombinedClients())
-          .distinct();
+          .distinct()
+          .asBroadcastStream();
     } else {
       // Para técnicos y supervisores, usar solo la colección users
       return _firestore
           .collection(_collection)
           .where('role', isEqualTo: role)
           .snapshots()
+          .asBroadcastStream()
           .map((snapshot) => snapshot.docs
               .map((doc) => UserManagementModel.fromFirestore(doc))
               .toList());
