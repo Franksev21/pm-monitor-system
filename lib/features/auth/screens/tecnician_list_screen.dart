@@ -380,7 +380,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                           const Icon(Icons.build, size: 14, color: Colors.grey),
                           const SizedBox(width: 4),
                           TechnicianEquipmentCount(
-                            technicianId: technician.id!,
+                            technicianId: technician.id,
                             style: const TextStyle(
                                 fontSize: 12, color: Colors.grey),
                           ),
@@ -507,7 +507,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
               _buildDetailRowWithWidget(
                   'Equipos Asignados:',
                   TechnicianEquipmentCount(
-                    technicianId: technician.id!,
+                    technicianId: technician.id,
                     style: const TextStyle(fontSize: 14),
                   )),
               if (technician.hourlyRate != null)
@@ -627,7 +627,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       TechnicianModel technician, TechnicianProvider provider) async {
     // Convertir TechnicianModel a UserManagementModel para compatibilidad
     final userModel = UserManagementModel(
-      id: technician.id!,
+      id: technician.id,
       name: technician.fullName,
       email: technician.email,
       phone: technician.phone,
