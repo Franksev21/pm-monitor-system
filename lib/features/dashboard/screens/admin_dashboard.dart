@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/features/auth/screens/add_maintenance_screen.dart';
+import 'package:pm_monitor/features/auth/screens/global_Equipment_Inventory_Screen.dart';
 import 'package:pm_monitor/features/auth/screens/client_list_screen.dart';
 import 'package:pm_monitor/features/auth/screens/tecnician_list_screen.dart';
 import 'package:pm_monitor/features/auth/screens/user_managament_screen.dart';
+import 'package:pm_monitor/features/auth/widgets/apple_style_calender.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../config/theme/app_theme.dart';
@@ -42,14 +45,30 @@ class AdminDashboard extends StatelessWidget {
                         Icons.precision_manufacturing,
                         '124',
                         Colors.blue,
-                        () {},
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const GlobalEquipmentInventoryScreen(),
+                            ),
+                          );
+                        },
                       ),
                       _buildDashboardCard(
                         'Mantenimientos',
                         Icons.build_circle,
                         '67',
                         Colors.green,
-                        () {},
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const AppleStyleMaintenanceCalendar(),
+                            ),
+                          );
+                        },
                       ),
                       _buildDashboardCard(
                         'Técnicos',

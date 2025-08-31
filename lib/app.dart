@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/models/user_model.dart';
 import 'config/theme/app_theme.dart';
@@ -19,6 +20,18 @@ class PMMonitorApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
+      
+      // Configuración de localización para español
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('es'), // Español simplificado
+        Locale('en'), // Inglés como fallback
+      ],
+      
       home: const AuthWrapper(),
       routes: {
         '/admin-dashboard': (context) => const AdminDashboard(),

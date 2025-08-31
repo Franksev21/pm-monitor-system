@@ -1,0 +1,648 @@
+import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
+import 'maintenance_schedule_model.dart';
+import 'add_maintenance_screen.dart';
+import 'maintenance_filter_dialog.dart';
+
+class MaintenanceCalendarScreen extends StatefulWidget {
+  const MaintenanceCalendarScreen({Key? key}) : super(key: key);
+
+  @override
+  _MaintenanceCalendarScreenState createState() => _MaintenanceCalendarScreenState();
+}
+
+class _MaintenanceCalendarScreenState extends State<MaintenanceCalendarScreen> {
+  late final ValueNotifier<List<MaintenanceSchedule>> _selectedEvents;
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOff;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  DateTime? _rangeStart;
+  DateTime? _rangeEnd;
+  
+  // Simulación de datos - en producción esto vendría de Firebase
+  Map<DateTime, List<MaintenanceSchedule>> _events = {};
+  List<MaintenanceSchedule> _allMaintenances = [];
+  
+  String _filterStatus = 'all';
+  String _filterTechnician = 'all';
+  String _filterClient = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDay = DateTime.now();
+    _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
+    _loadMaintenances();
+  }
+
+  @override
+  void dispose() {
+    _selectedEvents.dispose();
+    super.dispose();
+  }
+
+  void _loadMaintenances() {
+    // Simulación de datos - aquí cargarías desde Firebase
+    _allMaintenances = _generateSampleMaintenances();
+    _updateEventsMap();
+  }
+
+  void _updateEventsMap() {
+    _events.clear();
+    for (var maintenance in _allMaintenances) {
+      final date = DateTime(
+        maintenance.scheduledDate.year,
+        maintenance.scheduledDate.month,
+        maintenance.scheduledDate.day,
+      );
+      
+      if (_events[date] != null) {
+        _events[date]!.add(maintenance);
+      } else {
+        _events[date] = [maintenance];
+      }
+    }
+    
+    if (_selectedDay != null) {
+      _selectedEvents.value = _getEventsForDay(_selectedDay!);
+    }
+    setState(() {});
+  }
+
+  List<MaintenanceSchedule> _getEventsForDay(DateTime day) {
+    final normalizedDay = DateTime(day.year, day.month, day.day);
+    return _events[normalizedDay] ?? [];
+  }
+
+  List<MaintenanceSchedule> _getEventsForRange(DateTime start, DateTime end) {
+    final days = _daysInRange(start, end);
+    return [
+      for (final d in days) ..._getEventsForDay(d),
+    ];
+  }
+
+  List<DateTime> _daysInRange(DateTime start, DateTime end) {
+    int dayCount = end.difference(start).inDays + 1;
+    return List.generate(
+      dayCount,
+      (index) => DateTime(start.year, start.month, start.day + index),
+    );
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+    if (!isSameDay(_selectedDay, selectedDay)) {
+      setState(() {
+        _selectedDay = selectedDay;
+        _focusedDay = focusedDay;
+        _rangeStart = null;
+        _rangeEnd = null;
+        _rangeSelectionMode = RangeSelectionMode.toggledOff;
+      });
+
+      _selectedEvents.value = _getEventsForDay(selectedDay);
+    }
+  }
+
+  void _onRangeSelected(DateTime? start, DateTime? end, DateTime focusedDay) {
+    setState(() {
+      _selectedDay = null;
+      _focusedDay = focusedDay;
+      _rangeStart = start;
+      _rangeEnd = end;
+      _rangeSelectionMode = RangeSelectionMode.toggledOn;
+    });
+
+    if (start != null && end != null) {
+      _selectedEvents.value = _getEventsForRange(start, end);
+    } else if (start != null) {
+      _selectedEvents.value = _getEventsForDay(start);
+    } else {
+      _selectedEvents.value = [];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Calendario de Mantenimientos'),
+        backgroundColor: const Color(0xFF2196F3),
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: _showFilterDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _showAddMaintenanceDialog(),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildCalendarHeader(),
+          _buildTableCalendar(),
+          const SizedBox(height: 8.0),
+          Expanded(
+            child: ValueListenableBuilder<List<MaintenanceSchedule>>(
+              valueListenable: _selectedEvents,
+              builder: (context, value, _) {
+                return _buildEventsList(value);
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddMaintenanceDialog(),
+        backgroundColor: const Color(0xFF2196F3),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildCalendarHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            DateFormat('MMMM yyyy', 'es').format(_focusedDay),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () {
+                  setState(() {
+                    _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1);
+                  });
+                },
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _focusedDay = DateTime.now();
+                    _selectedDay = DateTime.now();
+                    _selectedEvents.value = _getEventsForDay(_selectedDay!);
+                  });
+                },
+                child: const Text('Hoy'),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () {
+                  setState(() {
+                    _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1);
+                  });
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableCalendar() {
+    return TableCalendar<MaintenanceSchedule>(
+      firstDay: DateTime.utc(2020, 1, 1),
+      lastDay: DateTime.utc(2030, 12, 31),
+      focusedDay: _focusedDay,
+      calendarFormat: _calendarFormat,
+      eventLoader: _getEventsForDay,
+      rangeSelectionMode: _rangeSelectionMode,
+      selectedDayPredicate: (day) {
+        return isSameDay(_selectedDay, day);
+      },
+      rangeStartDay: _rangeStart,
+      rangeEndDay: _rangeEnd,
+      onDaySelected: _onDaySelected,
+      onRangeSelected: _onRangeSelected,
+      onFormatChanged: (format) {
+        if (_calendarFormat != format) {
+          setState(() {
+            _calendarFormat = format;
+          });
+        }
+      },
+      onPageChanged: (focusedDay) {
+        _focusedDay = focusedDay;
+      },
+      calendarStyle: CalendarStyle(
+        outsideDaysVisible: false,
+        markersMaxCount: 3,
+        markerDecoration: BoxDecoration(
+          color: Colors.blue[400],
+          shape: BoxShape.circle,
+        ),
+        selectedDecoration: const BoxDecoration(
+          color: Color(0xFF2196F3),
+          shape: BoxShape.circle,
+        ),
+        todayDecoration: BoxDecoration(
+          color: Colors.blue[300],
+          shape: BoxShape.circle,
+        ),
+        rangeHighlightColor: Colors.blue[100],
+        rangeStartDecoration: const BoxDecoration(
+          color: Color(0xFF2196F3),
+          shape: BoxShape.circle,
+        ),
+        rangeEndDecoration: const BoxDecoration(
+          color: Color(0xFF2196F3),
+          shape: BoxShape.circle,
+        ),
+      ),
+      calendarBuilders: CalendarBuilders(
+        markerBuilder: (context, day, events) {
+          if (events.isNotEmpty) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: events.take(3).map((event) {
+                return Container(
+                  margin: const EdgeInsets.only(top: 5, right: 2),
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: event.statusColor,
+                    shape: BoxShape.circle,
+                  ),
+                );
+              }).toList(),
+            );
+          }
+          return null;
+        },
+      ),
+      headerStyle: const HeaderStyle(
+        formatButtonVisible: true,
+        titleCentered: true,
+        formatButtonShowsNext: false,
+        formatButtonDecoration: BoxDecoration(
+          color: Color(0xFF2196F3),
+          borderRadius: BorderRadius.all(Radius.circular(12.0)),
+        ),
+        formatButtonTextStyle: TextStyle(
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventsList(List<MaintenanceSchedule> events) {
+    if (events.isEmpty) {
+      return const Center(
+        child: Text(
+          'No hay mantenimientos programados para esta fecha',
+          style: TextStyle(color: Colors.grey, fontSize: 16),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: events.length,
+      itemBuilder: (context, index) {
+        return _buildMaintenanceCard(events[index]);
+      },
+    );
+  }
+
+  Widget _buildMaintenanceCard(MaintenanceSchedule maintenance) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        onTap: () => _showMaintenanceDetails(maintenance),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: maintenance.statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: maintenance.statusColor),
+                    ),
+                    child: Text(
+                      maintenance.statusDisplayName,
+                      style: TextStyle(
+                        color: maintenance.statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    DateFormat('HH:mm').format(maintenance.scheduledDate),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                maintenance.equipmentName,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                maintenance.clientName,
+                style: const TextStyle(color: Colors.grey),
+              ),
+              if (maintenance.technicianName != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.person, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      maintenance.technicianName!,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+              if (maintenance.location != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        maintenance.location!,
+                        style: const TextStyle(color: Colors.grey),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Chip(
+                    label: Text(maintenance.frequencyDisplayName),
+                    backgroundColor: Colors.blue[50],
+                    labelStyle: const TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: Text('${maintenance.estimatedDurationMinutes} min'),
+                    backgroundColor: Colors.green[50],
+                    labelStyle: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => MaintenanceFilterDialog(
+        selectedTechnician: _filterTechnician,
+        selectedClient: _filterClient,
+        onFiltersApplied: (filters) {
+          setState(() {
+            _filterTechnician = filters['technician'] ?? 'all';
+            _filterClient = filters['client'] ?? 'all';
+            // Aplicar filtros a la lista de mantenimientos
+            _applyFilters(filters);
+          });
+        },
+      ),
+    );
+  }
+
+  void _applyFilters(Map<String, dynamic> filters) {
+    // Filtrar la lista de mantenimientos basada en los filtros aplicados
+    List<MaintenanceSchedule> filteredMaintenances = List.from(_allMaintenances);
+
+    // Filtro por técnico
+    if (filters['technician'] != 'all' && filters['technician'] != null) {
+      filteredMaintenances = filteredMaintenances
+          .where((m) => m.technicianId == filters['technician'])
+          .toList();
+    }
+
+    // Filtro por cliente
+    if (filters['client'] != 'all' && filters['client'] != null) {
+      filteredMaintenances = filteredMaintenances
+          .where((m) => m.clientId == filters['client'])
+          .toList();
+    }
+
+    // Filtro por estado
+    if (filters['status'] != null) {
+      filteredMaintenances = filteredMaintenances
+          .where((m) => m.status == filters['status'])
+          .toList();
+    }
+
+    // Filtro por frecuencia
+    if (filters['frequency'] != null) {
+      filteredMaintenances = filteredMaintenances
+          .where((m) => m.frequency == filters['frequency'])
+          .toList();
+    }
+
+    // Filtro por rango de fechas
+    if (filters['startDate'] != null) {
+      filteredMaintenances = filteredMaintenances
+          .where((m) => m.scheduledDate.isAfter(filters['startDate']))
+          .toList();
+    }
+
+    if (filters['endDate'] != null) {
+      filteredMaintenances = filteredMaintenances
+          .where((m) => m.scheduledDate.isBefore(filters['endDate']))
+          .toList();
+    }
+
+    // Actualizar los eventos del calendario
+    _events.clear();
+    for (var maintenance in filteredMaintenances) {
+      final date = DateTime(
+        maintenance.scheduledDate.year,
+        maintenance.scheduledDate.month,
+        maintenance.scheduledDate.day,
+      );
+      
+      if (_events[date] != null) {
+        _events[date]!.add(maintenance);
+      } else {
+        _events[date] = [maintenance];
+      }
+    }
+
+    // Actualizar eventos seleccionados
+    if (_selectedDay != null) {
+      _selectedEvents.value = _getEventsForDay(_selectedDay!);
+    }
+  }
+
+  void _showAddMaintenanceDialog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddMaintenanceScreen(),
+      ),
+    ).then((value) {
+      if (value == true) {
+        // Recargar datos si se agregó un mantenimiento
+        _loadMaintenances();
+      }
+    });
+  }
+
+  void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
+    // Mostrar un diálogo simple hasta que tengas la pantalla de detalles
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(maintenance.equipmentName),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('Cliente', maintenance.clientName),
+              _buildDetailRow('Estado', maintenance.statusDisplayName),
+              _buildDetailRow('Fecha', DateFormat('dd/MM/yyyy HH:mm').format(maintenance.scheduledDate)),
+              _buildDetailRow('Duración', '${maintenance.estimatedDurationMinutes} minutos'),
+              if (maintenance.technicianName != null)
+                _buildDetailRow('Técnico', maintenance.technicianName!),
+              if (maintenance.location != null)
+                _buildDetailRow('Ubicación', maintenance.location!),
+              if (maintenance.notes != null)
+                _buildDetailRow('Notas', maintenance.notes!),
+              if (maintenance.tasks.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                const Text('Tareas:', style: TextStyle(fontWeight: FontWeight.bold)),
+                ...maintenance.tasks.map((task) => Text('• $task')),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          if (maintenance.status == MaintenanceStatus.scheduled)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddMaintenanceScreen(maintenance: maintenance),
+                  ),
+                ).then((value) {
+                  if (value == true) {
+                    _loadMaintenances();
+                  }
+                });
+              },
+              child: const Text('Editar'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  // Método para generar datos de ejemplo
+  List<MaintenanceSchedule> _generateSampleMaintenances() {
+    final now = DateTime.now();
+    return [
+      MaintenanceSchedule(
+        id: '1',
+        equipmentId: 'eq1',
+        equipmentName: 'Split Recepción Principal',
+        clientId: 'client1',
+        clientName: 'Xpertcode',
+        technicianId: 'tech1',
+        technicianName: 'Juan Técnico',
+        scheduledDate: now.add(const Duration(days: 1)),
+        status: MaintenanceStatus.scheduled,
+        type: MaintenanceType.preventive,
+        frequency: FrequencyType.monthly,
+        tasks: ['Limpieza de filtros', 'Revisión de gas refrigerante'],
+        estimatedDurationMinutes: 90,
+        photoUrls: [],
+        createdAt: now,
+        updatedAt: now,
+        createdBy: 'admin',
+        location: 'Recepción - Pared Norte',
+      ),
+      MaintenanceSchedule(
+        id: '2',
+        equipmentId: 'eq2',
+        equipmentName: 'Aire Nuevo',
+        clientId: 'client1',
+        clientName: 'Xpertcode',
+        scheduledDate: now.add(const Duration(days: 3)),
+        status: MaintenanceStatus.scheduled,
+        type: MaintenanceType.preventive,
+        frequency: FrequencyType.monthly,
+        tasks: ['Inspección general', 'Limpieza'],
+        estimatedDurationMinutes: 60,
+        photoUrls: [],
+        createdAt: now,
+        updatedAt: now,
+        createdBy: 'admin',
+        location: 'Oficina 1',
+      ),
+    ];
+  }
+}
