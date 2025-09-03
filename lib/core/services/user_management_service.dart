@@ -409,4 +409,190 @@ class UserManagementService {
       throw Exception('Error al obtener estadísticas del sistema: $e');
     }
   }
+  // Asignar técnico individual a supervisor
+  Future<void> assignTechnicianToSupervisor(
+      String supervisorId, String technicianId) async {
+    try {
+      final batch = _firestore.batch();
+
+      // Obtener datos del supervisor
+      final supervisorDoc =
+          await _firestore.collection(_collection).doc(supervisorId).get();
+      final supervisorData = supervisorDoc.data() as Map<String, dynamic>;
+      final supervisorName = supervisorData['name'] ?? 'Sin nombre';
+      final currentTechnicians =
+          List<String>.from(supervisorData['assignedTechnicians'] ?? []);
+
+      // Agregar técnico si no está ya asignado
+      if (!currentTechnicians.contains(technicianId)) {
+        currentTechnicians.add(technicianId);
+      }
+
+      // Actualizar supervisor
+      batch.update(_firestore.collection(_collection).doc(supervisorId), {
+        'assignedTechnicians': currentTechnicians,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Actualizar técnico
+      batch.update(_firestore.collection(_collection).doc(technicianId), {
+        'supervisorId': supervisorId,
+        'assignedSupervisorName': supervisorName, // Para compatibilidad
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Error al asignar técnico: $e');
+    }
+  }
+
+  // Obtener jerarquía del supervisor con técnicos y equipos
+  Future<Map<String, dynamic>> getSupervisorHierarchy(
+      String supervisorId) async {
+    try {
+      // Obtener supervisor
+      final supervisorDoc =
+          await _firestore.collection(_collection).doc(supervisorId).get();
+      final supervisorData = supervisorDoc.data();
+
+      if (supervisorData == null) {
+        throw Exception('Supervisor no encontrado');
+      }
+
+      // Obtener técnicos asignados a este supervisor
+      final techniciansSnapshot = await _firestore
+          .collection(_collection)
+          .where('supervisorId', isEqualTo: supervisorId)
+          .where('role', isEqualTo: 'technician')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final List<Map<String, dynamic>> techniciansWithEquipments = [];
+      int totalEquipments = 0;
+
+      for (final techDoc in techniciansSnapshot.docs) {
+        final techData = techDoc.data();
+        final equipmentCount =
+            (techData['assignedEquipments'] as List?)?.length ?? 0;
+        totalEquipments += equipmentCount;
+
+        techniciansWithEquipments.add({
+          'id': techDoc.id,
+          'name': techData['name'] ?? 'Sin nombre',
+          'email': techData['email'] ?? '',
+          'specialization': techData['specialization'] ?? 'General',
+          'hourlyRate': (techData['hourlyRate'] ?? 0.0).toDouble(),
+          'equipmentCount': equipmentCount,
+        });
+      }
+
+      return {
+        'supervisor': {
+          'id': supervisorId,
+          'name': supervisorData['name'] ?? 'Sin nombre',
+          'email': supervisorData['email'] ?? '',
+          'hourlyRate': (supervisorData['hourlyRate'] ?? 0.0).toDouble(),
+        },
+        'technicians': techniciansWithEquipments,
+        'totalTechnicians': techniciansWithEquipments.length,
+        'totalEquipments': totalEquipments,
+      };
+    } catch (e) {
+      throw Exception('Error al obtener jerarquía del supervisor: $e');
+    }
+  }
+
+  // Obtener conteo de técnicos asignados a un supervisor
+  Future<int> getAssignedTechniciansCount(String supervisorId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('supervisorId', isEqualTo: supervisorId)
+          .where('role', isEqualTo: 'technician')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      print('Error al contar técnicos asignados: $e');
+      return 0;
+    }
+  }
+
+  // Sincronizar relaciones supervisor-técnico
+  Future<void> syncSupervisorTechnicianRelations() async {
+    try {
+      print('Iniciando sincronización supervisor-técnico...');
+
+      // Obtener todos los supervisores
+      final supervisorsSnapshot = await _firestore
+          .collection(_collection)
+          .where('role', isEqualTo: 'supervisor')
+          .get();
+
+      // Obtener todos los técnicos
+      final techniciansSnapshot = await _firestore
+          .collection(_collection)
+          .where('role', isEqualTo: 'technician')
+          .get();
+
+      final batch = _firestore.batch();
+
+      // Sincronizar cada supervisor
+      for (final supervisorDoc in supervisorsSnapshot.docs) {
+        final supervisorData = supervisorDoc.data();
+        final supervisorId = supervisorDoc.id;
+        final supervisorName = supervisorData['name'] ?? 'Sin nombre';
+
+        // Encontrar técnicos que tienen este supervisor asignado
+        final assignedTechnicians = <String>[];
+
+        for (final techDoc in techniciansSnapshot.docs) {
+          final techData = techDoc.data();
+          final techSupervisorId = techData['supervisorId'];
+
+          if (techSupervisorId == supervisorId &&
+              techData['isActive'] == true) {
+            assignedTechnicians.add(techDoc.id);
+
+            // Asegurar que el técnico tenga el nombre del supervisor actualizado
+            if (techData['assignedSupervisorName'] != supervisorName) {
+              batch.update(_firestore.collection(_collection).doc(techDoc.id), {
+                'assignedSupervisorName': supervisorName,
+                'updatedAt': FieldValue.serverTimestamp(),
+              });
+            }
+          }
+        }
+
+        // Actualizar la lista en el supervisor si es diferente
+        final currentAssigned =
+            List<String>.from(supervisorData['assignedTechnicians'] ?? []);
+        if (!_listEquals(currentAssigned, assignedTechnicians)) {
+          print(
+              'Sincronizando supervisor $supervisorName: ${assignedTechnicians.length} técnicos');
+          batch.update(_firestore.collection(_collection).doc(supervisorId), {
+            'assignedTechnicians': assignedTechnicians,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      await batch.commit();
+      print('Sincronización completada');
+    } catch (e) {
+      print('Error en sincronización: $e');
+      throw Exception('Error en sincronización: $e');
+    }
+  }
+
+  // Helper para comparar listas
+  bool _listEquals<T>(List<T> a, List<T> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }

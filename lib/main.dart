@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/providers/client_provider.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
-import 'package:pm_monitor/core/providers/tecnician_provider.dart';
+import 'package:pm_monitor/core/providers/technician_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';

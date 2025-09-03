@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/auth/screens/add_maintenance_screen.dart';
 import 'package:pm_monitor/features/auth/screens/global_Equipment_Inventory_Screen.dart';
 import 'package:pm_monitor/features/auth/screens/client_list_screen.dart';
+import 'package:pm_monitor/features/auth/screens/kpi_indicators_screen.dart';
 import 'package:pm_monitor/features/auth/screens/tecnician_list_screen.dart';
 import 'package:pm_monitor/features/auth/screens/user_managament_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/apple_style_calender.dart';
@@ -121,11 +122,10 @@ class AdminDashboard extends StatelessWidget {
                         'KPI',
                         Colors.indigo,
                         () {
-                          // Implementar más adelante
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Indicadores - Próximamente'),
-                              backgroundColor: Colors.indigo,
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => KPIIndicatorsScreen(),
                             ),
                           );
                         },

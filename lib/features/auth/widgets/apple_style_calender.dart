@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pm_monitor/core/models/maintenance_calendar_model.dart';
-import 'package:pm_monitor/core/services/maintenance_scheduke_service.dart';
+import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
 import 'package:pm_monitor/features/auth/screens/add_maintenance_screen.dart';
 
 class AppleStyleMaintenanceCalendar extends StatefulWidget {

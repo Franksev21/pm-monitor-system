@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/services/user_management_service.dart';
 import 'package:pm_monitor/features/auth/screens/assign_equipment_screen.dart';
+import 'package:pm_monitor/features/auth/screens/assign_technician_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 
 class UserManagementScreen extends StatefulWidget {
@@ -478,18 +479,28 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         ),
       ]);
     } else if (user.role == 'supervisor') {
-      baseItems.add(
-        const PopupMenuItem(
-          value: 'assign_technicians',
-          child: Row(
-            children: [
-              Icon(Icons.engineering, size: 18),
-              SizedBox(width: 8),
-              Text('Asignar Técnicos'),
-            ],
-          ),
-        ),
-      );
+  baseItems.addAll([
+    const PopupMenuItem(
+      value: 'assign_technicians',
+      child: Row(
+        children: [
+          Icon(Icons.group, size: 18),
+          SizedBox(width: 8),
+          Text('Asignar Técnicos'),
+        ],
+      ),
+    ),
+    const PopupMenuItem(
+      value: 'view_details',
+      child: Row(
+        children: [
+          Icon(Icons.visibility, size: 18),
+          SizedBox(width: 8),
+          Text('Ver Detalles'),
+        ],
+      ),
+    ),
+  ]);
     } else if (user.role == 'client') {
       baseItems.add(
         const PopupMenuItem(
@@ -805,13 +816,17 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     );
   }
 
-  void _assignTechnicians(UserManagementModel user) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Asignar técnicos a ${user.name} - Por implementar'),
-        backgroundColor: Colors.green,
+void _assignTechnicians(UserManagementModel user) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssignTechnicianScreen(supervisor: user),
       ),
     );
+
+    if (result == true) {
+      _loadAllStats();
+    }
   }
 
   void _assignLocations(UserManagementModel user) {

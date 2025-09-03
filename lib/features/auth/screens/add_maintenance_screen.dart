@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:pm_monitor/core/models/maintenance_calendar_model.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/services/equipment_service.dart';
-import 'package:pm_monitor/core/services/maintenance_scheduke_service.dart';
+import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
 
 class AddMaintenanceScreen extends StatefulWidget {
   final MaintenanceSchedule? maintenance;

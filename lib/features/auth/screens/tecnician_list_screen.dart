@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/core/models/tecnician_model.dart';
+import 'package:pm_monitor/core/models/technician_model.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
-import 'package:pm_monitor/core/providers/tecnician_provider.dart';
+import 'package:pm_monitor/core/providers/technician_provider.dart';
 import 'package:pm_monitor/features/auth/screens/assign_equipment_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 import 'package:provider/provider.dart';

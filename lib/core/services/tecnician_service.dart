@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pm_monitor/core/models/tecnician_model.dart';
+import 'package:pm_monitor/core/models/technician_model.dart';
 
 class TechnicianService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
