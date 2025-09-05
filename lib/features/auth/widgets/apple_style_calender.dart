@@ -694,7 +694,7 @@ class _AppleStyleMaintenanceCalendarState
                 _buildDetailRow('Ubicación', maintenance.location!),
               if (maintenance.estimatedCost != null)
                 _buildDetailRow('Costo estimado',
-                    '\${maintenance.estimatedCost!.toStringAsFixed(2)}'),
+                    '\$${maintenance.estimatedCost!.toStringAsFixed(2)}'),
               if (maintenance.notes != null)
                 _buildDetailRow('Notas', maintenance.notes!),
               if (maintenance.tasks.isNotEmpty) ...[
