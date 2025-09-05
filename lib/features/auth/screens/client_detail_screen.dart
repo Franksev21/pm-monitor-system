@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/features/auth/widgets/apple_style_calender.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/client_provider.dart';
 import '../../../core/providers/equipment_provider.dart'; // ✅ Agregado
@@ -621,10 +622,11 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // TODO: Crear mantenimiento
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Próximamente: Programar mantenimiento'),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const AppleStyleMaintenanceCalendar(),
                       ),
                     );
                   },

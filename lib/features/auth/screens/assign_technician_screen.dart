@@ -635,45 +635,6 @@ class _AssignTechnicianScreenState extends State<AssignTechnicianScreen>
       ),
     );
   }
-
-  Widget _buildErrorWidget(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 80,
-            color: Colors.red[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Error al cargar técnicos',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.red[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              error,
-              style: TextStyle(color: Colors.red[400]),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadTechnicians,
-            child: const Text('Reintentar'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildEmptyWidget(String title, String subtitle, IconData icon) {
     return Center(
       child: Column(

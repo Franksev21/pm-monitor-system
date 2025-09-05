@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/config/firebase_config.dart';
 import 'package:pm_monitor/core/providers/client_provider.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
 import 'package:pm_monitor/core/providers/technician_provider.dart';
 import 'package:provider/provider.dart';
+import 'core/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
@@ -13,18 +15,25 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    await FirebaseConfig.initialize();
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    print(e);
+    print('Error inicializando Firebase: $e');
   }
 
-  // Inicializar localización de fechas para español
   try {
     await initializeDateFormatting('es_ES', null);
   } catch (e) {
     print('Error inicializando localización: $e');
+  }
+
+  try {
+    NotificationService notificationService = NotificationService();
+    notificationService.setupMessageListeners();
+  } catch (e) {
+    print('Error al enviar  notificaciones: $e');
   }
 
   runApp(

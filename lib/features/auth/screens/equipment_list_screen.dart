@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/features/equipment/screens/qr_display_screen.dart';
+import '../screens/fault_report_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
@@ -68,7 +70,7 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
     try {
       final equipmentProvider =
           Provider.of<EquipmentProvider>(context, listen: false);
-       equipmentProvider.loadEquipmentsByClient(widget.client.id);
+      equipmentProvider.loadEquipmentsByClient(widget.client.id);
     } finally {
       if (mounted) {
         setState(() {
@@ -103,6 +105,39 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
   }
 
   void _showEquipmentDetail(Equipment equipment) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EquipmentDetailScreen(equipment: equipment),
+      ),
+    );
+  }
+
+  void _handleAction(BuildContext context, String action, Equipment equipment) {
+    switch (action) {
+      case 'report_fault':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FaultReportScreen(equipment: equipment),
+          ),
+        );
+        break;
+      case 'view_details':
+        _navigateToDetails(context, equipment);
+        break;
+      case 'generate_qr':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => QRDisplayScreen(equipment: equipment),
+          ),
+        );
+        break;
+    }
+  }
+
+  void _navigateToDetails(BuildContext context, Equipment equipment) {
     Navigator.push(
       context,
       MaterialPageRoute(
