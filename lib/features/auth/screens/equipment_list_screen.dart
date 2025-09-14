@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
-
 import 'add_equipment_screen.dart';
 import 'equipment_detail_screen.dart';
 

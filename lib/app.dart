@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/features/auth/screens/unified_maintenance_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/providers/auth_provider.dart';
@@ -20,7 +21,7 @@ class PMMonitorApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
-      
+
       // Configuración de localización para español
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -31,12 +32,17 @@ class PMMonitorApp extends StatelessWidget {
         Locale('es'), // Español simplificado
         Locale('en'), // Inglés como fallback
       ],
-      
+
       home: const AuthWrapper(),
       routes: {
         '/admin-dashboard': (context) => const AdminDashboard(),
-        '/technician-dashboard': (context) => const TechnicianDashboard(),
+        '/technician-dashboard': (context) => TechnicianDashboard(),
         '/client-dashboard': (context) => const ClientDashboard(),
+        '/unified-maintenance': (context) {
+          final int initialTab =
+              ModalRoute.of(context)?.settings.arguments as int? ?? 0;
+          return UnifiedMaintenanceScreen(initialTab: initialTab);
+        }
       },
     );
   }
@@ -80,7 +86,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           case UserRole.supervisor:
             return const AdminDashboard();
           case UserRole.technician:
-            return const TechnicianDashboard();
+            return TechnicianDashboard();
           case UserRole.client:
             return const ClientDashboard();
         }

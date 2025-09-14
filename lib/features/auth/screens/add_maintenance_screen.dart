@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pm_monitor/core/models/maintenance_calendar_model.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
+import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/services/equipment_service.dart';
 import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
+import 'package:pm_monitor/core/services/user_management_service.dart';
 
 class AddMaintenanceScreen extends StatefulWidget {
   final MaintenanceSchedule? maintenance;
@@ -40,14 +42,17 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   bool _isRecurring = false;
   bool _isSaving = false; // Prevenir doble guardado
 
-  // Available options - ahora se cargarán desde Firebase usando tu servicio existente
+  // Available options - ahora usando UserManagementService
   List<Equipment> _equipments = [];
-  List<Map<String, dynamic>> _technicians = [];
-  List<Map<String, dynamic>> _supervisors = [];
+  List<UserManagementModel> _technicians = [];
+  List<UserManagementModel> _supervisors = [];
   bool _isLoadingData = false;
+
   final EquipmentService _equipmentService = EquipmentService();
   final MaintenanceScheduleService _maintenanceService =
       MaintenanceScheduleService();
+  final UserManagementService _userService = UserManagementService();
+
   List<String> _availableTasks = [
     'Limpieza de filtros',
     'Revisión de gas refrigerante',
@@ -66,8 +71,48 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   @override
   void initState() {
     super.initState();
+    _debugUsersInFirestore(); // Para verificar datos
     _loadData();
     _initializeForm();
+  }
+
+  void _debugUsersInFirestore() async {
+    try {
+      debugPrint('=== VERIFICANDO USUARIOS CON UserManagementService ===');
+
+      // Usar tu servicio para obtener estadísticas
+      Map<String, dynamic> systemStats = await _userService.getSystemStats();
+      debugPrint('Estadísticas del sistema: $systemStats');
+
+      // Verificar técnicos específicamente
+      List<UserManagementModel> technicians =
+          await _userService.getActiveTechnicians();
+      debugPrint('Técnicos activos encontrados: ${technicians.length}');
+
+      for (var tech in technicians) {
+        debugPrint('Técnico: ${tech.name}');
+        debugPrint('  - ID: ${tech.id}');
+        debugPrint('  - Email: ${tech.email}');
+        debugPrint('  - Activo: ${tech.isActive}');
+        debugPrint('  - Supervisor: ${tech.supervisorId ?? "Sin supervisor"}');
+        debugPrint('  - Equipos: ${tech.assignedEquipments?.length ?? 0}');
+      }
+
+      // Verificar supervisores
+      List<UserManagementModel> supervisors =
+          await _userService.getActiveSupervisors();
+      debugPrint('Supervisores activos encontrados: ${supervisors.length}');
+
+      for (var sup in supervisors) {
+        debugPrint('Supervisor: ${sup.name}');
+        debugPrint('  - ID: ${sup.id}');
+        debugPrint('  - Email: ${sup.email}');
+        debugPrint(
+            '  - Técnicos asignados: ${sup.assignedTechnicians?.length ?? 0}');
+      }
+    } catch (e) {
+      debugPrint('Error en verificación con UserManagementService: $e');
+    }
   }
 
   void _loadData() async {
@@ -76,14 +121,18 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     });
 
     try {
-      // Cargar equipos usando tu servicio existente (Stream a Future)
-      final equipmentStream = _equipmentService.getAllEquipments();
-      final equipments = await equipmentStream.first;
+      debugPrint('Iniciando carga de datos con UserManagementService...');
 
-      // Para técnicos y supervisores, necesitarías crear servicios similares
-      // Por ahora usaré datos simulados, pero deberías crear UserService
-      final technicians = await _loadTechnicians();
-      final supervisors = await _loadSupervisors();
+      // Cargar en paralelo para mejor rendimiento
+      final results = await Future.wait([
+        _equipmentService.getAllEquipments().first,
+        _loadTechnicians(),
+        _loadSupervisors(),
+      ]);
+
+      final equipments = results[0] as List<Equipment>;
+      final technicians = results[1] as List<UserManagementModel>;
+      final supervisors = results[2] as List<UserManagementModel>;
 
       setState(() {
         _equipments = equipments;
@@ -92,48 +141,80 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         _isLoadingData = false;
       });
 
-      // Debug: Mostrar equipos cargados
-      debugPrint('Equipos cargados: ${_equipments.length}');
-      for (var equipment in _equipments) {
-        debugPrint('- ${equipment.name} (${equipment.branch})');
+      // Debug detallado
+      debugPrint('Datos cargados exitosamente:');
+      debugPrint('- Equipos: ${_equipments.length}');
+      debugPrint('- Técnicos: ${_technicians.length}');
+      debugPrint('- Supervisores: ${_supervisors.length}');
+
+      // Mostrar técnicos disponibles en el dropdown
+      if (_technicians.isNotEmpty) {
+        debugPrint('Técnicos disponibles para asignar:');
+        for (var tech in _technicians) {
+          debugPrint('  * ${tech.name} (${tech.email}) - ID: ${tech.id}');
+        }
+      } else {
+        debugPrint('¡ATENCIÓN! No se encontraron técnicos activos');
+        debugPrint(
+            'Verifica que existan usuarios con role="technician" e isActive=true');
       }
     } catch (e) {
+      debugPrint('Error en _loadData: $e');
       setState(() {
         _isLoadingData = false;
       });
 
-      // En caso de error, mostrar un mensaje
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al cargar datos: $e'),
             backgroundColor: Colors.red,
+            duration: Duration(seconds: 5), // Más tiempo para leer el error
           ),
         );
       }
 
-      // Usar datos de respaldo vacíos para evitar errores
+      // Usar datos vacíos en caso de error
       _equipments = [];
       _technicians = [];
       _supervisors = [];
     }
   }
 
-  // Método temporal para cargar técnicos (deberías crear un UserService)
-  Future<List<Map<String, dynamic>>> _loadTechnicians() async {
-    // Simulando datos por ahora - reemplazar con servicio real
-    return [
-      {'id': 'tech1', 'name': 'Juan Técnico'},
-      {'id': 'tech2', 'name': 'Francisco Severino'},
-    ];
+  Future<List<UserManagementModel>> _loadTechnicians() async {
+    try {
+      List<UserManagementModel> technicians =
+          await _userService.getActiveTechnicians();
+
+      debugPrint(
+          'Técnicos cargados desde UserManagementService: ${technicians.length}');
+      for (var tech in technicians) {
+        debugPrint('- ${tech.name} (${tech.id}) - Email: ${tech.email}');
+      }
+
+      return technicians;
+    } catch (e) {
+      debugPrint('Error cargando técnicos: $e');
+      return [];
+    }
   }
 
-  // Método temporal para cargar supervisores (deberías crear un UserService)
-  Future<List<Map<String, dynamic>>> _loadSupervisors() async {
-    // Simulando datos por ahora - reemplazar con servicio real
-    return [
-      {'id': 'sup1', 'name': 'Karen Supervisor'},
-    ];
+  Future<List<UserManagementModel>> _loadSupervisors() async {
+    try {
+      List<UserManagementModel> supervisors =
+          await _userService.getActiveSupervisors();
+
+      debugPrint(
+          'Supervisores cargados desde UserManagementService: ${supervisors.length}');
+      for (var sup in supervisors) {
+        debugPrint('- ${sup.name} (${sup.id}) - Email: ${sup.email}');
+      }
+
+      return supervisors;
+    } catch (e) {
+      debugPrint('Error cargando supervisores: $e');
+      return [];
+    }
   }
 
   void _initializeForm() {
@@ -177,6 +258,13 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         backgroundColor: const Color(0xFF2196F3),
         foregroundColor: Colors.white,
         actions: [
+          // Botón temporal para limpiar duplicados
+          if (!_isEditing)
+            IconButton(
+              onPressed: () {},
+              icon: Icon(Icons.cleaning_services),
+              tooltip: 'Limpiar duplicados',
+            ),
           TextButton(
             onPressed: _isLoadingData ? null : _saveMaintenance,
             child: const Text(
@@ -392,6 +480,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                 labelText: 'Técnico asignado',
                 border: OutlineInputBorder(),
               ),
+              isExpanded: true,
               items: [
                 const DropdownMenuItem<String>(
                   value: null,
@@ -399,8 +488,12 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                 ),
                 ..._technicians.map((technician) {
                   return DropdownMenuItem(
-                    value: technician['id'],
-                    child: Text(technician['name']!),
+                    value: technician.id,
+                    child: Text(
+                      '${technician.name} - ${technician.email}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   );
                 }),
               ],
@@ -417,6 +510,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                 labelText: 'Supervisor asignado',
                 border: OutlineInputBorder(),
               ),
+              isExpanded: true,
               items: [
                 const DropdownMenuItem<String>(
                   value: null,
@@ -424,8 +518,12 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                 ),
                 ..._supervisors.map((supervisor) {
                   return DropdownMenuItem(
-                    value: supervisor['id'],
-                    child: Text(supervisor['name']!),
+                    value: supervisor.id,
+                    child: Text(
+                      '${supervisor.name} - ${supervisor.email}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   );
                 }),
               ],
@@ -710,16 +808,18 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
 
       if (_selectedTechnicianId != null) {
         final technician = _technicians.firstWhere(
-          (tech) => tech['id'] == _selectedTechnicianId,
+          (tech) => tech.id == _selectedTechnicianId,
+          orElse: () => throw Exception('Técnico no encontrado'),
         );
-        technicianName = technician['name'];
+        technicianName = technician.name;
       }
 
       if (_selectedSupervisorId != null) {
         final supervisor = _supervisors.firstWhere(
-          (sup) => sup['id'] == _selectedSupervisorId,
+          (sup) => sup.id == _selectedSupervisorId,
+          orElse: () => throw Exception('Supervisor no encontrado'),
         );
-        supervisorName = supervisor['name'];
+        supervisorName = supervisor.name;
       }
 
       final maintenance = MaintenanceSchedule(
