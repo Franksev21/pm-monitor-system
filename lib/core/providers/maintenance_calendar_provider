@@ -28,7 +28,62 @@ class MaintenanceCalendarProvider with ChangeNotifier {
   DateTime? get filterStartDate => _filterStartDate;
   DateTime? get filterEndDate => _filterEndDate;
 
-  // Métodos principales
+  // Método auxiliar para conversión segura de tipos numéricos
+  static int? _safeIntFromDynamic(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static double? _safeDoubleFromDynamic(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  // Método para validar y limpiar datos de mantenimiento
+  Map<String, dynamic> _sanitizeMaintenanceData(Map<String, dynamic> data) {
+    final sanitized = Map<String, dynamic>.from(data);
+
+    // Validar campos obligatorios
+    sanitized['equipmentId'] = data['equipmentId'] ?? '';
+    sanitized['equipmentName'] = data['equipmentName'] ?? '';
+    sanitized['clientId'] = data['clientId'] ?? '';
+    sanitized['clientName'] = data['clientName'] ?? '';
+    sanitized['createdBy'] = data['createdBy'] ?? '';
+    sanitized['status'] = data['status'] ?? 'scheduled';
+    sanitized['type'] = data['type'] ?? 'preventive';
+    sanitized['frequency'] = data['frequency'] ?? 'monthly';
+
+    // Manejar fechas
+    if (data['scheduledDate'] == null) {
+      sanitized['scheduledDate'] = Timestamp.fromDate(DateTime.now());
+    }
+    if (data['createdAt'] == null) {
+      sanitized['createdAt'] = Timestamp.fromDate(DateTime.now());
+    }
+    if (data['updatedAt'] == null) {
+      sanitized['updatedAt'] = Timestamp.fromDate(DateTime.now());
+    }
+
+    // Limpiar tipos numéricos
+    sanitized['estimatedDurationMinutes'] = _safeIntFromDynamic(data['estimatedDurationMinutes']) ?? 60;
+    sanitized['completionPercentage'] = _safeIntFromDynamic(data['completionPercentage']) ?? 0;
+    sanitized['estimatedCost'] = _safeDoubleFromDynamic(data['estimatedCost']);
+    sanitized['actualCost'] = _safeDoubleFromDynamic(data['actualCost']);
+
+    // Validar arrays
+    sanitized['tasks'] = data['tasks'] is List ? List<String>.from(data['tasks']) : <String>[];
+    sanitized['photoUrls'] = data['photoUrls'] is List ? List<String>.from(data['photoUrls']) : <String>[];
+
+    return sanitized;
+  }
+
+  // Métodos principales con manejo de errores mejorado
   Future<void> loadMaintenances({
     String? clientId,
     String? technicianId,
@@ -52,11 +107,11 @@ class MaintenanceCalendarProvider with ChangeNotifier {
       }
 
       if (startDate != null) {
-        query = query.where('scheduledDate', isGreaterThanOrEqualTo: startDate);
+        query = query.where('scheduledDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
       }
 
       if (endDate != null) {
-        query = query.where('scheduledDate', isLessThanOrEqualTo: endDate);
+        query = query.where('scheduledDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
       }
 
       // Ordenar por fecha programada
@@ -64,9 +119,32 @@ class MaintenanceCalendarProvider with ChangeNotifier {
 
       final querySnapshot = await query.get();
       
-      _maintenances = querySnapshot.docs
-          .map((doc) => MaintenanceSchedule.fromFirestore(doc))
-          .toList();
+      _maintenances = [];
+      
+      for (final doc in querySnapshot.docs) {
+        try {
+          final maintenance = MaintenanceSchedule.fromFirestore(doc);
+          _maintenances.add(maintenance);
+        } catch (e) {
+          debugPrint('Error procesando documento ${doc.id}: $e');
+          debugPrint('Datos problemáticos: ${doc.data()}');
+          
+          // Intentar reparar datos corruptos
+          try {
+            final data = doc.data() as Map<String, dynamic>;
+            final cleanedData = _sanitizeMaintenanceData(data);
+            await doc.reference.update(cleanedData);
+            
+            // Intentar crear el mantenimiento nuevamente con datos limpios
+            final repairedMaintenance = MaintenanceSchedule.fromFirestore(
+              doc.reference.get().then((updatedDoc) => updatedDoc)
+            );
+            // No agregamos aquí para evitar problemas de async
+          } catch (repairError) {
+            debugPrint('No se pudo reparar el documento ${doc.id}: $repairError');
+          }
+        }
+      }
 
       _buildEventsMap();
       _isLoading = false;
@@ -74,6 +152,7 @@ class MaintenanceCalendarProvider with ChangeNotifier {
     } catch (e) {
       _error = 'Error al cargar mantenimientos: $e';
       _isLoading = false;
+      debugPrint('Error completo en loadMaintenances: $e');
       notifyListeners();
     }
   }
@@ -82,45 +161,60 @@ class MaintenanceCalendarProvider with ChangeNotifier {
     _eventsByDate.clear();
     
     for (var maintenance in _maintenances) {
-      final date = DateTime(
-        maintenance.scheduledDate.year,
-        maintenance.scheduledDate.month,
-        maintenance.scheduledDate.day,
-      );
-      
-      if (_eventsByDate[date] != null) {
-        _eventsByDate[date]!.add(maintenance);
-      } else {
-        _eventsByDate[date] = [maintenance];
+      try {
+        final date = DateTime(
+          maintenance.scheduledDate.year,
+          maintenance.scheduledDate.month,
+          maintenance.scheduledDate.day,
+        );
+        
+        if (_eventsByDate[date] != null) {
+          _eventsByDate[date]!.add(maintenance);
+        } else {
+          _eventsByDate[date] = [maintenance];
+        }
+      } catch (e) {
+        debugPrint('Error procesando fecha para mantenimiento ${maintenance.id}: $e');
       }
     }
   }
 
   List<MaintenanceSchedule> getEventsForDay(DateTime day) {
-    final normalizedDay = DateTime(day.year, day.month, day.day);
-    return _eventsByDate[normalizedDay] ?? [];
+    try {
+      final normalizedDay = DateTime(day.year, day.month, day.day);
+      return _eventsByDate[normalizedDay] ?? [];
+    } catch (e) {
+      debugPrint('Error obteniendo eventos del día: $e');
+      return [];
+    }
   }
 
   List<MaintenanceSchedule> getEventsForRange(DateTime start, DateTime end) {
-    final events = <MaintenanceSchedule>[];
-    for (var maintenance in _maintenances) {
-      if (maintenance.scheduledDate.isAfter(start.subtract(const Duration(days: 1))) &&
-          maintenance.scheduledDate.isBefore(end.add(const Duration(days: 1)))) {
-        events.add(maintenance);
+    try {
+      final events = <MaintenanceSchedule>[];
+      for (var maintenance in _maintenances) {
+        if (maintenance.scheduledDate.isAfter(start.subtract(const Duration(days: 1))) &&
+            maintenance.scheduledDate.isBefore(end.add(const Duration(days: 1)))) {
+          events.add(maintenance);
+        }
       }
+      return events;
+    } catch (e) {
+      debugPrint('Error obteniendo eventos del rango: $e');
+      return [];
     }
-    return events;
   }
 
-  // CRUD Operations
+  // CRUD Operations con manejo de errores
   Future<String> addMaintenance(MaintenanceSchedule maintenance) async {
     try {
       _isLoading = true;
       notifyListeners();
 
-      final docRef = await _firestore.collection('maintenanceSchedules').add(
-        maintenance.toFirestore(),
-      );
+      // Limpiar datos antes de guardar
+      final cleanData = _sanitizeMaintenanceData(maintenance.toFirestore());
+
+      final docRef = await _firestore.collection('maintenanceSchedules').add(cleanData);
 
       final newMaintenance = maintenance.copyWith(id: docRef.id);
       _maintenances.add(newMaintenance);
@@ -133,6 +227,7 @@ class MaintenanceCalendarProvider with ChangeNotifier {
     } catch (e) {
       _error = 'Error al agregar mantenimiento: $e';
       _isLoading = false;
+      debugPrint('Error en addMaintenance: $e');
       notifyListeners();
       rethrow;
     }
@@ -143,10 +238,13 @@ class MaintenanceCalendarProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      // Limpiar datos antes de actualizar
+      final cleanData = _sanitizeMaintenanceData(maintenance.toFirestore());
+
       await _firestore
           .collection('maintenanceSchedules')
           .doc(maintenance.id)
-          .update(maintenance.toFirestore());
+          .update(cleanData);
 
       final index = _maintenances.indexWhere((m) => m.id == maintenance.id);
       if (index != -1) {
@@ -159,6 +257,7 @@ class MaintenanceCalendarProvider with ChangeNotifier {
     } catch (e) {
       _error = 'Error al actualizar mantenimiento: $e';
       _isLoading = false;
+      debugPrint('Error en updateMaintenance: $e');
       notifyListeners();
       rethrow;
     }
@@ -182,6 +281,7 @@ class MaintenanceCalendarProvider with ChangeNotifier {
     } catch (e) {
       _error = 'Error al eliminar mantenimiento: $e';
       _isLoading = false;
+      debugPrint('Error en deleteMaintenance: $e');
       notifyListeners();
       rethrow;
     }
@@ -209,6 +309,7 @@ class MaintenanceCalendarProvider with ChangeNotifier {
 
       await updateMaintenance(updatedMaintenance);
     } catch (e) {
+      debugPrint('Error en updateMaintenanceStatus: $e');
       rethrow;
     }
   }
@@ -261,6 +362,7 @@ class MaintenanceCalendarProvider with ChangeNotifier {
         await addMaintenance(maintenance);
       }
     } catch (e) {
+      debugPrint('Error en scheduleRecurringMaintenance: $e');
       rethrow;
     }
   }
@@ -322,12 +424,13 @@ class MaintenanceCalendarProvider with ChangeNotifier {
     return dates;
   }
 
-  // Métodos auxiliares
+  // Métodos auxiliares con manejo de errores
   Future<Map<String, dynamic>?> _getEquipmentById(String equipmentId) async {
     try {
       final doc = await _firestore.collection('equipments').doc(equipmentId).get();
       return doc.exists ? doc.data() : null;
     } catch (e) {
+      debugPrint('Error obteniendo equipo: $e');
       return null;
     }
   }
@@ -337,6 +440,7 @@ class MaintenanceCalendarProvider with ChangeNotifier {
       final doc = await _firestore.collection('users').doc(technicianId).get();
       return doc.exists ? doc.data()?['name'] : null;
     } catch (e) {
+      debugPrint('Error obteniendo nombre del técnico: $e');
       return null;
     }
   }
@@ -346,6 +450,7 @@ class MaintenanceCalendarProvider with ChangeNotifier {
       final doc = await _firestore.collection('users').doc(supervisorId).get();
       return doc.exists ? doc.data()?['name'] : null;
     } catch (e) {
+      debugPrint('Error obteniendo nombre del supervisor: $e');
       return null;
     }
   }
@@ -390,53 +495,119 @@ class MaintenanceCalendarProvider with ChangeNotifier {
     );
   }
 
-  // Métodos de búsqueda y estadísticas
+  // Métodos de búsqueda y estadísticas con manejo de errores
   List<MaintenanceSchedule> searchMaintenances(String query) {
-    if (query.isEmpty) return _maintenances;
-    
-    final lowerQuery = query.toLowerCase();
-    return _maintenances.where((maintenance) {
-      return maintenance.equipmentName.toLowerCase().contains(lowerQuery) ||
-             maintenance.clientName.toLowerCase().contains(lowerQuery) ||
-             (maintenance.technicianName?.toLowerCase().contains(lowerQuery) ?? false) ||
-             (maintenance.location?.toLowerCase().contains(lowerQuery) ?? false);
-    }).toList();
+    try {
+      if (query.isEmpty) return _maintenances;
+      
+      final lowerQuery = query.toLowerCase();
+      return _maintenances.where((maintenance) {
+        return maintenance.equipmentName.toLowerCase().contains(lowerQuery) ||
+               maintenance.clientName.toLowerCase().contains(lowerQuery) ||
+               (maintenance.technicianName?.toLowerCase().contains(lowerQuery) ?? false) ||
+               (maintenance.location?.toLowerCase().contains(lowerQuery) ?? false);
+      }).toList();
+    } catch (e) {
+      debugPrint('Error en búsqueda: $e');
+      return [];
+    }
   }
 
   Map<MaintenanceStatus, int> getMaintenanceStats() {
-    final stats = <MaintenanceStatus, int>{};
-    
-    for (final status in MaintenanceStatus.values) {
-      stats[status] = _maintenances.where((m) => m.status == status).length;
+    try {
+      final stats = <MaintenanceStatus, int>{};
+      
+      for (final status in MaintenanceStatus.values) {
+        stats[status] = _maintenances.where((m) => m.status == status).length;
+      }
+      
+      return stats;
+    } catch (e) {
+      debugPrint('Error obteniendo estadísticas: $e');
+      return {};
     }
-    
-    return stats;
   }
 
   List<MaintenanceSchedule> getOverdueMaintenances() {
-    return _maintenances.where((m) => m.isOverdue).toList();
+    try {
+      return _maintenances.where((m) => m.isOverdue).toList();
+    } catch (e) {
+      debugPrint('Error obteniendo mantenimientos vencidos: $e');
+      return [];
+    }
   }
 
   List<MaintenanceSchedule> getUpcomingMaintenances(int days) {
-    final now = DateTime.now();
-    final futureDate = now.add(Duration(days: days));
-    
-    return _maintenances.where((m) {
-      return m.scheduledDate.isAfter(now) &&
-             m.scheduledDate.isBefore(futureDate) &&
-             m.status == MaintenanceStatus.scheduled;
-    }).toList();
+    try {
+      final now = DateTime.now();
+      final futureDate = now.add(Duration(days: days));
+      
+      return _maintenances.where((m) {
+        return m.scheduledDate.isAfter(now) &&
+               m.scheduledDate.isBefore(futureDate) &&
+               m.status == MaintenanceStatus.scheduled;
+      }).toList();
+    } catch (e) {
+      debugPrint('Error obteniendo próximos mantenimientos: $e');
+      return [];
+    }
   }
 
   double getTotalEstimatedCost() {
-    return _maintenances
-        .where((m) => m.estimatedCost != null)
-        .fold(0.0, (sum, m) => sum + (m.estimatedCost ?? 0.0));
+    try {
+      return _maintenances
+          .where((m) => m.estimatedCost != null)
+          .fold(0.0, (sum, m) => sum + (m.estimatedCost ?? 0.0));
+    } catch (e) {
+      debugPrint('Error calculando costo estimado total: $e');
+      return 0.0;
+    }
   }
 
   double getTotalActualCost() {
-    return _maintenances
-        .where((m) => m.actualCost != null)
-        .fold(0.0, (sum, m) => sum + (m.actualCost ?? 0.0));
+    try {
+      return _maintenances
+          .where((m) => m.actualCost != null)
+          .fold(0.0, (sum, m) => sum + (m.actualCost ?? 0.0));
+    } catch (e) {
+      debugPrint('Error calculando costo real total: $e');
+      return 0.0;
+    }
+  }
+
+  // Método para limpiar datos corruptos
+  Future<void> cleanCorruptedData() async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final snapshot = await _firestore.collection('maintenanceSchedules').get();
+      
+      for (final doc in snapshot.docs) {
+        try {
+          MaintenanceSchedule.fromFirestore(doc);
+        } catch (e) {
+          debugPrint('Documento corrupto encontrado: ${doc.id}');
+          
+          try {
+            final data = doc.data() as Map<String, dynamic>;
+            final cleanedData = _sanitizeMaintenanceData(data);
+            await doc.reference.update(cleanedData);
+            debugPrint('Documento reparado: ${doc.id}');
+          } catch (repairError) {
+            debugPrint('No se pudo reparar el documento ${doc.id}: $repairError');
+          }
+        }
+      }
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Error limpiando datos: $e';
+      _isLoading = false;
+      debugPrint('Error en cleanCorruptedData: $e');
+      notifyListeners();
+      rethrow;
+    }
   }
 }

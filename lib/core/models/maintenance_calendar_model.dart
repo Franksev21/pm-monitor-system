@@ -1,9 +1,6 @@
 import 'dart:ui';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
-
 
 enum MaintenanceStatus {
   scheduled, // Programado
@@ -56,7 +53,7 @@ class MaintenanceSchedule {
   final DateTime updatedAt;
   final String createdBy;
   final String? completedBy;
-  final int completionPercentage;
+  final int? completionPercentage;
   final Map<String, bool>? taskCompletion;
 
   MaintenanceSchedule({
@@ -120,20 +117,41 @@ class MaintenanceSchedule {
       ),
       notes: data['notes'],
       tasks: List<String>.from(data['tasks'] ?? []),
-      estimatedDurationMinutes: data['estimatedDurationMinutes'] ?? 60,
-      estimatedCost: data['estimatedCost']?.toDouble(),
-      actualCost: data['actualCost']?.toDouble(),
+      // CORREGIDO: Manejo seguro de conversión de tipos numéricos
+      estimatedDurationMinutes:
+          _safeIntFromDynamic(data['estimatedDurationMinutes']) ?? 60,
+      estimatedCost: _safeDoubleFromDynamic(data['estimatedCost']),
+      actualCost: _safeDoubleFromDynamic(data['actualCost']),
       location: data['location'],
       photoUrls: List<String>.from(data['photoUrls'] ?? []),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
       createdBy: data['createdBy'] ?? '',
       completedBy: data['completedBy'],
-      completionPercentage: data['completionPercentage'] ?? 0,
+      // CORREGIDO: Manejo seguro de porcentaje de completación
+      completionPercentage:
+          _safeIntFromDynamic(data['completionPercentage']) ?? 0,
       taskCompletion: data['taskCompletion'] != null
           ? Map<String, bool>.from(data['taskCompletion'])
           : null,
     );
+  }
+
+  // MÉTODOS AUXILIARES PARA CONVERSIÓN SEGURA DE TIPOS
+  static int? _safeIntFromDynamic(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static double? _safeDoubleFromDynamic(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toFirestore() {

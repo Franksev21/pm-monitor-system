@@ -12,13 +12,14 @@ class MaintenanceScheduleService {
   factory MaintenanceScheduleService() => _instance;
   MaintenanceScheduleService._internal();
 
-  /// Crear un nuevo mantenimiento
+  /// Crear un nuevo mantenimiento con validación de tipos
   Future<String?> createMaintenance(MaintenanceSchedule maintenance) async {
     try {
-      // Crear el documento con los datos del mantenimiento
-      DocumentReference docRef = await _firestore
-          .collection(_collection)
-          .add(maintenance.toFirestore());
+      // Validar y limpiar datos antes de guardar
+      final cleanData = _sanitizeMaintenanceData(maintenance.toFirestore());
+
+      DocumentReference docRef =
+          await _firestore.collection(_collection).add(cleanData);
 
       debugPrint('Mantenimiento creado con ID: ${docRef.id}');
       return docRef.id;
@@ -28,17 +29,19 @@ class MaintenanceScheduleService {
     }
   }
 
-  /// Actualizar un mantenimiento existente
+  /// Actualizar un mantenimiento existente con validación
   Future<bool> updateMaintenance(MaintenanceSchedule maintenance) async {
     try {
       if (maintenance.id.isEmpty) {
         throw Exception('ID del mantenimiento no puede estar vacío');
       }
 
+      final cleanData = _sanitizeMaintenanceData(maintenance.toFirestore());
+
       await _firestore
           .collection(_collection)
           .doc(maintenance.id)
-          .update(maintenance.toFirestore());
+          .update(cleanData);
 
       debugPrint('Mantenimiento actualizado: ${maintenance.id}');
       return true;
@@ -48,11 +51,64 @@ class MaintenanceScheduleService {
     }
   }
 
+  /// Limpiar y validar datos antes de enviar a Firestore
+  Map<String, dynamic> _sanitizeMaintenanceData(Map<String, dynamic> data) {
+    final sanitized = Map<String, dynamic>.from(data);
+
+    // Asegurar que estimatedDurationMinutes sea int
+    if (sanitized['estimatedDurationMinutes'] != null) {
+      final duration = sanitized['estimatedDurationMinutes'];
+      if (duration is double) {
+        sanitized['estimatedDurationMinutes'] = duration.round();
+      } else if (duration is String) {
+        sanitized['estimatedDurationMinutes'] = int.tryParse(duration) ?? 60;
+      }
+    }
+
+    // Asegurar que completionPercentage sea int
+    if (sanitized['completionPercentage'] != null) {
+      final percentage = sanitized['completionPercentage'];
+      if (percentage is double) {
+        sanitized['completionPercentage'] = percentage.round();
+      } else if (percentage is String) {
+        sanitized['completionPercentage'] = int.tryParse(percentage) ?? 0;
+      }
+    }
+
+    // Asegurar que los costos sean double
+    if (sanitized['estimatedCost'] != null) {
+      final cost = sanitized['estimatedCost'];
+      if (cost is int) {
+        sanitized['estimatedCost'] = cost.toDouble();
+      } else if (cost is String) {
+        sanitized['estimatedCost'] = double.tryParse(cost);
+      }
+    }
+
+    if (sanitized['actualCost'] != null) {
+      final cost = sanitized['actualCost'];
+      if (cost is int) {
+        sanitized['actualCost'] = cost.toDouble();
+      } else if (cost is String) {
+        sanitized['actualCost'] = double.tryParse(cost);
+      }
+    }
+
+    // Validar arrays
+    if (sanitized['tasks'] == null) {
+      sanitized['tasks'] = <String>[];
+    }
+    if (sanitized['photoUrls'] == null) {
+      sanitized['photoUrls'] = <String>[];
+    }
+
+    return sanitized;
+  }
+
   /// Eliminar un mantenimiento
   Future<bool> deleteMaintenance(String maintenanceId) async {
     try {
       await _firestore.collection(_collection).doc(maintenanceId).delete();
-
       debugPrint('Mantenimiento eliminado: $maintenanceId');
       return true;
     } catch (e) {
@@ -61,18 +117,35 @@ class MaintenanceScheduleService {
     }
   }
 
-  /// Obtener todos los mantenimientos
+  /// Obtener todos los mantenimientos con manejo de errores mejorado
   Stream<List<MaintenanceSchedule>> getAllMaintenances() {
     return _firestore
         .collection(_collection)
         .orderBy('scheduledDate', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+      try {
+        return snapshot.docs
+            .map((doc) {
+              try {
+                return MaintenanceSchedule.fromFirestore(doc);
+              } catch (e) {
+                debugPrint('Error procesando documento ${doc.id}: $e');
+                debugPrint('Datos del documento: ${doc.data()}');
+                return null;
+              }
+            })
+            .where((maintenance) => maintenance != null)
+            .cast<MaintenanceSchedule>()
+            .toList();
+      } catch (e) {
+        debugPrint('Error procesando snapshot de mantenimientos: $e');
+        return <MaintenanceSchedule>[];
+      }
+    });
   }
 
-  /// Obtener mantenimientos por técnico
+  /// Obtener mantenimientos por técnico con validación
   Stream<List<MaintenanceSchedule>> getMaintenancesByTechnician(
       String technicianId) {
     return _firestore
@@ -80,21 +153,53 @@ class MaintenanceScheduleService {
         .where('technicianId', isEqualTo: technicianId)
         .orderBy('scheduledDate', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+      try {
+        return snapshot.docs
+            .map((doc) {
+              try {
+                return MaintenanceSchedule.fromFirestore(doc);
+              } catch (e) {
+                debugPrint('Error procesando mantenimiento ${doc.id}: $e');
+                return null;
+              }
+            })
+            .where((maintenance) => maintenance != null)
+            .cast<MaintenanceSchedule>()
+            .toList();
+      } catch (e) {
+        debugPrint('Error en getMaintenancesByTechnician: $e');
+        return <MaintenanceSchedule>[];
+      }
+    });
   }
 
-  /// Obtener mantenimientos por cliente
+  /// Obtener mantenimientos por cliente con validación
   Stream<List<MaintenanceSchedule>> getMaintenancesByClient(String clientId) {
     return _firestore
         .collection(_collection)
         .where('clientId', isEqualTo: clientId)
         .orderBy('scheduledDate', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+      try {
+        return snapshot.docs
+            .map((doc) {
+              try {
+                return MaintenanceSchedule.fromFirestore(doc);
+              } catch (e) {
+                debugPrint('Error procesando mantenimiento ${doc.id}: $e');
+                return null;
+              }
+            })
+            .where((maintenance) => maintenance != null)
+            .cast<MaintenanceSchedule>()
+            .toList();
+      } catch (e) {
+        debugPrint('Error en getMaintenancesByClient: $e');
+        return <MaintenanceSchedule>[];
+      }
+    });
   }
 
   /// Obtener mantenimientos por estado
@@ -105,9 +210,25 @@ class MaintenanceScheduleService {
         .where('status', isEqualTo: status.toString().split('.').last)
         .orderBy('scheduledDate', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+      try {
+        return snapshot.docs
+            .map((doc) {
+              try {
+                return MaintenanceSchedule.fromFirestore(doc);
+              } catch (e) {
+                debugPrint('Error procesando mantenimiento ${doc.id}: $e');
+                return null;
+              }
+            })
+            .where((maintenance) => maintenance != null)
+            .cast<MaintenanceSchedule>()
+            .toList();
+      } catch (e) {
+        debugPrint('Error en getMaintenancesByStatus: $e');
+        return <MaintenanceSchedule>[];
+      }
+    });
   }
 
   /// Obtener mantenimientos por rango de fechas
@@ -124,7 +245,16 @@ class MaintenanceScheduleService {
           .get();
 
       return snapshot.docs
-          .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+          .map((doc) {
+            try {
+              return MaintenanceSchedule.fromFirestore(doc);
+            } catch (e) {
+              debugPrint('Error procesando mantenimiento ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((maintenance) => maintenance != null)
+          .cast<MaintenanceSchedule>()
           .toList();
     } catch (e) {
       debugPrint('Error obteniendo mantenimientos por rango de fechas: $e');
@@ -132,7 +262,7 @@ class MaintenanceScheduleService {
     }
   }
 
-  /// Actualizar estado del mantenimiento
+  /// Actualizar estado del mantenimiento con validación de tipos
   Future<bool> updateMaintenanceStatus(
     String maintenanceId,
     MaintenanceStatus status, {
@@ -156,7 +286,8 @@ class MaintenanceScheduleService {
       }
 
       if (completionPercentage != null) {
-        updateData['completionPercentage'] = completionPercentage;
+        // Asegurar que sea int
+        updateData['completionPercentage'] = completionPercentage.clamp(0, 100);
       }
 
       if (taskCompletion != null) {
@@ -176,7 +307,7 @@ class MaintenanceScheduleService {
     }
   }
 
-  /// Programar mantenimientos recurrentes
+  /// Programar mantenimientos recurrentes con validación
   Future<List<String>> scheduleRecurringMaintenances({
     required String equipmentId,
     required String equipmentName,
@@ -324,7 +455,17 @@ class MaintenanceScheduleService {
           .get();
 
       return snapshot.docs
-          .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+          .map((doc) {
+            try {
+              return MaintenanceSchedule.fromFirestore(doc);
+            } catch (e) {
+              debugPrint(
+                  'Error procesando mantenimiento vencido ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((maintenance) => maintenance != null)
+          .cast<MaintenanceSchedule>()
           .toList();
     } catch (e) {
       debugPrint('Error obteniendo mantenimientos vencidos: $e');
@@ -347,7 +488,17 @@ class MaintenanceScheduleService {
           .get();
 
       return snapshot.docs
-          .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+          .map((doc) {
+            try {
+              return MaintenanceSchedule.fromFirestore(doc);
+            } catch (e) {
+              debugPrint(
+                  'Error procesando próximo mantenimiento ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((maintenance) => maintenance != null)
+          .cast<MaintenanceSchedule>()
           .toList();
     } catch (e) {
       debugPrint('Error obteniendo próximos mantenimientos: $e');
@@ -360,11 +511,20 @@ class MaintenanceScheduleService {
       String searchTerm) async {
     try {
       final snapshot = await _firestore.collection(_collection).get();
-
       final searchLower = searchTerm.toLowerCase();
 
       return snapshot.docs
-          .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+          .map((doc) {
+            try {
+              return MaintenanceSchedule.fromFirestore(doc);
+            } catch (e) {
+              debugPrint(
+                  'Error procesando mantenimiento en búsqueda ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((maintenance) => maintenance != null)
+          .cast<MaintenanceSchedule>()
           .where((maintenance) =>
               maintenance.equipmentName.toLowerCase().contains(searchLower) ||
               maintenance.clientName.toLowerCase().contains(searchLower) ||
@@ -381,7 +541,7 @@ class MaintenanceScheduleService {
     }
   }
 
-  /// Obtener estadísticas de mantenimientos
+  /// Obtener estadísticas de mantenimientos con manejo de errores
   Future<Map<String, int>> getMaintenanceStats() async {
     try {
       final snapshot = await _firestore.collection(_collection).get();
@@ -398,35 +558,72 @@ class MaintenanceScheduleService {
       final now = DateTime.now();
 
       for (final doc in snapshot.docs) {
-        final maintenance = MaintenanceSchedule.fromFirestore(doc);
-        stats['total'] = stats['total']! + 1;
+        try {
+          final maintenance = MaintenanceSchedule.fromFirestore(doc);
+          stats['total'] = stats['total']! + 1;
 
-        switch (maintenance.status) {
-          case MaintenanceStatus.scheduled:
-            if (maintenance.scheduledDate.isBefore(now)) {
+          switch (maintenance.status) {
+            case MaintenanceStatus.scheduled:
+              if (maintenance.scheduledDate.isBefore(now)) {
+                stats['overdue'] = stats['overdue']! + 1;
+              } else {
+                stats['scheduled'] = stats['scheduled']! + 1;
+              }
+              break;
+            case MaintenanceStatus.inProgress:
+              stats['inProgress'] = stats['inProgress']! + 1;
+              break;
+            case MaintenanceStatus.completed:
+              stats['completed'] = stats['completed']! + 1;
+              break;
+            case MaintenanceStatus.overdue:
               stats['overdue'] = stats['overdue']! + 1;
-            } else {
-              stats['scheduled'] = stats['scheduled']! + 1;
-            }
-            break;
-          case MaintenanceStatus.inProgress:
-            stats['inProgress'] = stats['inProgress']! + 1;
-            break;
-          case MaintenanceStatus.completed:
-            stats['completed'] = stats['completed']! + 1;
-            break;
-          case MaintenanceStatus.overdue:
-            stats['overdue'] = stats['overdue']! + 1;
-            break;
-          case MaintenanceStatus.cancelled:
-            stats['cancelled'] = stats['cancelled']! + 1;
-            break;
+              break;
+            case MaintenanceStatus.cancelled:
+              stats['cancelled'] = stats['cancelled']! + 1;
+              break;
+          }
+        } catch (e) {
+          debugPrint('Error procesando estadística para ${doc.id}: $e');
+          // Continuar con el siguiente documento
         }
       }
 
       return stats;
     } catch (e) {
       debugPrint('Error obteniendo estadísticas: $e');
+      rethrow;
+    }
+  }
+
+  /// Limpiar datos corruptos en la base de datos
+  Future<void> cleanCorruptedData() async {
+    try {
+      final snapshot = await _firestore.collection(_collection).get();
+
+      for (final doc in snapshot.docs) {
+        try {
+          // Intentar parsear el documento
+          MaintenanceSchedule.fromFirestore(doc);
+        } catch (e) {
+          debugPrint('Documento corrupto encontrado: ${doc.id}');
+          debugPrint('Datos: ${doc.data()}');
+
+          // Intentar reparar datos corruptos
+          final data = doc.data() as Map<String, dynamic>;
+          final cleanedData = _sanitizeMaintenanceData(data);
+
+          try {
+            await doc.reference.update(cleanedData);
+            debugPrint('Documento reparado: ${doc.id}');
+          } catch (repairError) {
+            debugPrint(
+                'No se pudo reparar el documento ${doc.id}: $repairError');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error en limpieza de datos: $e');
       rethrow;
     }
   }

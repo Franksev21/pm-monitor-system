@@ -1,11 +1,142 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/features/auth/screens/completed_maintenance_screen.dart';
 import 'package:pm_monitor/features/auth/screens/pending_maintenances_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../config/theme/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 
-class TechnicianDashboard extends StatelessWidget {
+class TechnicianDashboard extends StatefulWidget {
   const TechnicianDashboard({super.key});
+
+  @override
+  State<TechnicianDashboard> createState() => _TechnicianDashboardState();
+}
+
+class _TechnicianDashboardState extends State<TechnicianDashboard> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Conteos dinámicos
+  int pendingCount = 0;
+  int completedCount = 0;
+  int inProgressCount = 0;
+  int emergenciesCount = 0;
+  int completedTodayCount = 0;
+  int pendingTodayCount = 0;
+
+  bool isLoadingCounts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    print('=== DASHBOARD TÉCNICO INICIADO ===');
+    _loadMaintenanceCounts();
+  }
+
+  Future<void> _loadMaintenanceCounts() async {
+    print('Iniciando carga de conteos...');
+    final currentUserId = _auth.currentUser?.uid;
+
+    if (currentUserId == null) {
+      print('No hay usuario autenticado');
+      return;
+    }
+
+    print('Usuario ID: $currentUserId');
+
+    try {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      final allMaintenances = await _firestore
+          .collection('maintenanceSchedules')
+          .where('technicianId', isEqualTo: currentUserId)
+          .get();
+
+      print('Total mantenimientos encontrados: ${allMaintenances.docs.length}');
+
+      int pending = 0;
+      int completed = 0;
+      int inProgress = 0;
+      int emergencies = 0;
+      int completedToday = 0;
+      int pendingToday = 0;
+
+      for (var doc in allMaintenances.docs) {
+        final data = doc.data();
+        final status = data['status'] ?? '';
+        final type = data['type'] ?? '';
+
+        print('Doc: ${doc.id}, Status: $status, Type: $type');
+
+        switch (status) {
+          case 'scheduled':
+          case 'pending':
+            pending++;
+            if (data['scheduledDate'] != null) {
+              final scheduledDate =
+                  (data['scheduledDate'] as Timestamp).toDate();
+              if (scheduledDate.isAfter(startOfDay) &&
+                  scheduledDate.isBefore(endOfDay)) {
+                pendingToday++;
+              }
+            }
+            break;
+          case 'completed':
+            completed++;
+            // Verificar si se completó hoy
+            DateTime? completedDate;
+            if (data['completedAt'] != null) {
+              completedDate = (data['completedAt'] as Timestamp).toDate();
+            } else if (data['startedAt'] != null) {
+              completedDate = (data['startedAt'] as Timestamp).toDate();
+            }
+
+            if (completedDate != null &&
+                completedDate.isAfter(startOfDay) &&
+                completedDate.isBefore(endOfDay)) {
+              completedToday++;
+            }
+            break;
+          case 'in_progress':
+            inProgress++;
+            break;
+        }
+
+        if (type == 'emergency' &&
+            (status == 'scheduled' || status == 'in_progress')) {
+          emergencies++;
+        }
+      }
+
+      print('RESULTADOS:');
+      print('- Pendientes: $pending (Hoy: $pendingToday)');
+      print('- Completados: $completed (Hoy: $completedToday)');
+      print('- En progreso: $inProgress');
+      print('- Emergencias: $emergencies');
+
+      if (mounted) {
+        setState(() {
+          pendingCount = pending;
+          completedCount = completed;
+          inProgressCount = inProgress;
+          emergenciesCount = emergencies;
+          completedTodayCount = completedToday;
+          pendingTodayCount = pendingToday;
+          isLoadingCounts = false;
+        });
+      }
+    } catch (e) {
+      print('Error cargando conteos: $e');
+      if (mounted) {
+        setState(() {
+          isLoadingCounts = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +148,10 @@ class TechnicianDashboard extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadMaintenanceCounts,
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _logout(context),
@@ -43,7 +178,25 @@ class TechnicianDashboard extends StatelessWidget {
   Widget _buildTechnicianHeader(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        final user = authProvider.currentUser!;
+        final user = authProvider.currentUser;
+        if (user == null) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4285F4), Color(0xFF34A853)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(
+              child: Text(
+                'Cargando información del usuario...',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          );
+        }
+
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -60,7 +213,11 @@ class TechnicianDashboard extends StatelessWidget {
                     radius: 25,
                     backgroundColor: Colors.white.withOpacity(0.2),
                     child: Text(
-                      user.name.split(' ').map((n) => n[0]).take(2).join(),
+                      user.name
+                          .split(' ')
+                          .map((n) => n.isNotEmpty ? n[0] : '')
+                          .take(2)
+                          .join(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -98,7 +255,11 @@ class TechnicianDashboard extends StatelessWidget {
               Row(
                 children: [
                   _buildSummaryItem('6.5h', 'Trabajadas'),
-                  _buildSummaryItem('4/7', 'Equipos'),
+                  _buildSummaryItem(
+                      isLoadingCounts
+                          ? '-/-'
+                          : '$pendingTodayCount/$pendingCount',
+                      'Equipos'),
                   _buildSummaryItem('85%', 'Eficiencia'),
                 ],
               ),
@@ -231,9 +392,10 @@ class TechnicianDashboard extends StatelessWidget {
                 context,
                 'Pendientes',
                 Icons.pending_actions,
-                '5',
+                isLoadingCounts ? '-' : '$pendingCount',
                 Colors.orange,
-                subtitle: 'Hoy: 3',
+                subtitle:
+                    isLoadingCounts ? 'Cargando...' : 'Hoy: $pendingTodayCount',
                 onTap: () => _navigateToPending(context),
               ),
             ),
@@ -243,9 +405,12 @@ class TechnicianDashboard extends StatelessWidget {
                 context,
                 'Completados',
                 Icons.check_circle,
-                '12',
+                isLoadingCounts ? '-' : '$completedCount',
                 Colors.green,
-                subtitle: 'Hoy: 2',
+                subtitle: isLoadingCounts
+                    ? 'Cargando...'
+                    : 'Hoy: $completedTodayCount',
+                onTap: () => _navigateToCompleted(context),
               ),
             ),
           ],
@@ -258,9 +423,9 @@ class TechnicianDashboard extends StatelessWidget {
                 context,
                 'En Progreso',
                 Icons.engineering,
-                '2',
+                isLoadingCounts ? '-' : '$inProgressCount',
                 Colors.blue,
-                subtitle: '45min',
+                subtitle: isLoadingCounts ? 'Cargando...' : '45min',
               ),
             ),
             const SizedBox(width: 12),
@@ -269,9 +434,9 @@ class TechnicianDashboard extends StatelessWidget {
                 context,
                 'Emergencias',
                 Icons.warning,
-                '1',
+                isLoadingCounts ? '-' : '$emergenciesCount',
                 Colors.red,
-                subtitle: 'Urgente',
+                subtitle: isLoadingCounts ? 'Cargando...' : 'Urgente',
               ),
             ),
           ],
@@ -338,14 +503,14 @@ class TechnicianDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Progreso del Día',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                const Text(
+                Text(
                   '75%',
                   style: TextStyle(
                     fontSize: 16,
@@ -363,11 +528,19 @@ class TechnicianDashboard extends StatelessWidget {
                   const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
             ),
             const SizedBox(height: 8),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('6 de 8 mantenimientos', style: TextStyle(fontSize: 12)),
-                Text('2 restantes', style: TextStyle(fontSize: 12)),
+                Text(
+                  isLoadingCounts
+                      ? 'Cargando mantenimientos...'
+                      : '$completedTodayCount de ${pendingTodayCount + completedTodayCount} mantenimientos',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                Text(
+                  isLoadingCounts ? '' : '${pendingTodayCount} restantes',
+                  style: const TextStyle(fontSize: 12),
+                ),
               ],
             ),
           ],
@@ -381,6 +554,15 @@ class TechnicianDashboard extends StatelessWidget {
       SnackBar(
         content: Text('$feature estará disponible pronto'),
         backgroundColor: const Color(0xFF4285F4),
+      ),
+    );
+  }
+
+  void _navigateToCompleted(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CompletedMaintenancesScreen(),
       ),
     );
   }
