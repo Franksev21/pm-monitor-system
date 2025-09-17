@@ -21,6 +21,7 @@ dependencies:
 
   #pdf
   pdf: ^3.10.4
+  printing: ^5.11.1
 
   # Image Picker
   image_picker: ^1.0.4
