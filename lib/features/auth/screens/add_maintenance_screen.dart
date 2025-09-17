@@ -95,7 +95,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         debugPrint('  - Email: ${tech.email}');
         debugPrint('  - Activo: ${tech.isActive}');
         debugPrint('  - Supervisor: ${tech.supervisorId ?? "Sin supervisor"}');
-        debugPrint('  - Equipos: ${tech.assignedEquipments?.length ?? 0}');
+        debugPrint('  - Equipos: ${tech.assignedEquipments}');
       }
 
       // Verificar supervisores
@@ -108,7 +108,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         debugPrint('  - ID: ${sup.id}');
         debugPrint('  - Email: ${sup.email}');
         debugPrint(
-            '  - Técnicos asignados: ${sup.assignedTechnicians?.length ?? 0}');
+            '  - Técnicos asignados: ${sup.assignedTechnicians}');
       }
     } catch (e) {
       debugPrint('Error en verificación con UserManagementService: $e');
