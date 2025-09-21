@@ -5,14 +5,51 @@ class EquipmentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'equipments';
 
+  // Funciones helper para conversión segura (movidas aquí para evitar errores de static)
+  double _safeToDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      try {
+        return double.parse(value);
+      } catch (e) {
+        return 0.0;
+      }
+    }
+    return 0.0;
+  }
+
+  int _safeToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      try {
+        return int.parse(value);
+      } catch (e) {
+        return 0;
+      }
+    }
+    return 0;
+  }
+
   // Obtener todos los equipos
   Stream<List<Equipment>> getAllEquipments() {
     return _firestore
         .collection(_collection)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Equipment.fromFirestore(doc)).toList());
+        .map((snapshot) {
+      try {
+        return snapshot.docs
+            .map((doc) => Equipment.fromFirestore(doc))
+            .toList();
+      } catch (e) {
+        print('Error parsing equipments: $e');
+        return <Equipment>[];
+      }
+    });
   }
 
   // Obtener equipos por cliente - SIN ÍNDICE COMPUESTO
@@ -21,8 +58,16 @@ class EquipmentService {
         .collection(_collection)
         .where('clientId', isEqualTo: clientId)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Equipment.fromFirestore(doc)).toList());
+        .map((snapshot) {
+      try {
+        return snapshot.docs
+            .map((doc) => Equipment.fromFirestore(doc))
+            .toList();
+      } catch (e) {
+        print('Error parsing client equipments: $e');
+        return <Equipment>[];
+      }
+    });
   }
 
   // Obtener equipos activos por cliente - CORREGIDO
@@ -31,10 +76,17 @@ class EquipmentService {
         .collection(_collection)
         .where('clientId', isEqualTo: clientId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+      try {
+        return snapshot.docs
             .map((doc) => Equipment.fromFirestore(doc))
             .where((equipment) => equipment.isActive)
-            .toList());
+            .toList();
+      } catch (e) {
+        print('Error parsing active equipments: $e');
+        return <Equipment>[];
+      }
+    });
   }
 
   // Obtener equipos por técnico asignado - CORREGIDO
@@ -43,7 +95,9 @@ class EquipmentService {
         .collection(_collection)
         .where('assignedTechnicianId', isEqualTo: technicianId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+      try {
+        return snapshot.docs
             .map((doc) => Equipment.fromFirestore(doc))
             .where((equipment) => equipment.isActive)
             .toList()
@@ -53,7 +107,12 @@ class EquipmentService {
             if (a.nextMaintenanceDate == null) return 1;
             if (b.nextMaintenanceDate == null) return -1;
             return a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!);
-          }));
+          });
+      } catch (e) {
+        print('Error parsing technician equipments: $e');
+        return <Equipment>[];
+      }
+    });
   }
 
   // Obtener equipos que necesitan mantenimiento - CORREGIDO
@@ -66,14 +125,19 @@ class EquipmentService {
         .where('isActive', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => Equipment.fromFirestore(doc))
-          .where((equipment) =>
-              equipment.nextMaintenanceDate != null &&
-              equipment.nextMaintenanceDate!.isBefore(weekFromNow))
-          .toList()
-        ..sort(
-            (a, b) => a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!));
+      try {
+        return snapshot.docs
+            .map((doc) => Equipment.fromFirestore(doc))
+            .where((equipment) =>
+                equipment.nextMaintenanceDate != null &&
+                equipment.nextMaintenanceDate!.isBefore(weekFromNow))
+            .toList()
+          ..sort((a, b) =>
+              a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!));
+      } catch (e) {
+        print('Error parsing equipments needing maintenance: $e');
+        return <Equipment>[];
+      }
     });
   }
 
@@ -86,18 +150,23 @@ class EquipmentService {
         .where('isActive', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => Equipment.fromFirestore(doc))
-          .where((equipment) =>
-              equipment.nextMaintenanceDate != null &&
-              equipment.nextMaintenanceDate!.isBefore(today))
-          .toList()
-        ..sort(
-            (a, b) => a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!));
+      try {
+        return snapshot.docs
+            .map((doc) => Equipment.fromFirestore(doc))
+            .where((equipment) =>
+                equipment.nextMaintenanceDate != null &&
+                equipment.nextMaintenanceDate!.isBefore(today))
+            .toList()
+          ..sort((a, b) =>
+              a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!));
+      } catch (e) {
+        print('Error parsing overdue equipments: $e');
+        return <Equipment>[];
+      }
     });
   }
 
-  // Obtener equipo por ID
+  // Obtener equipo por ID - Con manejo de errores mejorado
   Future<Equipment?> getEquipmentById(String equipmentId) async {
     try {
       DocumentSnapshot doc =
@@ -170,7 +239,7 @@ class EquipmentService {
     }
   }
 
-  // Crear equipo
+  // Crear equipo - Con validación mejorada
   Future<String?> createEquipment(Equipment equipment) async {
     try {
       // Verificar que el número de equipo no exista
@@ -180,10 +249,12 @@ class EquipmentService {
         throw Exception('Equipment number already exists');
       }
 
-      // Verificar que el RFID no exista
-      Equipment? existingRFID = await getEquipmentByRFID(equipment.rfidTag);
-      if (existingRFID != null) {
-        throw Exception('RFID tag already exists');
+      // Verificar que el RFID no exista si se proporciona
+      if (equipment.rfidTag.isNotEmpty) {
+        Equipment? existingRFID = await getEquipmentByRFID(equipment.rfidTag);
+        if (existingRFID != null) {
+          throw Exception('RFID tag already exists');
+        }
       }
 
       DocumentReference docRef =
@@ -411,7 +482,7 @@ class EquipmentService {
     }
   }
 
-  // Búsqueda de equipos por texto - SIMPLIFICADA
+  // Búsqueda de equipos por texto - SIMPLIFICADA CON MANEJO DE ERRORES
   Future<List<Equipment>> searchEquipments(String searchTerm) async {
     try {
       // Obtener todos los equipos y filtrar en memoria para evitar múltiples consultas complejas
@@ -422,16 +493,25 @@ class EquipmentService {
 
       String searchLower = searchTerm.toLowerCase();
 
-      List<Equipment> equipments = snapshot.docs
-          .map((doc) => Equipment.fromFirestore(doc))
-          .where((equipment) =>
-              equipment.name.toLowerCase().contains(searchLower) ||
+      List<Equipment> equipments = [];
+
+      for (DocumentSnapshot doc in snapshot.docs) {
+        try {
+          Equipment equipment = Equipment.fromFirestore(doc);
+
+          if (equipment.name.toLowerCase().contains(searchLower) ||
               equipment.brand.toLowerCase().contains(searchLower) ||
               equipment.model.toLowerCase().contains(searchLower) ||
               equipment.equipmentNumber.toLowerCase().contains(searchLower) ||
               equipment.location.toLowerCase().contains(searchLower) ||
-              equipment.branch.toLowerCase().contains(searchLower))
-          .toList();
+              equipment.branch.toLowerCase().contains(searchLower)) {
+            equipments.add(equipment);
+          }
+        } catch (e) {
+          print('Error parsing equipment in search: ${doc.id} - $e');
+          continue;
+        }
+      }
 
       return equipments;
     } catch (e) {
@@ -440,7 +520,7 @@ class EquipmentService {
     }
   }
 
-  // Obtener estadísticas de equipos por cliente
+  // Obtener estadísticas de equipos por cliente - CON MANEJO DE ERRORES
   Future<Map<String, dynamic>> getEquipmentStatsByClient(
       String clientId) async {
     try {
@@ -449,8 +529,16 @@ class EquipmentService {
           .where('clientId', isEqualTo: clientId)
           .get();
 
-      List<Equipment> equipments =
-          snapshot.docs.map((doc) => Equipment.fromFirestore(doc)).toList();
+      List<Equipment> equipments = [];
+
+      for (DocumentSnapshot doc in snapshot.docs) {
+        try {
+          equipments.add(Equipment.fromFirestore(doc));
+        } catch (e) {
+          print('Error parsing equipment in stats: ${doc.id} - $e');
+          continue;
+        }
+      }
 
       int total = equipments.length;
       int active = equipments.where((e) => e.isActive).length;
@@ -479,21 +567,29 @@ class EquipmentService {
       };
     } catch (e) {
       print('Error getting equipment stats: $e');
-      return {};
+      return {
+        'total': 0,
+        'active': 0,
+        'needingMaintenance': 0,
+        'overdue': 0,
+        'totalCost': 0.0,
+        'totalPmCost': 0.0,
+        'totalCmCost': 0.0,
+        'averageEfficiency': 0.0,
+      };
     }
   }
 
-  // Generar próximo número de equipo automáticamente - SIN ÍNDICE
+  // Generar próximo número de equipo automáticamente - CORREGIDO
   Future<String> generateEquipmentNumber(String clientId) async {
     try {
       // Validar que el clientId tenga al menos 3 caracteres
       if (clientId.length < 3) {
-        // Si es muy corto, usar el ID completo o rellenar
         String prefix = clientId.toUpperCase().padRight(3, 'X');
         return '$prefix-001';
       }
 
-      // Obtener todos los equipos del cliente (sin orderBy para evitar índice)
+      // Obtener todos los equipos del cliente
       QuerySnapshot snapshot = await _firestore
           .collection(_collection)
           .where('clientId', isEqualTo: clientId)
@@ -509,21 +605,25 @@ class EquipmentService {
       String prefix = '${clientId.substring(0, 3).toUpperCase()}-';
 
       for (DocumentSnapshot doc in snapshot.docs) {
-        Equipment equipment = Equipment.fromFirestore(doc);
-        String equipmentNumber = equipment.equipmentNumber;
+        try {
+          Equipment equipment = Equipment.fromFirestore(doc);
+          String equipmentNumber = equipment.equipmentNumber;
 
-        if (equipmentNumber.startsWith(prefix)) {
-          // Extraer el número del final
-          // Expresión regular corregida: busca un guión seguido de dígitos al final
-          RegExp regex = RegExp(r'-(\d+)$');
-          Match? match = regex.firstMatch(equipmentNumber);
+          if (equipmentNumber.startsWith(prefix)) {
+            // Extraer el número del final - CORREGIDO
+            RegExp regex = RegExp(r'-(\d+)$');
+            RegExpMatch? match = regex.firstMatch(equipmentNumber);
 
-          if (match != null) {
-            int number = int.parse(match.group(1)!);
-            if (number > maxNumber) {
-              maxNumber = number;
+            if (match != null) {
+              int number = int.parse(match.group(1)!);
+              if (number > maxNumber) {
+                maxNumber = number;
+              }
             }
           }
+        } catch (e) {
+          print('Error parsing equipment number: ${doc.id} - $e');
+          continue;
         }
       }
 
@@ -534,14 +634,66 @@ class EquipmentService {
       print('Error generating equipment number: $e');
       // Fallback con timestamp para evitar duplicados
       String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      // Tomar los últimos 6 dígitos del timestamp para mantenerlo corto
       String shortTimestamp = timestamp.substring(timestamp.length - 6);
-
-      // Si el clientId es muy corto, usar un prefijo genérico
       String prefix =
           clientId.length >= 3 ? clientId.substring(0, 3).toUpperCase() : 'EQP';
-
       return '$prefix-$shortTimestamp';
+    }
+  }
+
+  // Método para limpiar y migrar datos corruptos - CORREGIDO
+  Future<void> cleanupCorruptedEquipments() async {
+    try {
+      QuerySnapshot snapshot = await _firestore.collection(_collection).get();
+
+      int cleaned = 0;
+      int failed = 0;
+
+      for (DocumentSnapshot doc in snapshot.docs) {
+        try {
+          // Intentar parsear el equipo
+          Equipment.fromFirestore(doc);
+        } catch (e) {
+          try {
+            // Si falla, intentar limpiar los datos
+            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+            // Limpiar campos problemáticos usando las funciones helper locales
+            data['capacity'] = _safeToDouble(data['capacity']);
+            data['equipmentCost'] = _safeToDouble(data['equipmentCost']);
+            data['totalPmCost'] = _safeToDouble(data['totalPmCost']);
+            data['totalCmCost'] = _safeToDouble(data['totalCmCost']);
+            data['latitude'] = _safeToDouble(data['latitude']);
+            data['longitude'] = _safeToDouble(data['longitude']);
+            data['lifeScale'] = _safeToInt(data['lifeScale']);
+            data['frequencyDays'] = _safeToInt(data['frequencyDays']);
+            data['estimatedMaintenanceHours'] =
+                _safeToInt(data['estimatedMaintenanceHours']);
+            data['totalMaintenances'] = _safeToInt(data['totalMaintenances']);
+            data['totalFailures'] = _safeToInt(data['totalFailures']);
+            data['averageResponseTime'] =
+                _safeToDouble(data['averageResponseTime']);
+            data['maintenanceEfficiency'] =
+                _safeToDouble(data['maintenanceEfficiency']);
+            data['minTemperature'] = _safeToDouble(data['minTemperature']);
+            data['maxTemperature'] = _safeToDouble(data['maxTemperature']);
+            data['currentTemperature'] =
+                _safeToDouble(data['currentTemperature']);
+
+            // Actualizar el documento
+            await doc.reference.update(data);
+            cleaned++;
+            print('Cleaned equipment: ${doc.id}');
+          } catch (cleanError) {
+            failed++;
+            print('Failed to clean equipment: ${doc.id} - $cleanError');
+          }
+        }
+      }
+
+      print('Cleanup completed: $cleaned cleaned, $failed failed');
+    } catch (e) {
+      print('Error in cleanup process: $e');
     }
   }
 }

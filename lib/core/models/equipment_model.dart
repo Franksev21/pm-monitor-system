@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Equipment {
   final String? id;
   final String clientId;
@@ -149,9 +148,26 @@ class Equipment {
     this.alertPhones = const [],
   });
 
-  // Factory constructor para crear desde Firestore
   factory Equipment.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+    // Función helper local para double
+    double safeDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
+    // Función helper local para int
+    int safeInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
 
     return Equipment(
       id: doc.id,
@@ -164,7 +180,7 @@ class Equipment {
       brand: data['brand'] ?? '',
       model: data['model'] ?? '',
       category: data['category'] ?? '',
-      capacity: (data['capacity'] ?? 0).toDouble(),
+      capacity: safeDouble(data['capacity']),
       capacityUnit: data['capacityUnit'] ?? '',
       serialNumber: data['serialNumber'] ?? '',
       location: data['location'] ?? '',
@@ -172,21 +188,26 @@ class Equipment {
       country: data['country'] ?? '',
       region: data['region'] ?? '',
       address: data['address'] ?? '',
-      latitude: data['latitude']?.toDouble(),
-      longitude: data['longitude']?.toDouble(),
+      latitude: safeDouble(data['latitude']),
+      longitude: safeDouble(data['longitude']),
       condition: data['condition'] ?? 'Bueno',
-      lifeScale: data['lifeScale'] ?? 5,
+      lifeScale:
+          safeInt(data['lifeScale']) == 0 ? 5 : safeInt(data['lifeScale']),
       isActive: data['isActive'] ?? true,
       status: data['status'] ?? 'Operativo',
-      equipmentCost: (data['equipmentCost'] ?? 0).toDouble(),
-      totalPmCost: (data['totalPmCost'] ?? 0).toDouble(),
-      totalCmCost: (data['totalCmCost'] ?? 0).toDouble(),
+      equipmentCost: safeDouble(data['equipmentCost']),
+      totalPmCost: safeDouble(data['totalPmCost']),
+      totalCmCost: safeDouble(data['totalCmCost']),
       currency: data['currency'] ?? 'USD',
       maintenanceFrequency: data['maintenanceFrequency'] ?? 'mensual',
-      frequencyDays: data['frequencyDays'] ?? 30,
+      frequencyDays: safeInt(data['frequencyDays']) == 0
+          ? 30
+          : safeInt(data['frequencyDays']),
       lastMaintenanceDate: data['lastMaintenanceDate']?.toDate(),
       nextMaintenanceDate: data['nextMaintenanceDate']?.toDate(),
-      estimatedMaintenanceHours: data['estimatedMaintenanceHours'] ?? 2,
+      estimatedMaintenanceHours: safeInt(data['estimatedMaintenanceHours']) == 0
+          ? 2
+          : safeInt(data['estimatedMaintenanceHours']),
       assignedTechnicianId: data['assignedTechnicianId'],
       assignedTechnicianName: data['assignedTechnicianName'],
       assignedSupervisorId: data['assignedSupervisorId'],
@@ -196,14 +217,14 @@ class Equipment {
       videoStreamUrl: data['videoStreamUrl'],
       technicalSpecs: Map<String, dynamic>.from(data['technicalSpecs'] ?? {}),
       customFields: Map<String, dynamic>.from(data['customFields'] ?? {}),
-      minTemperature: data['minTemperature']?.toDouble(),
-      maxTemperature: data['maxTemperature']?.toDouble(),
-      currentTemperature: data['currentTemperature']?.toDouble(),
+      minTemperature: safeDouble(data['minTemperature']),
+      maxTemperature: safeDouble(data['maxTemperature']),
+      currentTemperature: safeDouble(data['currentTemperature']),
       hasTemperatureMonitoring: data['hasTemperatureMonitoring'] ?? false,
-      totalMaintenances: data['totalMaintenances'] ?? 0,
-      totalFailures: data['totalFailures'] ?? 0,
-      averageResponseTime: (data['averageResponseTime'] ?? 0).toDouble(),
-      maintenanceEfficiency: (data['maintenanceEfficiency'] ?? 0).toDouble(),
+      totalMaintenances: safeInt(data['totalMaintenances']),
+      totalFailures: safeInt(data['totalFailures']),
+      averageResponseTime: safeDouble(data['averageResponseTime']),
+      maintenanceEfficiency: safeDouble(data['maintenanceEfficiency']),
       createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
       updatedAt: data['updatedAt']?.toDate() ?? DateTime.now(),
       createdBy: data['createdBy'] ?? '',
