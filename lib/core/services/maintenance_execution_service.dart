@@ -154,10 +154,8 @@ class MaintenanceExecutionService {
 
     try {
       for (int i = 0; i < photos.length; i++) {
-        String fileName =
-            'maintenance_$maintenanceId/photo_${i}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        Reference ref =
-            _storage.ref().child('maintenance_photos').child(fileName);
+        String fileName ='maintenance_$maintenanceId/photo_${i}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        Reference ref = _storage.ref().child(fileName);
 
         UploadTask uploadTask = ref.putFile(photos[i]);
         TaskSnapshot snapshot = await uploadTask;
@@ -173,6 +171,7 @@ class MaintenanceExecutionService {
   }
 
   // Completar mantenimiento
+  // Completar mantenimiento - CON DEBUGGING
   Future<bool> completeMaintenance(
     String maintenanceId, {
     required Map<String, bool> taskCompletion,
@@ -181,10 +180,23 @@ class MaintenanceExecutionService {
     Map<String, dynamic>? equipmentData,
   }) async {
     try {
+      print('🏁 INICIO - Completar mantenimiento: $maintenanceId');
+      print('📸 Fotos recibidas: ${photos.length}');
+
+      // Verificar fotos antes de procesar
+      for (int i = 0; i < photos.length; i++) {
+        bool exists = await photos[i].exists();
+        int size = await photos[i].length();
+        print('📷 Foto $i - Existe: $exists, Tamaño: $size bytes');
+      }
+
       // Subir fotos primero
       List<String> photoUrls = [];
       if (photos.isNotEmpty) {
+        print('🔄 Iniciando subida de fotos...');
         photoUrls = await uploadMaintenancePhotos(maintenanceId, photos);
+        print('✅ Fotos subidas. URLs generadas: ${photoUrls.length}');
+        print('🔗 URLs: $photoUrls');
       }
 
       int totalTasks = taskCompletion.length;
@@ -193,7 +205,11 @@ class MaintenanceExecutionService {
       double percentage =
           totalTasks > 0 ? (completedTasks / totalTasks * 100) : 0;
 
+      print(
+          '📊 Progreso: $completedTasks/$totalTasks = ${percentage.toInt()}%');
+
       // Actualizar el mantenimiento
+      print('🔄 Actualizando Firestore...');
       await _firestore
           .collection('maintenanceSchedules')
           .doc(maintenanceId)
@@ -208,21 +224,29 @@ class MaintenanceExecutionService {
         'completedBy': _auth.currentUser?.uid,
       });
 
+      print('✅ Firestore actualizado exitosamente');
+
       // Si hay datos de equipo actualizados, guardarlos
       if (equipmentData != null) {
         String? equipmentId = equipmentData['equipmentId'];
         if (equipmentId != null) {
+          print('🔄 Actualizando datos del equipo: $equipmentId');
           await _updateEquipmentData(equipmentId, equipmentData);
+          print('✅ Datos del equipo actualizados');
         }
       }
 
       // Crear registro de historial
+      print('🔄 Creando historial...');
       await _createMaintenanceHistory(
           maintenanceId, equipmentData?['equipmentId']);
+      print('✅ Historial creado');
 
+      print('🎉 COMPLETADO EXITOSAMENTE');
       return true;
     } catch (e) {
-      print('Error completando mantenimiento: $e');
+      print('❌ ERROR en completeMaintenance: $e');
+      print('📍 Stack trace: ${StackTrace.current}');
       return false;
     }
   }

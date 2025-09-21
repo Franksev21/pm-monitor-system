@@ -112,6 +112,7 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
     );
   }
 
+  // ignore: unused_element
   void _handleAction(BuildContext context, String action, Equipment equipment) {
     switch (action) {
       case 'report_fault':

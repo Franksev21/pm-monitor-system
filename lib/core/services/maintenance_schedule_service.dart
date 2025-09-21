@@ -610,6 +610,7 @@ class MaintenanceScheduleService {
           debugPrint('Datos: ${doc.data()}');
 
           // Intentar reparar datos corruptos
+          // ignore: unnecessary_cast
           final data = doc.data() as Map<String, dynamic>;
           final cleanedData = _sanitizeMaintenanceData(data);
 

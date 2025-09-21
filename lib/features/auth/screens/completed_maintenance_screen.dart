@@ -376,7 +376,8 @@ class _CompletedMaintenancesScreenState
               Row(
                 children: [
                   Expanded(
-                    child: _buildProgressIndicator(completionPercentage.toInt()),
+                    child:
+                        _buildProgressIndicator(completionPercentage.toInt()),
                   ),
                   const SizedBox(width: 12),
                   if (photoCount > 0)
@@ -715,8 +716,26 @@ class _CompletedMaintenancesScreenState
                   borderRadius: BorderRadius.circular(8),
                   color: Colors.grey[200],
                 ),
-                child: const Center(
-                  child: Icon(Icons.image, size: 40, color: Colors.grey),
+                child: InkWell(
+                  onTap: () => _showFullScreenImage(context, photoUrls[index]),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      photoUrls[index],
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(Icons.broken_image, color: Colors.red),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -820,6 +839,30 @@ class _CompletedMaintenancesScreenState
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: Image.network(imageUrl),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
