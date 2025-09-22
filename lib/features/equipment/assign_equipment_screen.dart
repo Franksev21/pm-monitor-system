@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:provider/provider.dart';
-import '../../../core/models/equipment_model.dart';
-import '../../../core/providers/equipment_provider.dart';
-import '../../../core/providers/auth_provider.dart';
+import '../../core/models/equipment_model.dart';
+import '../../core/providers/equipment_provider.dart';
+import '../../core/providers/auth_provider.dart';
 
 class AssignEquipmentScreen extends StatefulWidget {
   final UserManagementModel technician;

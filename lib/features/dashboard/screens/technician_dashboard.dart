@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/features/auth/screens/completed_maintenance_screen.dart';
-import 'package:pm_monitor/features/auth/screens/pending_maintenances_screen.dart';
+import 'package:pm_monitor/features/maintenance/screens/completed_maintenance_screen.dart';
+import 'package:pm_monitor/features/maintenance/screens/pending_maintenances_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

@@ -6,8 +6,8 @@ import '../../../core/providers/equipment_provider.dart'; // ✅ Agregado
 import '../../../core/models/client_model.dart';
 import '../../../config/theme/app_theme.dart';
 import 'add_client_screen.dart';
-import 'add_equipment_screen.dart';
-import 'equipment_list_screen.dart';
+import '../../equipment/add_equipment_screen.dart';
+import '../../equipment/equipment_list_screen.dart';
 
 class ClientDetailScreen extends StatefulWidget {
   // ✅ Cambiado a StatefulWidget

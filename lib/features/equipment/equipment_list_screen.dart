@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/features/equipment/screens/qr_display_screen.dart';
-import '../screens/fault_report_screen.dart';
+import 'package:pm_monitor/features/others/screens/qr_display_screen.dart';
+import '../others/screens/fault_report_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';

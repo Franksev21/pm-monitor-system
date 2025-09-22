@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/features/auth/screens/global_Equipment_Inventory_Screen.dart';
-import 'package:pm_monitor/features/auth/screens/client_list_screen.dart';
-import 'package:pm_monitor/features/auth/screens/kpi_indicators_screen.dart';
-import 'package:pm_monitor/features/auth/screens/tecnician_list_screen.dart';
+import 'package:pm_monitor/features/maintenance/screens/global_Equipment_Inventory_Screen.dart';
+import 'package:pm_monitor/features/client/screens/client_list_screen.dart';
+import 'package:pm_monitor/features/others/screens/kpi_indicators_screen.dart';
+import 'package:pm_monitor/features/technician/screens/tecnician_list_screen.dart';
 import 'package:pm_monitor/features/auth/screens/user_managament_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/apple_style_calender.dart';
 import 'package:provider/provider.dart';

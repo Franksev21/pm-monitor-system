@@ -19,6 +19,9 @@ dependencies:
   share_plus: ^7.2.1
   qr_code_scanner: ^1.0.1
 
+  # Networking
+  http: ^1.1.0
+
   #pdf
   pdf: ^3.10.4
   printing: ^5.11.1

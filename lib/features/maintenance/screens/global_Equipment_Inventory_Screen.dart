@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/features/auth/screens/equipment_detail_screen.dart';
+import 'package:pm_monitor/features/equipment/equipment_detail_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:pm_monitor/features/auth/screens/maintenance_execution_screen.dart';
+import 'package:pm_monitor/features/maintenance/screens/maintenance_execution_screen.dart';
 
 class PendingMaintenancesScreen extends StatefulWidget {
   @override
