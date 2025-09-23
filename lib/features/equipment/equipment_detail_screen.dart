@@ -5,6 +5,7 @@ import 'package:pm_monitor/features/others/screens/qr_display_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
+import 'package:qr_flutter/qr_flutter.dart'; // NUEVA IMPORTACIÓN
 
 class EquipmentDetailScreen extends StatefulWidget {
   final Equipment equipment;
@@ -884,6 +885,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
     );
   }
 
+  // FUNCIÓN ACTUALIZADA: QR con logo CSC embebido
   Widget _buildQRSection(Equipment equipment) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -905,18 +907,31 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
+                // QR Code con logo CSC embebido - ACTUALIZADO
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: const Icon(
-                    Icons.qr_code,
-                    size: 50,
-                    color: Colors.grey,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: QrImageView(
+                      data: equipment.qrCode,
+                      version: QrVersions.auto,
+                      size: 120.0,
+                      backgroundColor: Colors.white,
+                      // Logo CSC embebido en el centro del QR
+                      embeddedImage:
+                          const AssetImage('assets/images/csc-logo.png'),
+                      embeddedImageStyle: const QrEmbeddedImageStyle(
+                        size: Size(30, 30), // Tamaño del logo dentro del QR
+                      ),
+                      // Nivel alto de corrección de errores para QR con logo
+                      errorCorrectionLevel: QrErrorCorrectLevel.H,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -925,13 +940,22 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'QR Code: ${equipment.qrCode}',
+                        'QR Code: ${equipment.equipmentNumber}',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
                       const Text(
                         'Escanea para acceso rápido a la información del equipo',
                         style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Código con logo CSC embebido',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
@@ -957,7 +981,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
   }
 
   void _generateQRCode(Equipment equipment) {
-   Navigator.push(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => QRDisplayScreen(equipment: equipment),
