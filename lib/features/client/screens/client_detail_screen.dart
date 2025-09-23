@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/features/auth/widgets/apple_style_calender.dart';
+import 'package:pm_monitor/features/calendar/screens/apple_style_calender.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/client_provider.dart';
 import '../../../core/providers/equipment_provider.dart'; // ✅ Agregado

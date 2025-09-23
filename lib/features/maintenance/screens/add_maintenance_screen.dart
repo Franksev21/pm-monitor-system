@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:pm_monitor/core/models/maintenance_calendar_model.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/services/equipment_service.dart';

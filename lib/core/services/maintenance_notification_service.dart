@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pm_monitor/core/models/maintenance_calendar_model.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
 
 
 class MaintenanceNotificationService {

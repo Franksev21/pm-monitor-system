@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/core/models/maintenance_calendar_model.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
 
 class MaintenanceStatsWidget extends StatelessWidget {
   final List<MaintenanceSchedule> maintenances;
