@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/maintenance/screens/global_Equipment_Inventory_Screen.dart';
 import 'package:pm_monitor/features/client/screens/client_list_screen.dart';
+import 'package:pm_monitor/features/others/backup_management_screen.dart';
 import 'package:pm_monitor/features/others/screens/kpi_indicators_screen.dart';
 import 'package:pm_monitor/features/technician/screens/tecnician_list_screen.dart';
 import 'package:pm_monitor/features/auth/screens/user_managament_screen.dart';
@@ -98,7 +99,6 @@ class AdminDashboard extends StatelessWidget {
                           );
                         },
                       ),
-                      // NUEVO BOTÓN - Gestión de Usuarios
                       _buildDashboardCard(
                         'Gestión de Usuarios',
                         Icons.manage_accounts,
@@ -114,7 +114,6 @@ class AdminDashboard extends StatelessWidget {
                           );
                         },
                       ),
-                      // Espacio para futuro botón (Indicadores, Reportes, etc.)
                       _buildDashboardCard(
                         'Indicadores',
                         Icons.analytics,
@@ -125,6 +124,39 @@ class AdminDashboard extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => KPIIndicatorsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      // NUEVO BOTÓN - Gestión de Backups
+                      _buildDashboardCard(
+                        'Backup & Respaldo',
+                        Icons.backup,
+                        'Datos',
+                        Colors.deepOrange,
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const BackupManagementScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      // Espacio para futuro botón
+                      _buildDashboardCard(
+                        'Configuración',
+                        Icons.settings,
+                        'Sistema',
+                        Colors.blueGrey,
+                        () {
+                          // Placeholder para futuras configuraciones
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Configuración del sistema - Próximamente'),
+                              backgroundColor: Colors.blueGrey,
                             ),
                           );
                         },
