@@ -13,9 +13,13 @@ class TechnicianDashboard extends StatefulWidget {
   State<TechnicianDashboard> createState() => _TechnicianDashboardState();
 }
 
-class _TechnicianDashboardState extends State<TechnicianDashboard> {
+class _TechnicianDashboardState extends State<TechnicianDashboard>
+    with SingleTickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   // Conteos dinámicos
   int pendingCount = 0;
@@ -24,6 +28,8 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
   int emergenciesCount = 0;
   int completedTodayCount = 0;
   int pendingTodayCount = 0;
+  int totalEquipments = 0;
+  int notificationCount = 0;
 
   bool isLoadingCounts = true;
 
@@ -31,7 +37,29 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
   void initState() {
     super.initState();
     print('=== DASHBOARD TÉCNICO INICIADO ===');
+
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    ));
+
+    _animationController.forward();
     _loadMaintenanceCounts();
+    _loadEquipmentCount();
+    _loadNotifications();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMaintenanceCounts() async {
@@ -86,7 +114,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
             break;
           case 'completed':
             completed++;
-            // Verificar si se completó hoy
             DateTime? completedDate;
             if (data['completedAt'] != null) {
               completedDate = (data['completedAt'] as Timestamp).toDate();
@@ -138,40 +165,121 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
     }
   }
 
+  Future<void> _loadEquipmentCount() async {
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    try {
+      final equipments = await _firestore
+          .collection('equipments')
+          .where('assignedTechnician', isEqualTo: currentUserId)
+          .get();
+
+      if (mounted) {
+        setState(() {
+          totalEquipments = equipments.docs.length;
+        });
+      }
+    } catch (e) {
+      print('Error cargando equipos: $e');
+    }
+  }
+
+  Future<void> _loadNotifications() async {
+    // Simulación de notificaciones pendientes
+    // En producción, esto vendría de Firestore
+    if (mounted) {
+      setState(() {
+        notificationCount = 3;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: const Text('Dashboard Técnico'),
-        backgroundColor: const Color(0xFF4285F4),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadMaintenanceCounts,
+      appBar: _buildAppBar(),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await _loadMaintenanceCounts();
+            await _loadEquipmentCount();
+            await _loadNotifications();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildTechnicianHeader(context),
+                const SizedBox(height: 20),
+                _buildQuickStats(),
+                const SizedBox(height: 20),
+                _buildQuickActions(context),
+                const SizedBox(height: 20),
+                _buildMaintenanceStats(context),
+                const SizedBox(height: 20),
+                _buildProgressCard(),
+              ],
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildTechnicianHeader(context),
-            const SizedBox(height: 20),
-            _buildQuickActions(context),
-            const SizedBox(height: 20),
-            _buildMaintenanceStats(context),
-            const SizedBox(height: 20),
-            _buildProgressCard(),
-          ],
         ),
       ),
+      floatingActionButton: _buildFAB(context),
+      bottomNavigationBar: _buildBottomNavBar(context),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: const Text('Dashboard'),
+      backgroundColor: const Color(0xFF4285F4),
+      foregroundColor: Colors.white,
+      elevation: 0,
+      actions: [
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () => _showNotifications(context),
+            ),
+            if (notificationCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '$notificationCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          onPressed: () async {
+            await _loadMaintenanceCounts();
+            await _loadEquipmentCount();
+          },
+        ),
+      ],
     );
   }
 
@@ -197,6 +305,11 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
           );
         }
 
+        // Calculate efficiency (simplified)
+        final efficiency = completedCount > 0
+            ? ((completedCount / (completedCount + pendingCount)) * 100).toInt()
+            : 0;
+
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -204,24 +317,27 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
               colors: [Color(0xFF4285F4), Color(0xFF34A853)],
             ),
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
           child: Column(
             children: [
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 25,
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    radius: 30,
+                    backgroundColor: Colors.white,
                     child: Text(
-                      user.name
-                          .split(' ')
-                          .map((n) => n.isNotEmpty ? n[0] : '')
-                          .take(2)
-                          .join(),
+                      user.initials,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFF4285F4),
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 20,
                       ),
                     ),
                   ),
@@ -230,37 +346,35 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Técnico',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
                         Text(
                           user.name,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const Text(
-                          'Mantenimientos del día',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Técnico Senior ⚡ $efficiency%',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  _buildSummaryItem('6.5h', 'Trabajadas'),
-                  _buildSummaryItem(
-                      isLoadingCounts
-                          ? '-/-'
-                          : '$pendingTodayCount/$pendingCount',
-                      'Equipos'),
-                  _buildSummaryItem('85%', 'Eficiencia'),
                 ],
               ),
             ],
@@ -270,21 +384,71 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
     );
   }
 
-  Widget _buildSummaryItem(String value, String label) {
-    return Expanded(
+  Widget _buildQuickStats() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            value: isLoadingCounts ? '-' : '$pendingTodayCount',
+            label: 'Pendientes Hoy',
+            color: Colors.orange,
+            icon: Icons.pending_actions,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            value: isLoadingCounts ? '-' : '$inProgressCount',
+            label: 'En Proceso',
+            color: Colors.blue,
+            icon: Icons.engineering,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            value: isLoadingCounts ? '-' : '$completedTodayCount',
+            label: 'Completados',
+            color: Colors.green,
+            icon: Icons.check_circle,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required String value,
+    required String label,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
       child: Column(
         children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: 20,
               fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
           Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: TextStyle(
+              fontSize: 10,
+              color: color.withOpacity(0.8),
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -293,37 +457,46 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
 
   Widget _buildQuickActions(BuildContext context) {
     return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Acciones Rápidas',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              'Acciones Principales',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 _buildActionButton(
                   icon: Icons.qr_code_scanner,
                   label: 'Escanear QR',
-                  onTap: () => _showComingSoon(context, 'Escanear QR'),
+                  color: Colors.purple,
+                  onTap: () => _navigateToQRScanner(context),
                 ),
                 _buildActionButton(
-                  icon: Icons.location_on,
-                  label: 'Mi Ubicación',
-                  onTap: () => _showComingSoon(context, 'Mi Ubicación'),
+                  icon: Icons.calendar_today,
+                  label: 'Mi Calendario',
+                  color: Colors.blue,
+                  onTap: () => _navigateToCalendar(context),
                 ),
                 _buildActionButton(
-                  icon: Icons.emergency,
-                  label: 'Emergencia',
-                  onTap: () => _showComingSoon(context, 'Emergencia'),
+                  icon: Icons.inventory_2,
+                  label: 'Mis Equipos',
+                  color: Colors.green,
+                  onTap: () => _navigateToEquipments(context),
                 ),
                 _buildActionButton(
-                  icon: Icons.phone,
-                  label: 'Supervisor',
-                  onTap: () => _showComingSoon(context, 'Supervisor'),
+                  icon: Icons.warning_amber,
+                  label: 'Reportar Falla',
+                  color: Colors.red,
+                  onTap: () => _reportFailure(context),
                 ),
               ],
             ),
@@ -336,6 +509,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
   Widget _buildActionButton({
     required IconData icon,
     required String label,
+    required Color color,
     required VoidCallback onTap,
   }) {
     return Expanded(
@@ -343,18 +517,23 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
         onTap: onTap,
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.3)),
           ),
           child: Column(
             children: [
-              Icon(icon, size: 24),
-              const SizedBox(height: 4),
+              Icon(icon, size: 28, color: color),
+              const SizedBox(height: 8),
               Text(
                 label,
-                style: const TextStyle(fontSize: 10),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -372,14 +551,17 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Estado Actual',
+              'Resumen de Mantenimientos',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             GestureDetector(
               onTap: () => _navigateToPending(context),
               child: const Text(
-                'Ver todo',
-                style: TextStyle(color: Color(0xFF4285F4)),
+                'Ver todo →',
+                style: TextStyle(
+                  color: Color(0xFF4285F4),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -394,8 +576,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
                 Icons.pending_actions,
                 isLoadingCounts ? '-' : '$pendingCount',
                 Colors.orange,
-                subtitle:
-                    isLoadingCounts ? 'Cargando...' : 'Hoy: $pendingTodayCount',
+                subtitle: isLoadingCounts ? 'Cargando...' : 'Total',
                 onTap: () => _navigateToPending(context),
               ),
             ),
@@ -407,9 +588,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
                 Icons.check_circle,
                 isLoadingCounts ? '-' : '$completedCount',
                 Colors.green,
-                subtitle: isLoadingCounts
-                    ? 'Cargando...'
-                    : 'Hoy: $completedTodayCount',
+                subtitle: isLoadingCounts ? 'Cargando...' : 'Total',
                 onTap: () => _navigateToCompleted(context),
               ),
             ),
@@ -421,11 +600,12 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
             Expanded(
               child: _buildTaskCard(
                 context,
-                'En Progreso',
-                Icons.engineering,
-                isLoadingCounts ? '-' : '$inProgressCount',
+                'Equipos',
+                Icons.devices,
+                isLoadingCounts ? '-' : '$totalEquipments',
                 Colors.blue,
-                subtitle: isLoadingCounts ? 'Cargando...' : '45min',
+                subtitle: 'Asignados',
+                onTap: () => _navigateToEquipments(context),
               ),
             ),
             const SizedBox(width: 12),
@@ -435,8 +615,11 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
                 'Emergencias',
                 Icons.warning,
                 isLoadingCounts ? '-' : '$emergenciesCount',
-                Colors.red,
-                subtitle: isLoadingCounts ? 'Cargando...' : 'Urgente',
+                emergenciesCount > 0 ? Colors.red : Colors.grey,
+                subtitle: emergenciesCount > 0 ? 'Urgente' : 'Sin emergencias',
+                onTap: emergenciesCount > 0
+                    ? () => _navigateToEmergencies(context)
+                    : null,
               ),
             ),
           ],
@@ -457,7 +640,9 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        child: Padding(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
@@ -497,22 +682,28 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
   }
 
   Widget _buildProgressCard() {
+    final progress = (pendingTodayCount + completedTodayCount) > 0
+        ? completedTodayCount / (pendingTodayCount + completedTodayCount)
+        : 0.0;
+
     return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Progreso del Día',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  '75%',
-                  style: TextStyle(
+                  '${(progress * 100).toInt()}%',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF4CAF50),
@@ -521,13 +712,22 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
               ],
             ),
             const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: 0.75,
-              backgroundColor: Colors.grey[300],
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: Colors.grey[300],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  progress > 0.7
+                      ? Colors.green
+                      : progress > 0.4
+                          ? Colors.orange
+                          : Colors.red,
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -538,10 +738,172 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
                   style: const TextStyle(fontSize: 12),
                 ),
                 Text(
-                  isLoadingCounts ? '' : '${pendingTodayCount} restantes',
-                  style: const TextStyle(fontSize: 12),
+                  isLoadingCounts ? '' : '$pendingTodayCount restantes',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: pendingTodayCount > 0 ? Colors.orange : Colors.green,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFAB(BuildContext context) {
+    return FloatingActionButton(
+      onPressed: () => _showQuickActionMenu(context),
+      backgroundColor: const Color(0xFF4285F4),
+      child: const Icon(Icons.add, color: Colors.white),
+    );
+  }
+
+  Widget _buildBottomNavBar(BuildContext context) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: 0,
+      selectedItemColor: const Color(0xFF4285F4),
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home),
+          label: 'Inicio',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.assignment),
+          label: 'Tareas',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.devices),
+          label: 'Equipos',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: 'Perfil',
+        ),
+      ],
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            // Ya estamos en inicio
+            break;
+          case 1:
+            _navigateToPending(context);
+            break;
+          case 2:
+            _navigateToEquipments(context);
+            break;
+          case 3:
+            _navigateToProfile(context);
+            break;
+        }
+      },
+    );
+  }
+
+  // Navigation methods
+  void _navigateToQRScanner(BuildContext context) {
+    // Si existe la pantalla de QR Scanner
+    Navigator.pushNamed(context, '/qr-scanner').catchError((e) {
+      _showComingSoon(context, 'Scanner QR');
+    });
+  }
+
+  void _navigateToCalendar(BuildContext context) {
+    // Navegar al calendario con filtro para técnico
+    Navigator.pushNamed(
+      context,
+      '/calendar',
+      arguments: {
+        'filterByUser': true,
+        'userId': _auth.currentUser?.uid,
+      },
+    ).catchError((e) {
+      _showComingSoon(context, 'Calendario');
+    });
+  }
+
+  void _navigateToEquipments(BuildContext context) {
+    // Navegar a equipos con filtro para técnico
+    Navigator.pushNamed(
+      context,
+      '/equipment-list',
+      arguments: {
+        'onlyAssigned': true,
+        'technicianId': _auth.currentUser?.uid,
+      },
+    ).catchError((e) {
+      _showComingSoon(context, 'Mis Equipos');
+    });
+  }
+
+  void _reportFailure(BuildContext context) {
+    Navigator.pushNamed(context, '/report-failure').catchError((e) {
+      _showComingSoon(context, 'Reportar Falla');
+    });
+  }
+
+  void _navigateToEmergencies(BuildContext context) {
+    Navigator.pushNamed(
+      context,
+      '/pending-maintenances',
+      arguments: {'filterEmergencies': true},
+    ).catchError((e) {
+      _showComingSoon(context, 'Emergencias');
+    });
+  }
+
+  void _navigateToProfile(BuildContext context) {
+    Navigator.pushNamed(context, '/profile').catchError((e) {
+      _showComingSoon(context, 'Perfil');
+    });
+  }
+
+  void _showNotifications(BuildContext context) {
+    Navigator.pushNamed(context, '/notifications').catchError((e) {
+      _showComingSoon(context, 'Notificaciones');
+    });
+  }
+
+  void _showQuickActionMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add_circle, color: Colors.blue),
+              title: const Text('Registrar Nuevo Equipo'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/add-equipment').catchError((e) {
+                  _showComingSoon(context, 'Registrar Equipo');
+                });
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.warning, color: Colors.orange),
+              title: const Text('Reportar Falla Urgente'),
+              onTap: () {
+                Navigator.pop(context);
+                _reportFailure(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Colors.green),
+              title: const Text('Tomar Evidencia'),
+              onTap: () {
+                Navigator.pop(context);
+                _showComingSoon(context, 'Captura de Evidencia');
+              },
             ),
           ],
         ),
@@ -554,6 +916,10 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
       SnackBar(
         content: Text('$feature estará disponible pronto'),
         backgroundColor: const Color(0xFF4285F4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }
@@ -574,12 +940,5 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
         builder: (context) => PendingMaintenancesScreen(),
       ),
     );
-  }
-
-  void _logout(BuildContext context) async {
-    await context.read<AuthProvider>().logout();
-    if (context.mounted) {
-      Navigator.of(context).pushReplacementNamed('/');
-    }
   }
 }

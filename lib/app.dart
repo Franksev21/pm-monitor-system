@@ -15,35 +15,42 @@ class PMMonitorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PM Monitor',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
-
-      // Configuración de localización para español
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        // Agrega más providers según necesites
       ],
-      supportedLocales: const [
-        Locale('es'), // Español simplificado
-        Locale('en'), // Inglés como fallback
-      ],
+      child: MaterialApp(
+        title: 'PM Monitor',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        debugShowCheckedModeBanner: false,
 
-      home: const AuthWrapper(),
-      routes: {
-        '/admin-dashboard': (context) => const AdminDashboard(),
-        '/technician-dashboard': (context) => TechnicianDashboard(),
-        '/client-dashboard': (context) => const ClientDashboard(),
-        '/unified-maintenance': (context) {
-          final int initialTab =
-              ModalRoute.of(context)?.settings.arguments as int? ?? 0;
-          return UnifiedMaintenanceScreen(initialTab: initialTab);
-        }
-      },
+        // Configuración de localización para español
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('es'), // Español
+          Locale('en'), // Inglés como fallback
+        ],
+
+        home: const AuthWrapper(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/admin-dashboard': (context) => const AdminDashboard(),
+          '/technician-dashboard': (context) => TechnicianDashboard(),
+          '/client-dashboard': (context) => const ClientDashboard(),
+          '/unified-maintenance': (context) {
+            final int initialTab =
+                ModalRoute.of(context)?.settings.arguments as int? ?? 0;
+            return UnifiedMaintenanceScreen(initialTab: initialTab);
+          }
+        },
+      ),
     );
   }
 }
@@ -61,7 +68,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.initState();
     // Inicializar autenticación al cargar la app
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthProvider>().initializeAuth();
+      final authProvider = context.read<AuthProvider>();
+      authProvider.initializeAuth();
     });
   }
 
@@ -75,7 +83,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         // Si no está autenticado, mostrar login
-        if (!authProvider.isAuthenticated) {
+        if (!authProvider.isAuthenticated || authProvider.currentUser == null) {
           return const LoginScreen();
         }
 
@@ -102,8 +110,15 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.primaryColor,
+              AppTheme.primaryColor.withOpacity(0.8),
+            ],
+          ),
         ),
         child: Center(
           child: Column(
@@ -123,7 +138,7 @@ class SplashScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.build_rounded,
                   size: 60,
                   color: AppTheme.primaryColor,
