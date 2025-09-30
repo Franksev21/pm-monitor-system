@@ -596,6 +596,40 @@ class MaintenanceScheduleService {
     }
   }
 
+Future<List<MaintenanceSchedule>> getMaintenancesByDateRangeAndTechnician(
+    DateTime startDate,
+    DateTime endDate,
+    String technicianId,
+  ) async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection(_collection)
+          .where('technicianId', isEqualTo: technicianId)
+          .where('scheduledDate',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('scheduledDate',
+              isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+          .orderBy('scheduledDate')
+          .get();
+
+      return snapshot.docs
+          .map((doc) {
+            try {
+              return MaintenanceSchedule.fromFirestore(doc);
+            } catch (e) {
+              debugPrint('Error procesando mantenimiento ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((maintenance) => maintenance != null)
+          .cast<MaintenanceSchedule>()
+          .toList();
+    } catch (e) {
+      debugPrint('Error obteniendo mantenimientos por técnico: $e');
+      return [];
+    }
+  }
+
   /// Limpiar datos corruptos en la base de datos
   Future<void> cleanCorruptedData() async {
     try {

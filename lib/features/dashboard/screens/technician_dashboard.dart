@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/maintenance/screens/completed_maintenance_screen.dart';
 import 'package:pm_monitor/features/maintenance/screens/pending_maintenances_screen.dart';
+import 'package:pm_monitor/features/technician/screens/technician_equipment_list_screen.dart';
+import 'package:pm_monitor/features/technician/technician_calendar_list_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -80,7 +82,9 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
 
       final allMaintenances = await _firestore
           .collection('maintenanceSchedules')
-          .where('technicianId', isEqualTo: currentUserId)
+          .where('technicianId',
+              isEqualTo:
+                  currentUserId)
           .get();
 
       print('Total mantenimientos encontrados: ${allMaintenances.docs.length}');
@@ -170,9 +174,10 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     if (currentUserId == null) return;
 
     try {
+      // Buscar por assignedTechnicianId en lugar de assignedTechnician
       final equipments = await _firestore
           .collection('equipments')
-          .where('assignedTechnician', isEqualTo: currentUserId)
+          .where('assignedTechnicianId', isEqualTo: currentUserId)
           .get();
 
       if (mounted) {
@@ -187,7 +192,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
 
   Future<void> _loadNotifications() async {
     // Simulación de notificaciones pendientes
-    // En producción, esto vendría de Firestore
     if (mounted) {
       setState(() {
         notificationCount = 3;
@@ -234,7 +238,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text('Dashboard'),
+      title: const Text('Dashboard Técnico'),
       backgroundColor: const Color(0xFF4285F4),
       foregroundColor: Colors.white,
       elevation: 0,
@@ -279,6 +283,29 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             await _loadEquipmentCount();
           },
         ),
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          onSelected: (value) {
+            if (value == 'logout') {
+              _showLogoutConfirmation(context);
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, color: Colors.red, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Cerrar Sesión',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -305,7 +332,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
           );
         }
 
-        // Calculate efficiency (simplified)
         final efficiency = completedCount > 0
             ? ((completedCount / (completedCount + pendingCount)) * 100).toInt()
             : 0;
@@ -365,7 +391,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            'Técnico Senior ⚡ $efficiency%',
+                            'Técnico $efficiency% eficiencia',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -474,70 +500,118 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             const SizedBox(height: 16),
             Row(
               children: [
-                _buildActionButton(
-                  icon: Icons.qr_code_scanner,
-                  label: 'Escanear QR',
-                  color: Colors.purple,
-                  onTap: () => _navigateToQRScanner(context),
+                // Mi Calendario
+                Expanded(
+                  child: Card(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const TechnicianCalendarScreen(),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.calendar_today,
+                                color: Colors.blue[700],
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Mi Calendario',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Ver agenda',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[600],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                _buildActionButton(
-                  icon: Icons.calendar_today,
-                  label: 'Mi Calendario',
-                  color: Colors.blue,
-                  onTap: () => _navigateToCalendar(context),
-                ),
-                _buildActionButton(
-                  icon: Icons.inventory_2,
-                  label: 'Mis Equipos',
-                  color: Colors.green,
-                  onTap: () => _navigateToEquipments(context),
-                ),
-                _buildActionButton(
-                  icon: Icons.warning_amber,
-                  label: 'Reportar Falla',
-                  color: Colors.red,
-                  onTap: () => _reportFailure(context),
+                const SizedBox(width: 8),
+                // Mis Equipos
+                Expanded(
+                  child: Card(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const TechnicianEquipmentListScreen(),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.purple[50],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.build_circle,
+                                color: Colors.purple[700],
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Mis Equipos',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Asignados',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[600],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.3)),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 28, color: color),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -557,7 +631,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             GestureDetector(
               onTap: () => _navigateToPending(context),
               child: const Text(
-                'Ver todo →',
+                'Ver todo',
                 style: TextStyle(
                   color: Color(0xFF4285F4),
                   fontWeight: FontWeight.w500,
@@ -804,62 +878,98 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     );
   }
 
-  // Navigation methods
-  void _navigateToQRScanner(BuildContext context) {
-    // Si existe la pantalla de QR Scanner
-    Navigator.pushNamed(context, '/qr-scanner').catchError((e) {
-      _showComingSoon(context, 'Scanner QR');
-    });
-  }
-
-  void _navigateToCalendar(BuildContext context) {
-    // Navegar al calendario con filtro para técnico
-    Navigator.pushNamed(
-      context,
-      '/calendar',
-      arguments: {
-        'filterByUser': true,
-        'userId': _auth.currentUser?.uid,
-      },
-    ).catchError((e) {
-      _showComingSoon(context, 'Calendario');
-    });
-  }
-
   void _navigateToEquipments(BuildContext context) {
-    // Navegar a equipos con filtro para técnico
-    Navigator.pushNamed(
+    Navigator.push(
       context,
-      '/equipment-list',
-      arguments: {
-        'onlyAssigned': true,
-        'technicianId': _auth.currentUser?.uid,
-      },
-    ).catchError((e) {
-      _showComingSoon(context, 'Mis Equipos');
-    });
-  }
-
-  void _reportFailure(BuildContext context) {
-    Navigator.pushNamed(context, '/report-failure').catchError((e) {
-      _showComingSoon(context, 'Reportar Falla');
-    });
+      MaterialPageRoute(
+        builder: (context) => const TechnicianEquipmentListScreen(),
+      ),
+    );
   }
 
   void _navigateToEmergencies(BuildContext context) {
-    Navigator.pushNamed(
+    Navigator.push(
       context,
-      '/pending-maintenances',
-      arguments: {'filterEmergencies': true},
-    ).catchError((e) {
-      _showComingSoon(context, 'Emergencias');
-    });
+      MaterialPageRoute(
+        builder: (context) => PendingMaintenancesScreen(),
+      ),
+    );
   }
 
   void _navigateToProfile(BuildContext context) {
     Navigator.pushNamed(context, '/profile').catchError((e) {
       _showComingSoon(context, 'Perfil');
     });
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Cerrar Sesión'),
+          ],
+        ),
+        content: const Text(
+          '¿Estás seguro que deseas cerrar sesión?',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _performLogout(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Cerrar Sesión'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performLogout(BuildContext context) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.logout();
+
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cerrar sesión: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showNotifications(BuildContext context) {
@@ -880,29 +990,37 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.add_circle, color: Colors.blue),
-              title: const Text('Registrar Nuevo Equipo'),
+              leading: const Icon(Icons.calendar_today, color: Colors.blue),
+              title: const Text('Ver Mi Calendario'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/add-equipment').catchError((e) {
-                  _showComingSoon(context, 'Registrar Equipo');
-                });
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TechnicianCalendarScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.build_circle, color: Colors.purple),
+              title: const Text('Ver Mis Equipos'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TechnicianEquipmentListScreen(),
+                  ),
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.warning, color: Colors.orange),
-              title: const Text('Reportar Falla Urgente'),
+              title: const Text('Reportar Falla'),
               onTap: () {
                 Navigator.pop(context);
-                _reportFailure(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt, color: Colors.green),
-              title: const Text('Tomar Evidencia'),
-              onTap: () {
-                Navigator.pop(context);
-                _showComingSoon(context, 'Captura de Evidencia');
+                _showComingSoon(context, 'Reportar Falla');
               },
             ),
           ],

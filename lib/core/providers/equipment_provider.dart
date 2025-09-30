@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/services/equipment_service.dart';
 
 class EquipmentProvider with ChangeNotifier {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final EquipmentService _equipmentService = EquipmentService();
 
   // Estados de carga
@@ -205,31 +207,29 @@ class EquipmentProvider with ChangeNotifier {
     );
   }
 
-  // Cargar equipos por técnico - MEJORADO
-  void loadEquipmentsByTechnician(String technicianId) {
-    if (technicianId.isEmpty) {
-      _setError('Technician ID cannot be empty');
-      return;
-    }
-
+  Future<void> loadEquipmentsByTechnician(String technicianId) async {
     _isLoading = true;
-    clearError();
+    _errorMessage = null;
     notifyListeners();
 
-    _equipmentService.getEquipmentsByTechnician(technicianId).listen(
-      (equipments) {
-        _technicianEquipments = equipments;
-        _isLoading = false;
-        clearError();
-        notifyListeners();
-      },
-      onError: (error) {
-        _setError('Error loading technician equipments: $error');
-        _technicianEquipments = [];
-        _isLoading = false;
-        notifyListeners();
-      },
-    );
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('equipments')
+          .where('assignedTechnicianId', isEqualTo: technicianId)
+          .get();
+
+      _technicianEquipments =
+          snapshot.docs.map((doc) => Equipment.fromFirestore(doc)).toList();
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Error cargando equipos del técnico: $e';
+      _isLoading = false;
+      notifyListeners();
+      // ignore: avoid_print
+      print('Error en loadEquipmentsByTechnician: $e');
+    }
   }
 
   // Cargar equipos que necesitan mantenimiento - MEJORADO

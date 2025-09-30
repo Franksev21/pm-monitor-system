@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -9,10 +10,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SimpleBackupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Crear backup manual - OPCIÓN MÁS FÁCIL
   Future<bool> createManualBackup() async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('❌ Error: Usuario no autenticado');
+        return false;
+      }
+
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final role = userDoc.data()?['role'];
+
+      if (role != 'admin') {
+        print('❌ Error: Solo administradores pueden crear backups');
+        throw Exception('Permisos insuficientes');
+      }
+
+      print('🔧 Iniciando backup como admin...');
+
       // 1. Recopilar datos principales
       final backupData = await _collectEssentialData();
 
@@ -26,9 +44,10 @@ class SimpleBackupService {
       // 4. Guardar referencia local
       await _saveBackupReference(fileName);
 
+      print('✅ Backup completado: $fileName');
       return true;
     } catch (e) {
-      print('Error en backup: $e');
+      print('❌ Error en backup: $e');
       return false;
     }
   }
@@ -62,6 +81,7 @@ class SimpleBackupService {
       'created_at': DateTime.now().toIso8601String(),
       'version': '1.0',
       'app_version': 'PM Monitor 1.0',
+      'created_by': _auth.currentUser?.email ?? 'unknown',
       'total_collections': collections.length,
       'total_documents': data.values
           .where((v) => v is List)
@@ -119,13 +139,43 @@ class SimpleBackupService {
     final jsonString = jsonEncode(data);
     await file.writeAsString(jsonString);
 
+    print('📁 Archivo local guardado: ${file.path}');
     return file;
   }
 
   /// Subir a Firebase Storage
   Future<void> _uploadToStorage(File file, String fileName) async {
-    final ref = _storage.ref().child('backups/$fileName');
-    await ref.putFile(file);
+    try {
+      final storageRef = _storage.ref().child('backups/$fileName');
+
+      final metadata = SettableMetadata(
+        contentType: 'application/json',
+        customMetadata: {
+          'createdBy': _auth.currentUser?.email ?? 'unknown',
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+
+      final uploadTask = storageRef.putFile(file, metadata);
+
+      // Monitorear progreso
+      uploadTask.snapshotEvents.listen((snapshot) {
+        final progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        print('📤 Subiendo: ${progress.toStringAsFixed(1)}%');
+      });
+
+      await uploadTask.whenComplete(() {
+        print('☁️ Archivo subido a Firebase Storage');
+      });
+    } catch (e) {
+      print('❌ Error subiendo a Storage: $e');
+      if (e.toString().contains('permission-denied')) {
+        throw Exception(
+            'No tienes permisos para subir backups. Verifica que tu usuario tenga rol de admin.');
+      }
+      rethrow;
+    }
   }
 
   /// Guardar referencia del backup
@@ -142,27 +192,36 @@ class SimpleBackupService {
     await prefs.setStringList('backup_files', backups);
     await prefs.setString('last_backup', DateTime.now().toIso8601String());
   }
-
-  /// Obtener lista de backups disponibles
-  Future<List<BackupInfo>> getAvailableBackups() async {
+Future<List<BackupInfo>> getAvailableBackups() async {
     try {
+      print('📂 Listando backups disponibles...');
+
       final listResult = await _storage.ref('backups/').listAll();
+      print('✅ Encontrados ${listResult.items.length} archivos');
+
       final backups = <BackupInfo>[];
 
       for (final item in listResult.items) {
-        final metadata = await item.getMetadata();
-        backups.add(BackupInfo(
-          fileName: item.name,
-          createdAt: metadata.timeCreated ?? DateTime.now(),
-          size: metadata.size ?? 0,
-        ));
+        try {
+          print('  📄 Procesando: ${item.name}');
+          final metadata = await item.getMetadata();
+
+          backups.add(BackupInfo(
+            fileName: item.name,
+            createdAt: metadata.timeCreated ?? DateTime.now(),
+            size: metadata.size ?? 0,
+          ));
+        } catch (e) {
+          print('  ⚠️ Error con ${item.name}: $e');
+        }
       }
 
-      // Ordenar por fecha, más reciente primero
       backups.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      print('✅ Total procesados: ${backups.length}');
       return backups;
     } catch (e) {
-      print('Error obteniendo backups: $e');
+      print('❌ Error listando backups: $e');
+      print('Stack trace: ${StackTrace.current}');
       return [];
     }
   }
@@ -175,6 +234,7 @@ class SimpleBackupService {
       final localFile = File('${directory.path}/downloaded_$fileName');
 
       await ref.writeToFile(localFile);
+      print('✅ Backup descargado: ${localFile.path}');
       return localFile;
     } catch (e) {
       print('Error descargando backup: $e');
@@ -316,10 +376,31 @@ class SimpleBackupService {
         for (final backup in toDelete) {
           final ref = _storage.ref().child('backups/${backup.fileName}');
           await ref.delete();
+          print('🗑️ Backup eliminado: ${backup.fileName}');
         }
       }
     } catch (e) {
       print('Error limpiando backups: $e');
+    }
+  }
+
+  /// Eliminar un backup específico
+  Future<bool> deleteBackup(String fileName) async {
+    try {
+      final ref = _storage.ref().child('backups/$fileName');
+      await ref.delete();
+
+      // Actualizar referencias locales
+      final prefs = await SharedPreferences.getInstance();
+      final backups = prefs.getStringList('backup_files') ?? [];
+      backups.remove(fileName);
+      await prefs.setStringList('backup_files', backups);
+
+      print('🗑️ Backup eliminado: $fileName');
+      return true;
+    } catch (e) {
+      print('Error eliminando backup: $e');
+      return false;
     }
   }
 }
