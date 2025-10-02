@@ -42,7 +42,7 @@ class PMMonitorApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/admin-dashboard': (context) => const AdminDashboard(),
-          '/technician-dashboard': (context) => TechnicianDashboard(),
+          '/technician-dashboard': (context) => const TechnicianDashboard(),
           '/client-dashboard': (context) => const ClientDashboard(),
           '/unified-maintenance': (context) {
             final int initialTab =

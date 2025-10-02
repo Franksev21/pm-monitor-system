@@ -30,6 +30,10 @@
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos acceso a la cámara para tomar tu foto de perfil</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+<string>Necesitamos acceso a tus fotos para seleccionar tu foto de perfil</string>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
