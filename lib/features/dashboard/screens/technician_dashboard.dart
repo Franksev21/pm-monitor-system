@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/maintenance/screens/completed_maintenance_screen.dart';
 import 'package:pm_monitor/features/maintenance/screens/pending_maintenances_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_equipment_list_screen.dart';
+import 'package:pm_monitor/features/technician/screens/technician_notification_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_profile_screen.dart';
 import 'package:pm_monitor/features/technician/technician_calendar_list_screen.dart';
 import 'package:provider/provider.dart';
@@ -975,9 +976,12 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
   }
 
   void _showNotifications(BuildContext context) {
-    Navigator.pushNamed(context, '/notifications').catchError((e) {
-      _showComingSoon(context, 'Notificaciones');
-    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TechnicianNotificationsScreen(),
+      ),
+    );
   }
 
   void _showQuickActionMenu(BuildContext context) {

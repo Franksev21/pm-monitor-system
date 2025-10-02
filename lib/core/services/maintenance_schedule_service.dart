@@ -1,18 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:pm_monitor/core/services/notification_service.dart';
 import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
 
 class MaintenanceScheduleService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'maintenanceSchedules';
-
-  // Singleton pattern
   static final MaintenanceScheduleService _instance =
       MaintenanceScheduleService._internal();
   factory MaintenanceScheduleService() => _instance;
   MaintenanceScheduleService._internal();
+  final NotificationService _notificationService = NotificationService();
 
-  /// Crear un nuevo mantenimiento con validación de tipos
   Future<String?> createMaintenance(MaintenanceSchedule maintenance) async {
     try {
       // Validar y limpiar datos antes de guardar
@@ -20,7 +19,11 @@ class MaintenanceScheduleService {
 
       DocumentReference docRef =
           await _firestore.collection(_collection).add(cleanData);
-
+      _notificationService.sendMaintenanceAssignedNotification(
+          technicianId: maintenance.technicianId!,
+          maintenanceId: docRef.id,
+          equipmentName: maintenance.equipmentName,
+          scheduledDate: maintenance.scheduledDate);
       debugPrint('Mantenimiento creado con ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
@@ -596,7 +599,7 @@ class MaintenanceScheduleService {
     }
   }
 
-Future<List<MaintenanceSchedule>> getMaintenancesByDateRangeAndTechnician(
+  Future<List<MaintenanceSchedule>> getMaintenancesByDateRangeAndTechnician(
     DateTime startDate,
     DateTime endDate,
     String technicianId,

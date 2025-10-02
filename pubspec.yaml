@@ -22,6 +22,9 @@ dependencies:
   # Networking
   http: ^1.1.0
 
+  # Time
+  timeago: ^3.6.1
+
   #pdf
   pdf: ^3.10.4
   printing: ^5.11.1

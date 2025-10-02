@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/intl.dart';
 
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -89,6 +90,33 @@ class NotificationService {
     } catch (e) {
       print('Error en batch notifications: $e');
     }
+  }
+
+  Future<void> sendMaintenanceAssignedNotification({
+    required String technicianId,
+    required String maintenanceId,
+    required String equipmentName,
+    required DateTime scheduledDate,
+  }) async {
+    String message = '''
+📋 NUEVO MANTENIMIENTO ASIGNADO
+Equipo: $equipmentName
+Fecha programada: ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDate)}
+ID: $maintenanceId
+''';
+
+    await _firestore.collection('pendingNotifications').add({
+      'type': 'maintenance_assigned',
+      'message': message,
+      'technicianId': technicianId,
+      'maintenanceId': maintenanceId,
+      'equipmentName': equipmentName,
+      'scheduledDate': Timestamp.fromDate(scheduledDate),
+      'createdAt': Timestamp.now(),
+      'status': 'pending',
+    });
+
+    print('Notificación de mantenimiento asignado enviada');
   }
 
   Future<void> _sendSingleNotification(
