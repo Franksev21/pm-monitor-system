@@ -155,7 +155,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
 
   // Filtrar localmente los documentos pendientes
   QuerySnapshot _filterPendingLocally(QuerySnapshot snapshot) {
-    final pendingDocs = snapshot.docs.where((doc) {
+    snapshot.docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final status = data['status'] ?? '';
       return status == 'scheduled' || status == 'pending';
@@ -511,17 +511,6 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
 
   void _startMaintenance(Map<String, dynamic> maintenance) {
     // Navegar a la pantalla de ejecución de mantenimiento
-    Navigator.pushNamed(
-      context,
-      '/maintenance-execution',
-      arguments: maintenance,
-    ).catchError((e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Función en desarrollo'),
-          backgroundColor: Color(0xFF4285F4),
-        ),
-      );
-    });
+    Navigator.pop(context);
   }
 }

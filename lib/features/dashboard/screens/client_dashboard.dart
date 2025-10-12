@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/features/client/screens/client_equipment_inventory.screen.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
@@ -664,10 +665,17 @@ class _ClientDashboardState extends State<ClientDashboard>
 
   // Métodos de navegación
   void _navigateToEquipments() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navegando a equipos...')),
-    );
-    // TODO: Implementar navegación
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUser = authProvider.currentUser;
+
+    if (currentUser != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ClientEquipmentInventoryScreen(),
+        ),
+      );
+    }
   }
 
   void _navigateToMaintenances() {

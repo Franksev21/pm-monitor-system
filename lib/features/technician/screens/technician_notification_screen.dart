@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../maintenance/screens/pending_maintenances_screen.dart';
 
@@ -15,7 +14,7 @@ class TechnicianNotificationsScreen extends StatefulWidget {
 class _TechnicianNotificationsScreenState
     extends State<TechnicianNotificationsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+
 
   @override
   void initState() {
