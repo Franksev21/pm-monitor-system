@@ -198,6 +198,8 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
       FaultReport faultReport = FaultReport(
         equipmentId: widget.equipment.id!,
         equipmentName: widget.equipment.name,
+        equipmentNumber: widget.equipment.equipmentNumber,
+        clientName: widget.equipment.branch ,
         clientId: widget.equipment.clientId,
         description: _descriptionController.text.trim(),
         severity: _selectedSeverity,
