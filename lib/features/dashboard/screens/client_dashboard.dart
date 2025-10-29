@@ -69,6 +69,7 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -84,6 +85,7 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
       final clientName = _userData?['name'] ?? '';
 
       if (clientName.isEmpty) {
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
@@ -167,7 +169,7 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
         }
         averageSatisfaction = totalRating / satisfactionSnapshot.docs.length;
       }
-
+    if (!mounted) return;
       setState(() {
         _metrics = {
           'totalEquipments': totalEquipments,
@@ -182,6 +184,7 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
       print('✅ Métricas cargadas: $_metrics');
     } catch (e) {
       print('❌ Error cargando dashboard: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pm_monitor/core/models/fault_report_model.dart';
+import 'package:pm_monitor/core/services/notification_service.dart';
 
 class ClientFaultReportScreen extends StatefulWidget {
   final String? equipmentId;
@@ -142,33 +143,94 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
       final docRef =
           await _firestore.collection('faultReports').add(report.toFirestore());
 
-      // Crear notificación pendiente para administradores
-      await _firestore.collection('pendingNotifications').add({
-        'type': 'fault_report',
-        'severity': _severity,
-        'message':
-            '🚨 FALLA REPORTADA Equipo: $_selectedEquipmentNumber Severidad: $_severity Descripción: ${_descriptionController.text.trim()} ID: ${docRef.id}',
-        'equipmentId': _selectedEquipmentId,
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      print('✅ Reporte creado: ${docRef.id}');
+
+      // Enviar notificaciones usando el servicio
+      try {
+        final notificationService = NotificationService();
+        await notificationService.sendFaultNotifications(
+          equipmentName: _selectedEquipmentName!,
+          equipmentId: _selectedEquipmentId!,
+          severity: _severity,
+          description: _descriptionController.text.trim(),
+          reportId: docRef.id,
+        );
+        print('✅ Notificaciones push enviadas');
+      } catch (notificationError) {
+        print('⚠️ Error enviando notificaciones push: $notificationError');
+        // No detener el proceso si fallan las notificaciones push
+      }
+
+      // Crear notificación pendiente para administradores (backup)
+      try {
+        await _firestore.collection('pendingNotifications').add({
+          'type': 'fault_report',
+          'severity': _severity,
+          'message':
+              '🚨 FALLA REPORTADA\nEquipo: $_selectedEquipmentNumber\nSeveridad: $_severity\nCliente: $clientName\nDescripción: ${_descriptionController.text.trim()}\nID: ${docRef.id}',
+          'equipmentId': _selectedEquipmentId,
+          'reportId': docRef.id,
+          'clientId': currentUser.uid,
+          'clientName': clientName,
+          'status': 'pending',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        print('✅ Notificación pendiente creada');
+      } catch (notificationError) {
+        print('⚠️ Error creando notificación pendiente: $notificationError');
+        // No detener el proceso si falla
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('¡Falla reportada exitosamente!'),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '¡Falla reportada exitosamente!',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Los técnicos han sido notificados',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
-      print('Error reportando falla: $e');
+      print('❌ Error reportando falla: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                      'Error al reportar: ${e.toString().split(']').last}'),
+                ),
+              ],
+            ),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }

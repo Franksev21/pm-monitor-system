@@ -16,9 +16,11 @@ void main() async {
 
   try {
     await FirebaseConfig.initialize();
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
   } catch (e) {
     print('Error inicializando Firebase: $e');
   }
@@ -41,7 +43,8 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ClientProvider()..initialize()),
-        ChangeNotifierProvider(create: (_) => EquipmentProvider()..initialize()),
+        ChangeNotifierProvider(
+            create: (_) => EquipmentProvider()..initialize()),
         ChangeNotifierProvider(create: (_) => TechnicianProvider()),
       ],
       child: const PMMonitorApp(),
