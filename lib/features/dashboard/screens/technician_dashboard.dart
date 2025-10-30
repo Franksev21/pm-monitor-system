@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/maintenance/screens/completed_maintenance_screen.dart';
 import 'package:pm_monitor/features/maintenance/screens/pending_maintenances_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_equipment_list_screen.dart';
+import 'package:pm_monitor/features/technician/screens/technician_faults_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_notification_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_profile_screen.dart';
-import 'package:pm_monitor/features/technician/technician_calendar_list_screen.dart';
+import 'package:pm_monitor/features/technician/screens/technician_calendar_list_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -40,8 +41,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
   @override
   void initState() {
     super.initState();
-    print('=== DASHBOARD TÉCNICO INICIADO ===');
-
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -686,14 +685,12 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             Expanded(
               child: _buildTaskCard(
                 context,
-                'Emergencias',
+                'Reporte de fallas',
                 Icons.warning,
                 isLoadingCounts ? '-' : '$emergenciesCount',
-                emergenciesCount > 0 ? Colors.red : Colors.grey,
-                subtitle: emergenciesCount > 0 ? 'Urgente' : 'Sin emergencias',
-                onTap: emergenciesCount > 0
-                    ? () => _navigateToEmergencies(context)
-                    : null,
+                Colors.red,
+                subtitle: 'Reportes de clientes',
+                onTap:  () => _navigateToTheFaultsReportScreen(context)
               ),
             ),
           ],
@@ -887,11 +884,11 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     );
   }
 
-  void _navigateToEmergencies(BuildContext context) {
+  void _navigateToTheFaultsReportScreen(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PendingMaintenancesScreen(),
+        builder: (context) => TechnicianFaultsScreen(),
       ),
     );
   }
