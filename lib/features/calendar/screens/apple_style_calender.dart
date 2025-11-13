@@ -10,6 +10,8 @@ import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.
 import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
 import 'package:pm_monitor/core/services/maintenance_pdf_service.dart';
 import 'package:pm_monitor/features/maintenance/screens/add_maintenance_screen.dart';
+import 'package:pm_monitor/core/models/client_model.dart';
+import 'package:pm_monitor/core/services/client_service.dart';
 
 class AppleStyleMaintenanceCalendar extends StatefulWidget {
   const AppleStyleMaintenanceCalendar({Key? key}) : super(key: key);
@@ -25,6 +27,7 @@ class _AppleStyleMaintenanceCalendarState
       MaintenanceScheduleService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ClientService _clientService = ClientService();
 
   DateTime _selectedDate = DateTime.now();
   DateTime _currentMonth = DateTime.now();
@@ -36,10 +39,28 @@ class _AppleStyleMaintenanceCalendarState
   String? _userRole;
   bool _isLoadingRole = true;
 
+  // FILTROS
+  String? _selectedClientId;
+  String? _selectedBranchId;
+  String? _selectedEquipmentType;
+  MaintenanceType? _selectedMaintenanceType;
+
+  // Listas para filtros
+  List<ClientModel> _clients = [];
+  List<BranchModel> _branches = [];
+  final List<String> _equipmentTypes = [
+    'Aire Acondicionado',
+    'Panel Eléctrico',
+    'Generador',
+    'UPS',
+    'Otro'
+  ];
+
   @override
   void initState() {
     super.initState();
     _loadUserRole();
+    _loadClients();
     _loadMaintenances();
   }
 
@@ -76,6 +97,18 @@ class _AppleStyleMaintenanceCalendarState
     }
   }
 
+  // Cargar clientes para filtros
+  Future<void> _loadClients() async {
+    try {
+      final clients = await _clientService.getClients().first;
+      setState(() {
+        _clients = clients;
+      });
+    } catch (e) {
+      print('Error cargando clientes: $e');
+    }
+  }
+
   void _loadMaintenances() async {
     setState(() {
       _isLoading = true;
@@ -86,11 +119,32 @@ class _AppleStyleMaintenanceCalendarState
       final startDate = DateTime(_currentMonth.year, _currentMonth.month, 1);
       final endDate = DateTime(_currentMonth.year, _currentMonth.month + 2, 0);
 
-      final maintenances = await _maintenanceService.getMaintenancesByDateRange(
-          startDate, endDate);
+      final allMaintenances = await _maintenanceService
+          .getMaintenancesByDateRange(startDate, endDate);
+
+      // APLICAR FILTROS
+      var filteredMaintenances = allMaintenances.where((m) {
+        // Filtro por cliente
+        if (_selectedClientId != null && m.clientId != _selectedClientId) {
+          return false;
+        }
+
+        // Filtro por sucursal
+        if (_selectedBranchId != null && m.branchId != _selectedBranchId) {
+          return false;
+        }
+
+        // Filtro por tipo de mantenimiento
+        if (_selectedMaintenanceType != null &&
+            m.type != _selectedMaintenanceType) {
+          return false;
+        }
+
+        return true;
+      }).toList();
 
       _events.clear();
-      for (var maintenance in maintenances) {
+      for (var maintenance in filteredMaintenances) {
         final date = DateTime(
           maintenance.scheduledDate.year,
           maintenance.scheduledDate.month,
@@ -158,10 +212,478 @@ class _AppleStyleMaintenanceCalendarState
           : Column(
               children: [
                 _buildMonthSelector(),
+
+                // Indicador de filtros activos
+                if ([
+                  _selectedClientId != null,
+                  _selectedBranchId != null,
+                  _selectedEquipmentType != null,
+                  _selectedMaintenanceType != null,
+                ].any((f) => f))
+                  _buildActiveFiltersBar(),
+
                 _buildCalendarGrid(),
                 _buildSelectedDayEvents(),
               ],
             ),
+      floatingActionButton: _buildFilterButton(),
+    );
+  }
+
+  // ==========================================
+  // BOTÓN DE FILTROS
+  // ==========================================
+
+  Widget _buildFilterButton() {
+    final activeFiltersCount = [
+      _selectedClientId != null,
+      _selectedBranchId != null,
+      _selectedEquipmentType != null,
+      _selectedMaintenanceType != null,
+    ].where((f) => f).length;
+
+    return FloatingActionButton.extended(
+      onPressed: () => _showFiltersBottomSheet(),
+      backgroundColor:
+          activeFiltersCount > 0 ? Colors.orange : const Color(0xFF007AFF),
+      icon: Stack(
+        children: [
+          const Icon(Icons.filter_list),
+          if (activeFiltersCount > 0)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$activeFiltersCount',
+                  style: const TextStyle(
+                      fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+        ],
+      ),
+      label: Text(
+          activeFiltersCount > 0 ? 'Filtros ($activeFiltersCount)' : 'Filtros'),
+    );
+  }
+
+  void _showFiltersBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            maxChildSize: 0.9,
+            minChildSize: 0.5,
+            expand: false,
+            builder: (context, scrollController) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        const Text(
+                          'Filtros',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        if ([
+                          _selectedClientId != null,
+                          _selectedBranchId != null,
+                          _selectedEquipmentType != null,
+                          _selectedMaintenanceType != null,
+                        ].any((f) => f))
+                          TextButton(
+                            onPressed: () {
+                              setModalState(() {
+                                _selectedClientId = null;
+                                _selectedBranchId = null;
+                                _selectedEquipmentType = null;
+                                _selectedMaintenanceType = null;
+                                _branches = [];
+                              });
+                              setState(() {});
+                              _loadMaintenances();
+                            },
+                            child: const Text('Limpiar todo'),
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Filtros
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        children: [
+                          // Filtro de Cliente
+                          _buildFilterCard(
+                            title: 'Cliente',
+                            icon: Icons.business,
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedClientId,
+                              decoration: const InputDecoration(
+                                hintText: 'Seleccionar cliente',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text('Todos los clientes'),
+                                ),
+                                ..._clients.map((client) {
+                                  return DropdownMenuItem(
+                                    value: client.id,
+                                    child: Text(client.name),
+                                  );
+                                }),
+                              ],
+                              onChanged: (value) {
+                                setModalState(() {
+                                  _selectedClientId = value;
+                                  _selectedBranchId = null;
+                                  _branches = value != null
+                                      ? _clients
+                                          .firstWhere((c) => c.id == value)
+                                          .branches
+                                      : [];
+                                });
+                                setState(() {});
+                                _loadMaintenances();
+                              },
+                            ),
+                          ),
+
+                          // Filtro de Sucursal
+                          if (_selectedClientId != null && _branches.isNotEmpty)
+                            _buildFilterCard(
+                              title: 'Sucursal',
+                              icon: Icons.store,
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedBranchId,
+                                decoration: const InputDecoration(
+                                  hintText: 'Seleccionar sucursal',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                items: [
+                                  const DropdownMenuItem(
+                                    value: null,
+                                    child: Text('Todas las sucursales'),
+                                  ),
+                                  ..._branches.map((branch) {
+                                    return DropdownMenuItem(
+                                      value: branch.id,
+                                      child: Text(branch.name),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (value) {
+                                  setModalState(() {
+                                    _selectedBranchId = value;
+                                  });
+                                  setState(() {});
+                                  _loadMaintenances();
+                                },
+                              ),
+                            ),
+
+                          // Filtro de Tipo de Equipo
+                          _buildFilterCard(
+                            title: 'Tipo de Equipo',
+                            icon: Icons.ac_unit,
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedEquipmentType,
+                              decoration: const InputDecoration(
+                                hintText: 'Seleccionar tipo',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text('Todos los tipos'),
+                                ),
+                                ..._equipmentTypes.map((type) {
+                                  return DropdownMenuItem(
+                                    value: type,
+                                    child: Text(type),
+                                  );
+                                }),
+                              ],
+                              onChanged: (value) {
+                                setModalState(() {
+                                  _selectedEquipmentType = value;
+                                });
+                                setState(() {});
+                                _loadMaintenances();
+                              },
+                            ),
+                          ),
+
+                          // Filtro de Tipo de Mantenimiento
+                          _buildFilterCard(
+                            title: 'Tipo de Mantenimiento',
+                            icon: Icons.build,
+                            child: Wrap(
+                              spacing: 8,
+                              children: MaintenanceType.values.map((type) {
+                                final isSelected =
+                                    _selectedMaintenanceType == type;
+                                return FilterChip(
+                                  label: Text(_getMaintenanceTypeName(type)),
+                                  selected: isSelected,
+                                  onSelected: (selected) {
+                                    setModalState(() {
+                                      _selectedMaintenanceType =
+                                          selected ? type : null;
+                                    });
+                                    setState(() {});
+                                    _loadMaintenances();
+                                  },
+                                  selectedColor: _getMaintenanceTypeColor(type)
+                                      .withOpacity(0.3),
+                                  checkmarkColor:
+                                      _getMaintenanceTypeColor(type),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Botón de aplicar
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF007AFF),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Aplicar Filtros',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterCard({
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: const Color(0xFF007AFF)),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // BARRA DE FILTROS ACTIVOS
+  // ==========================================
+
+  Widget _buildActiveFiltersBar() {
+    final activeFilters = <Widget>[];
+
+    if (_selectedClientId != null) {
+      final client = _clients.firstWhere((c) => c.id == _selectedClientId);
+      activeFilters.add(_buildFilterChip(
+        label: client.name,
+        icon: Icons.business,
+        onRemove: () {
+          setState(() {
+            _selectedClientId = null;
+            _selectedBranchId = null;
+            _branches = [];
+          });
+          _loadMaintenances();
+        },
+      ));
+    }
+
+    if (_selectedBranchId != null) {
+      final branch = _branches.firstWhere((b) => b.id == _selectedBranchId);
+      activeFilters.add(_buildFilterChip(
+        label: branch.name,
+        icon: Icons.store,
+        onRemove: () {
+          setState(() {
+            _selectedBranchId = null;
+          });
+          _loadMaintenances();
+        },
+      ));
+    }
+
+    if (_selectedEquipmentType != null) {
+      activeFilters.add(_buildFilterChip(
+        label: _selectedEquipmentType!,
+        icon: Icons.ac_unit,
+        onRemove: () {
+          setState(() {
+            _selectedEquipmentType = null;
+          });
+          _loadMaintenances();
+        },
+      ));
+    }
+
+    if (_selectedMaintenanceType != null) {
+      activeFilters.add(_buildFilterChip(
+        label: _getMaintenanceTypeName(_selectedMaintenanceType!),
+        icon: Icons.build,
+        color: _getMaintenanceTypeColor(_selectedMaintenanceType!),
+        onRemove: () {
+          setState(() {
+            _selectedMaintenanceType = null;
+          });
+          _loadMaintenances();
+        },
+      ));
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white,
+      child: Row(
+        children: [
+          const Icon(Icons.filter_alt, size: 16, color: Colors.grey),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: activeFilters,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _selectedClientId = null;
+                _selectedBranchId = null;
+                _selectedEquipmentType = null;
+                _selectedMaintenanceType = null;
+                _branches = [];
+              });
+              _loadMaintenances();
+            },
+            child: const Text('Limpiar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required IconData icon,
+    Color? color,
+    required VoidCallback onRemove,
+  }) {
+    final chipColor = color ?? const Color(0xFF007AFF);
+
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: chipColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: chipColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: chipColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: chipColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onRemove,
+            child: Icon(
+              Icons.close,
+              size: 16,
+              color: chipColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -644,121 +1166,159 @@ class _AppleStyleMaintenanceCalendarState
     );
   }
 
+  // ==========================================
+  // TARJETA DE MANTENIMIENTO MEJORADA
+  // ==========================================
+
   Widget _buildEventCard(MaintenanceSchedule maintenance) {
     final isAdmin = _userRole == 'admin';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _getEventColor(maintenance).withOpacity(0.3),
-          width: 1,
+          width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
-            spreadRadius: 0,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: _getEventColor(maintenance).withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: InkWell(
         onTap: () => _showMaintenanceDetails(maintenance),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header con equipo y estado
               Row(
                 children: [
+                  // Barra de color
                   Container(
-                    width: 4,
-                    height: 40,
+                    width: 5,
+                    height: 60,
                     decoration: BoxDecoration(
                       color: _getEventColor(maintenance),
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                   const SizedBox(width: 12),
+
+                  // Info principal
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Nombre del equipo
                         Text(
                           maintenance.equipmentName,
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          maintenance.clientName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (maintenance.technicianName != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            maintenance.technicianName!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
+                        const SizedBox(height: 4),
+
+                        // Cliente
+                        Row(
+                          children: [
+                            Icon(Icons.business,
+                                size: 14, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                maintenance.clientName,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          ],
+                        ),
+
+                        // Sucursal (si existe)
+                        if (maintenance.branchName != null) ...[
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(Icons.store,
+                                  size: 14, color: Colors.grey[600]),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  maintenance.branchName!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ],
                     ),
                   ),
+
+                  // Estado
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: _getEventColor(maintenance).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: _getEventColor(maintenance).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _getEventColor(maintenance).withOpacity(0.3),
+                          ),
                         ),
                         child: Text(
                           maintenance.statusDisplayName,
                           style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                             color: _getEventColor(maintenance),
                           ),
                         ),
                       ),
-                      // REMOVIDO: Text con estimatedDurationMinutes
-                      // Botón PDF individual para administradores en mantenimientos completados
+
+                      // PDF button para admin
                       if (isAdmin &&
                           maintenance.status ==
                               MaintenanceStatus.completed) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         GestureDetector(
                           onTap: () => _generateIndividualPDF(maintenance),
                           child: Container(
-                            padding: const EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
                               color: Colors.red[50],
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red[200]!),
                             ),
                             child: Icon(
                               Icons.picture_as_pdf,
-                              size: 16,
+                              size: 18,
                               color: Colors.red[700],
                             ),
                           ),
@@ -768,6 +1328,125 @@ class _AppleStyleMaintenanceCalendarState
                   ),
                 ],
               ),
+
+              const SizedBox(height: 12),
+
+              // Divider
+              Divider(color: Colors.grey[200], height: 1),
+              const SizedBox(height: 12),
+
+              // Info adicional
+              Row(
+                children: [
+                  // Tipo de mantenimiento
+                  Expanded(
+                    child: _buildInfoChip(
+                      icon: Icons.build,
+                      label: _getMaintenanceTypeName(maintenance.type),
+                      color: _getMaintenanceTypeColor(maintenance.type),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Frecuencia (si aplica)
+                  if (maintenance.frequency != null)
+                    Expanded(
+                      child: _buildInfoChip(
+                        icon: Icons.schedule,
+                        label: maintenance.frequencyDisplayName,
+                        color: Colors.blue,
+                      ),
+                    ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Técnico asignado
+              if (maintenance.technicianName != null)
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: Colors.blue[100],
+                      child:
+                          Icon(Icons.person, size: 14, color: Colors.blue[700]),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        maintenance.technicianName!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+
+              // Número de tareas
+              if (maintenance.tasks.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.checklist, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${maintenance.tasks.length} tarea${maintenance.tasks.length != 1 ? 's' : ''}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const Spacer(),
+                    if (maintenance.completionPercentage != null &&
+                        maintenance.completionPercentage! > 0)
+                      Text(
+                        '${maintenance.completionPercentage}% completado',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+
+              // Notas (preview)
+              if (maintenance.notes != null &&
+                  maintenance.notes!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.amber[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.note, size: 14, color: Colors.amber[700]),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          maintenance.notes!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[800],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -775,7 +1454,44 @@ class _AppleStyleMaintenanceCalendarState
     );
   }
 
-  // MÉTODOS PDF CON INTEGRACIÓN REAL
+  // Helper para chips de información
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // MÉTODOS PDF (SIN CAMBIOS - CONSERVADOS)
+  // ==========================================
 
   Future<void> _generateDayReport(
       List<MaintenanceSchedule> maintenances) async {
@@ -783,20 +1499,16 @@ class _AppleStyleMaintenanceCalendarState
       _showLoadingDialog();
 
       final reportDate = _selectedDate;
-
-      // Convertir mantenimientos a formato compatible con el servicio
       final maintenancesData =
           maintenances.map((m) => m.toFirestore()).toList();
 
-      // Generar PDF usando el servicio real
       final pdfData = await MaintenancePDFService.generateDailyReportPDF(
         maintenancesData,
         reportDate,
       );
 
-      Navigator.pop(context); // Cerrar loading
+      Navigator.pop(context);
 
-      // Mostrar opciones del PDF
       _showPDFOptionsDialog(
         title: 'Reporte del Día',
         subtitle:
@@ -806,7 +1518,7 @@ class _AppleStyleMaintenanceCalendarState
             'Reporte_Diario_${DateFormat('yyyy-MM-dd').format(reportDate)}.pdf',
       );
     } catch (e) {
-      Navigator.pop(context); // Cerrar loading
+      Navigator.pop(context);
       _showErrorSnackBar('Error generando reporte diario: $e');
     }
   }
@@ -818,8 +1530,6 @@ class _AppleStyleMaintenanceCalendarState
 
       final reportDate = _selectedDate;
       final dateString = DateFormat('yyyy-MM-dd').format(reportDate);
-
-      // Crear PDF personalizado para mantenimientos completados usando el servicio
       final pdf = pw.Document();
 
       pdf.addPage(
@@ -828,33 +1538,23 @@ class _AppleStyleMaintenanceCalendarState
           margin: const pw.EdgeInsets.all(32),
           build: (context) {
             return [
-              // Header especializado
               _buildCompletedReportHeader(
                   reportDate, completedMaintenances.length),
               pw.SizedBox(height: 20),
-
-              // Resumen de completados
               _buildCompletedSummary(completedMaintenances),
               pw.SizedBox(height: 20),
-
-              // Lista detallada
               _buildCompletedMaintenancesList(completedMaintenances),
               pw.SizedBox(height: 20),
-
-              // Métricas de eficiencia
               _buildEfficiencyMetrics(completedMaintenances),
               pw.SizedBox(height: 30),
-
-              // Footer
               _buildReportFooter(),
             ];
           },
         ),
       );
 
-      Navigator.pop(context); // Cerrar loading
+      Navigator.pop(context);
 
-      // Mostrar opciones del PDF
       _showPDFOptionsDialog(
         title: 'Mantenimientos Completados',
         subtitle:
@@ -863,7 +1563,7 @@ class _AppleStyleMaintenanceCalendarState
         fileName: 'Mantenimientos_Completados_$dateString.pdf',
       );
     } catch (e) {
-      Navigator.pop(context); // Cerrar loading
+      Navigator.pop(context);
       _showErrorSnackBar('Error generando reporte de completados: $e');
     }
   }
@@ -872,14 +1572,12 @@ class _AppleStyleMaintenanceCalendarState
     try {
       _showLoadingDialog();
 
-      // Usar el servicio real para generar PDF individual
       final pdfData = await MaintenancePDFService.generateMaintenancePDF(
         maintenance.toFirestore(),
       );
 
-      Navigator.pop(context); // Cerrar loading
+      Navigator.pop(context);
 
-      // Mostrar opciones del PDF
       _showPDFOptionsDialog(
         title: 'Mantenimiento Individual',
         subtitle: '${maintenance.equipmentName} - ${maintenance.clientName}',
@@ -888,12 +1586,11 @@ class _AppleStyleMaintenanceCalendarState
             'Mantenimiento_${maintenance.equipmentName}_${DateFormat('yyyy-MM-dd').format(maintenance.scheduledDate)}.pdf',
       );
     } catch (e) {
-      Navigator.pop(context); // Cerrar loading
+      Navigator.pop(context);
       _showErrorSnackBar('Error generando PDF individual: $e');
     }
   }
 
-  // Diálogo para mostrar opciones del PDF generado
   void _showPDFOptionsDialog({
     required String title,
     required String subtitle,
@@ -955,7 +1652,6 @@ class _AppleStyleMaintenanceCalendarState
     );
   }
 
-  // Métodos para manejar PDFs
   Future<void> _viewPDF(Uint8List pdfData, String fileName) async {
     try {
       await Printing.layoutPdf(
@@ -970,7 +1666,6 @@ class _AppleStyleMaintenanceCalendarState
   Future<void> _sharePDF(
       Uint8List pdfData, String fileName, String description) async {
     try {
-      // Usando el método del servicio para compartir
       final maintenance = _selectedDayEvents.first.toFirestore();
       await MaintenancePDFService.shareMaintenancePDF(maintenance);
       _showSuccessSnackBar('PDF compartido exitosamente');
@@ -981,7 +1676,6 @@ class _AppleStyleMaintenanceCalendarState
 
   Future<void> _savePDF(Uint8List pdfData, String fileName) async {
     try {
-      // Usando el método del servicio para guardar
       final maintenance = _selectedDayEvents.first.toFirestore();
       final file = await MaintenancePDFService.saveMaintenancePDF(maintenance);
       if (file != null) {
@@ -993,8 +1687,6 @@ class _AppleStyleMaintenanceCalendarState
       _showErrorSnackBar('Error guardando PDF: $e');
     }
   }
-
-  // MÉTODOS AUXILIARES PARA PDF PERSONALIZADO
 
   pw.Widget _buildCompletedReportHeader(DateTime date, int count) {
     return pw.Container(
@@ -1045,7 +1737,6 @@ class _AppleStyleMaintenanceCalendarState
   }
 
   pw.Widget _buildCompletedSummary(List<MaintenanceSchedule> maintenances) {
-    // REMOVIDO: Cálculo de totalDuration
     final avgCompletion = maintenances.isNotEmpty
         ? maintenances.fold<int>(
                 0, (sum, m) => sum + (m.completionPercentage ?? 0)) /
@@ -1082,7 +1773,6 @@ class _AppleStyleMaintenanceCalendarState
                   PdfColors.green),
               _buildSummaryCard(
                   'Técnicos', technicianCount.toString(), PdfColors.blue),
-              // REMOVIDO: Card de tiempo total
               _buildSummaryCard('Promedio',
                   '${avgCompletion.toStringAsFixed(1)}%', PdfColors.purple),
             ],
@@ -1143,11 +1833,9 @@ class _AppleStyleMaintenanceCalendarState
             1: const pw.FlexColumnWidth(1.5),
             2: const pw.FlexColumnWidth(1),
             3: const pw.FlexColumnWidth(1.5),
-            // REMOVIDO: Columna de Duración
             4: const pw.FlexColumnWidth(1),
           },
           children: [
-            // Header
             pw.TableRow(
               decoration: pw.BoxDecoration(color: PdfColors.green100),
               children: [
@@ -1155,12 +1843,9 @@ class _AppleStyleMaintenanceCalendarState
                 _buildTableHeader('Cliente'),
                 _buildTableHeader('Hora'),
                 _buildTableHeader('Técnico'),
-                // REMOVIDO: Header de Duración
                 _buildTableHeader('Progreso'),
               ],
             ),
-
-            // Filas de datos
             ...maintenances.map((maintenance) => pw.TableRow(
                   children: [
                     _buildTableCell(maintenance.equipmentName),
@@ -1169,7 +1854,6 @@ class _AppleStyleMaintenanceCalendarState
                         DateFormat('HH:mm').format(maintenance.scheduledDate)),
                     _buildTableCell(
                         maintenance.technicianName ?? 'No asignado'),
-                    // REMOVIDO: Cell de estimatedDurationMinutes
                     _buildTableCell(
                         '${maintenance.completionPercentage ?? 0}%'),
                   ],
@@ -1181,7 +1865,6 @@ class _AppleStyleMaintenanceCalendarState
   }
 
   pw.Widget _buildEfficiencyMetrics(List<MaintenanceSchedule> maintenances) {
-    // Calcular métricas de eficiencia
     final technicianPerformance = <String, Map<String, dynamic>>{};
 
     for (final maintenance in maintenances) {
@@ -1189,13 +1872,11 @@ class _AppleStyleMaintenanceCalendarState
       if (!technicianPerformance.containsKey(techName)) {
         technicianPerformance[techName] = {
           'count': 0,
-          // REMOVIDO: totalTime
           'avgCompletion': 0.0,
         };
       }
 
       technicianPerformance[techName]!['count'] += 1;
-      // REMOVIDO: totalTime calculation
       final currentAvg =
           technicianPerformance[techName]!['avgCompletion'] as double;
       final newCompletion = maintenance.completionPercentage ?? 0;
@@ -1222,27 +1903,21 @@ class _AppleStyleMaintenanceCalendarState
           columnWidths: {
             0: const pw.FlexColumnWidth(2),
             1: const pw.FlexColumnWidth(1),
-            // REMOVIDO: Columna de tiempo total
             2: const pw.FlexColumnWidth(1),
           },
           children: [
-            // Header
             pw.TableRow(
               decoration: pw.BoxDecoration(color: PdfColors.blue100),
               children: [
                 _buildTableHeader('Técnico'),
                 _buildTableHeader('Completados'),
-                // REMOVIDO: Header de tiempo total
                 _buildTableHeader('Eficiencia Prom.'),
               ],
             ),
-
-            // Filas de datos
             ...technicianPerformance.entries.map((entry) => pw.TableRow(
                   children: [
                     _buildTableCell(entry.key),
                     _buildTableCell(entry.value['count'].toString()),
-                    // REMOVIDO: Cell de tiempo total
                     _buildTableCell(
                         '${(entry.value['avgCompletion'] as double).toStringAsFixed(1)}%'),
                   ],
@@ -1306,8 +1981,6 @@ class _AppleStyleMaintenanceCalendarState
     );
   }
 
-  // UI HELPERS
-
   void _showLoadingDialog() {
     showDialog(
       context: context,
@@ -1365,6 +2038,36 @@ class _AppleStyleMaintenanceCalendarState
     }
   }
 
+  String _getMaintenanceTypeName(MaintenanceType type) {
+    switch (type) {
+      case MaintenanceType.preventive:
+        return 'Preventivo';
+      case MaintenanceType.corrective:
+        return 'Correctivo';
+      case MaintenanceType.emergency:
+        return 'Emergencia';
+      case MaintenanceType.inspection:
+        return 'Inspección';
+      case MaintenanceType.technicalAssistance:
+        return 'Asistencia Técnica';
+    }
+  }
+
+  Color _getMaintenanceTypeColor(MaintenanceType type) {
+    switch (type) {
+      case MaintenanceType.preventive:
+        return Colors.blue;
+      case MaintenanceType.corrective:
+        return Colors.orange;
+      case MaintenanceType.emergency:
+        return Colors.red;
+      case MaintenanceType.inspection:
+        return Colors.purple;
+      case MaintenanceType.technicalAssistance:
+        return Colors.green;
+    }
+  }
+
   void _selectDate(DateTime date) {
     setState(() {
       _selectedDate = date;
@@ -1417,8 +2120,6 @@ class _AppleStyleMaintenanceCalendarState
                   'Fecha',
                   DateFormat('dd/MM/yyyy HH:mm')
                       .format(maintenance.scheduledDate)),
-              // REMOVIDO: Row de duración
-              // REMOVIDO: Row de costo estimado
               _buildDetailRow('Frecuencia', maintenance.frequencyDisplayName),
               if (maintenance.technicianName != null)
                 _buildDetailRow('Técnico', maintenance.technicianName!),

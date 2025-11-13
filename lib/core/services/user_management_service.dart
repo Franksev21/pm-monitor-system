@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pm_monitor/core/models/client_model.dart';
 import '../models/user_management_model.dart';
 
 class UserManagementService {
@@ -6,13 +7,11 @@ class UserManagementService {
   final String _collection = 'users';
 
   // Stream de usuarios por rol (incluye clientes de ambas colecciones)
-  Stream<List<UserManagementModel>> getUsersByRole(String role) {
+Stream<List<UserManagementModel>> getUsersByRole(String role) {
     if (role == 'client') {
-      // Para clientes, usar una implementación que combine ambas colecciones
-      return Stream.periodic(const Duration(seconds: 2), (i) => i)
-          .asyncMap((_) => _getCombinedClients())
-          .distinct()
-          .asBroadcastStream();
+      // Para clientes, retornar stream vacío ya que se usa getClients() para ClientModel
+      // La UI debe usar getClients() en lugar de getUsersByRole('client')
+      return Stream.value([]);
     } else {
       // Para técnicos y supervisores, usar solo la colección users
       return _firestore
@@ -26,33 +25,36 @@ class UserManagementService {
     }
   }
 
-  // Método para obtener clientes combinados
-  Future<List<UserManagementModel>> _getCombinedClients() async {
-    final List<UserManagementModel> allClients = [];
 
+  Stream<List<ClientModel>> getClients() {
     try {
-      // Obtener clientes de la colección 'users'
-      final usersSnapshot = await _firestore
-          .collection(_collection)
-          .where('role', isEqualTo: 'client')
-          .get();
-
-      for (final doc in usersSnapshot.docs) {
-        allClients.add(UserManagementModel.fromFirestore(doc));
-      }
-
-      // Obtener clientes de la colección 'clients'
-      final clientsSnapshot = await _firestore.collection('clients').get();
-
-      for (final doc in clientsSnapshot.docs) {
-        allClients.add(UserManagementModel.fromFirestore(doc));
-      }
+      return _firestore
+          .collection('clients')
+          .orderBy('name')
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs
+            .map((doc) {
+              try {
+                return ClientModel.fromJson({
+                  'id': doc.id,
+                  ...doc.data(),
+                });
+              } catch (e) {
+                print('⚠️ Error parseando cliente ${doc.id}: $e');
+                // Retornar null y filtrar después
+                return null;
+              }
+            })
+            .whereType<ClientModel>()
+            .toList(); // Filtra nulls
+      });
     } catch (e) {
-      print('Error getting combined clients: $e');
+      print('❌ Error obteniendo clientes: $e');
+      return Stream.value([]);
     }
-
-    return allClients;
   }
+
 
   // Stream de todos los usuarios
   Stream<List<UserManagementModel>> getAllUsersStream() {
@@ -204,42 +206,24 @@ class UserManagementService {
     }
   }
 
-  // Obtener estadísticas por rol (incluye ambas colecciones para clientes)
   Future<Map<String, int>> getStatsByRole(String role) async {
     try {
       if (role == 'client') {
-        // Para clientes, consultar ambas colecciones
-        final usersClientsSnapshot = await _firestore
-            .collection(_collection)
-            .where('role', isEqualTo: 'client')
-            .get();
-
+        // Para clientes, obtener de la colección 'clients'
         final clientsSnapshot = await _firestore.collection('clients').get();
 
-        int totalUsers = usersClientsSnapshot.docs.length;
-        int totalClients = clientsSnapshot.docs.length;
-        int total = totalUsers + totalClients;
-
+        int total = clientsSnapshot.docs.length;
         int active = 0;
         int withAssignments = 0;
 
-        // Contar usuarios clientes
-        for (final doc in usersClientsSnapshot.docs) {
-          final data = doc.data();
-          if (data['isActive'] == true) active++;
-
-          final locations = data['locations'] as List<dynamic>?;
-          if (locations != null && locations.isNotEmpty) {
-            withAssignments++;
-          }
-        }
-
-        // Contar clientes de la colección clients (todos activos por defecto)
-        active += totalClients;
-
-        // Contar clientes con branches
+        // Contar clientes activos y con sucursales
         for (final doc in clientsSnapshot.docs) {
           final data = doc.data();
+
+          // Los clientes con status 'active' son activos
+          if (data['status'] == 'active') active++;
+
+          // Clientes con branches tienen asignaciones
           final branches = data['branches'] as List<dynamic>?;
           if (branches != null && branches.isNotEmpty) {
             withAssignments++;
@@ -254,7 +238,7 @@ class UserManagementService {
           'withoutAssignments': total - withAssignments,
         };
       } else {
-        // Para técnicos y supervisores
+        // Para técnicos y supervisores (código sin cambios)
         final snapshot = await _firestore
             .collection(_collection)
             .where('role', isEqualTo: role)
@@ -295,7 +279,6 @@ class UserManagementService {
       throw Exception('Error al obtener estadísticas: $e');
     }
   }
-
   // Buscar usuarios por nombre o email
   Future<List<UserManagementModel>> searchUsers(String query,
       {String? role}) async {

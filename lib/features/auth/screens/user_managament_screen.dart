@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/services/user_management_service.dart';
 import 'package:pm_monitor/features/equipment/assign_equipment_screen.dart';
@@ -180,48 +181,54 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
         // Lista de usuarios
         Expanded(
-          child: StreamBuilder<List<UserManagementModel>>(
-            stream: _userService.getUsersByRole(role),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return _buildErrorWidget(snapshot.error.toString());
-              }
+          child: role == 'client'
+              ? _buildClientsTab() // NUEVO: Tab específico para clientes
+              : StreamBuilder<List<UserManagementModel>>(
+                  // EXISTENTE: Para técnicos y supervisores
+                  stream: _userService.getUsersByRole(role),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return _buildErrorWidget(snapshot.error.toString());
+                    }
 
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
 
-              final users = snapshot.data ?? [];
-              final filteredUsers = _searchQuery.isEmpty
-                  ? users
-                  : users
-                      .where((user) =>
-                          user.name.toLowerCase().contains(_searchQuery) ||
-                          user.email.toLowerCase().contains(_searchQuery))
-                      .toList();
+                    final users = snapshot.data ?? [];
+                    final filteredUsers = _searchQuery.isEmpty
+                        ? users
+                        : users
+                            .where((user) =>
+                                user.name
+                                    .toLowerCase()
+                                    .contains(_searchQuery) ||
+                                user.email.toLowerCase().contains(_searchQuery))
+                            .toList();
 
-              if (filteredUsers.isEmpty) {
-                return _buildEmptyWidget(role, tabData['title']);
-              }
+                    if (filteredUsers.isEmpty) {
+                      return _buildEmptyWidget(role, tabData['title']);
+                    }
 
-              return RefreshIndicator(
-                onRefresh: _loadAllStats,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filteredUsers.length,
-                  itemBuilder: (context, index) {
-                    return _buildUserCard(filteredUsers[index]);
+                    return RefreshIndicator(
+                      onRefresh: _loadAllStats,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredUsers.length,
+                        itemBuilder: (context, index) {
+                          return _buildUserCard(filteredUsers[index]);
+                        },
+                      ),
+                    );
                   },
                 ),
-              );
-            },
-          ),
         ),
       ],
     );
   }
+
 
   Widget _buildStatsRow(Map<String, int> stats, Color color) {
     return Container(
@@ -663,6 +670,174 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     );
   }
 
+
+  Widget _buildClientsTab() {
+    return StreamBuilder<List<ClientModel>>(
+      stream: _userService.getClients(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _buildErrorWidget(snapshot.error.toString());
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final clients = snapshot.data ?? [];
+        final filteredClients = _searchQuery.isEmpty
+            ? clients
+            : clients
+                .where((client) =>
+                    client.name.toLowerCase().contains(_searchQuery) ||
+                    client.email.toLowerCase().contains(_searchQuery))
+                .toList();
+
+        if (filteredClients.isEmpty) {
+          return _buildEmptyWidget('client', 'Clientes');
+        }
+
+        return RefreshIndicator(
+          onRefresh: _loadAllStats,
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: filteredClients.length,
+            itemBuilder: (context, index) {
+              return _buildClientCard(filteredClients[index]);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+
+  Widget _buildClientCard(ClientModel client) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showClientDetails(client),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Avatar
+                CircleAvatar(
+                  radius: 25,
+                  backgroundColor: client.statusColor,
+                  child: Text(
+                    client.name.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+
+                // Información del cliente
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              client.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: client.statusColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              client.status.displayName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        client.email,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              client.type.displayName,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.purple,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          if (client.totalBranches > 0) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '🏢 ${client.totalBranches} sucursal(es)',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Icono para ver detalles
+                const Icon(Icons.arrow_forward_ios,
+                    size: 16, color: Colors.grey),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -710,6 +885,39 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         content: Text(
             'Agregar ${role != null ? _getRoleInSpanish(role) : 'Usuario'} - Por implementar'),
         backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  void _showClientDetails(ClientModel client) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(client.name),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('Email:', client.email),
+              _buildDetailRow('Teléfono:', client.phone),
+              _buildDetailRow('Tipo:', client.type.displayName),
+              _buildDetailRow('Estado:', client.status.displayName),
+              _buildDetailRow('RNC:', client.taxId),
+              _buildDetailRow('Dirección:', client.fullAddress),
+              if (client.website != null)
+                _buildDetailRow('Website:', client.website!),
+              _buildDetailRow('Sucursales:', '${client.totalBranches}'),
+              _buildDetailRow('Contactos:', '${client.totalContacts}'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
       ),
     );
   }
