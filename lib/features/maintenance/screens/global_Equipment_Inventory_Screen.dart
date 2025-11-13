@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/core/models/client_model.dart';
+import 'package:pm_monitor/core/providers/client_provider.dart';
+import 'package:pm_monitor/features/equipment/add_equipment_screen.dart';
 import 'package:pm_monitor/features/equipment/equipment_detail_screen.dart';
+import 'package:pm_monitor/features/others/screens/fault_report_screen.dart';
+import 'package:pm_monitor/features/others/screens/qr_display_screen.dart';
+import 'package:pm_monitor/shared/widgets/client_search_dialog_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
@@ -23,6 +29,7 @@ class _GlobalEquipmentInventoryScreenState
   String _selectedBranch = 'Todas';
   String _selectedCountry = 'Todos';
   String _selectedRegion = 'Todas';
+  String _selectedTipo = 'Todos'; // ← NUEVO
   String _selectedCategory = 'Todas';
   String _selectedStatus = 'Todos';
   String _selectedCondition = 'Todas';
@@ -94,6 +101,13 @@ class _GlobalEquipmentInventoryScreenState
     return regions.toList();
   }
 
+  // ← NUEVO: Obtener tipos únicos
+  List<String> _getUniqueTipos(List<Equipment> equipments) {
+    Set<String> tipos = {'Todos'};
+    tipos.addAll(equipments.map((e) => e.tipo));
+    return tipos.toList();
+  }
+
   List<String> _getUniqueCategories(List<Equipment> equipments) {
     Set<String> categories = {'Todas'};
     categories.addAll(equipments.map((e) => e.category));
@@ -125,6 +139,7 @@ class _GlobalEquipmentInventoryScreenState
               equipment.brand.toLowerCase().contains(query) ||
               equipment.model.toLowerCase().contains(query) ||
               equipment.equipmentNumber.toLowerCase().contains(query) ||
+              equipment.tipo.toLowerCase().contains(query) || // ← NUEVO
               equipment.location.toLowerCase().contains(query) ||
               equipment.branch.toLowerCase().contains(query) ||
               equipment.country.toLowerCase().contains(query) ||
@@ -152,6 +167,11 @@ class _GlobalEquipmentInventoryScreenState
     // Filtro por región
     if (_selectedRegion != 'Todas') {
       filtered = filtered.where((e) => e.region == _selectedRegion).toList();
+    }
+
+    // ← NUEVO: Filtro por tipo
+    if (_selectedTipo != 'Todos') {
+      filtered = filtered.where((e) => e.tipo == _selectedTipo).toList();
     }
 
     // Filtro por categoría
@@ -270,7 +290,7 @@ class _GlobalEquipmentInventoryScreenState
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadEquipments,
             tooltip: 'Actualizar',
-          ),
+          )
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -300,6 +320,13 @@ class _GlobalEquipmentInventoryScreenState
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddEquipmentDialog,
+        backgroundColor: const Color(0xFF2196F3),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Agregar Equipo'),
+      ),
     );
   }
 
@@ -314,7 +341,8 @@ class _GlobalEquipmentInventoryScreenState
           });
         },
         decoration: InputDecoration(
-          hintText: 'Buscar por nombre, marca, modelo, número, ubicación...',
+          hintText:
+              'Buscar por nombre, marca, modelo, número, tipo, ubicación...',
           prefixIcon: const Icon(Icons.search, color: Colors.grey),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
@@ -368,6 +396,14 @@ class _GlobalEquipmentInventoryScreenState
       chips.add(_buildFilterChip('Región: $_selectedRegion', () {
         setState(() {
           _selectedRegion = 'Todas';
+        });
+      }));
+    }
+    // ← NUEVO: Chip de tipo
+    if (_selectedTipo != 'Todos') {
+      chips.add(_buildFilterChip('Tipo: $_selectedTipo', () {
+        setState(() {
+          _selectedTipo = 'Todos';
         });
       }));
     }
@@ -574,6 +610,7 @@ class _GlobalEquipmentInventoryScreenState
         columns: const [
           DataColumn(label: Text('Número')),
           DataColumn(label: Text('Nombre')),
+          DataColumn(label: Text('Tipo')), // ← NUEVO
           DataColumn(label: Text('Cliente')),
           DataColumn(label: Text('Sucursal')),
           DataColumn(label: Text('País')),
@@ -586,6 +623,7 @@ class _GlobalEquipmentInventoryScreenState
             cells: [
               DataCell(Text(equipment.equipmentNumber)),
               DataCell(Text(equipment.name)),
+              DataCell(Text(equipment.tipo)), // ← NUEVO
               DataCell(Text(_getClientName(equipment.clientId))),
               DataCell(Text(equipment.branch)),
               DataCell(Text(equipment.country)),
@@ -668,7 +706,8 @@ class _GlobalEquipmentInventoryScreenState
     );
   }
 
-  Widget _buildEquipmentCard(Equipment equipment) {
+  // ← ACTUALIZADO: Tarjeta con badge de tipo
+ Widget _buildEquipmentCard(Equipment equipment) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -685,34 +724,119 @@ class _GlobalEquipmentInventoryScreenState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      equipment.equipmentNumber,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 12),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            equipment.equipmentNumber,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            equipment.tipo,
+                            style: TextStyle(
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(equipment.status).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      equipment.status,
-                      style: TextStyle(
-                        color: _getStatusColor(equipment.status),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(equipment.status)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          equipment.status,
+                          style: TextStyle(
+                            color: _getStatusColor(equipment.status),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                    ),
+                      PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.more_vert,
+                          size: 20,
+                          color: Colors.grey[600],
+                        ),
+                        onSelected: (value) =>
+                            _handleCardAction(value, equipment),
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'view',
+                            child: Row(
+                              children: [
+                                Icon(Icons.visibility,
+                                    size: 18, color: Colors.blue),
+                                SizedBox(width: 12),
+                                Text('Ver detalles'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit,
+                                    size: 18, color: Colors.orange),
+                                SizedBox(width: 12),
+                                Text('Editar equipo'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'qr',
+                            child: Row(
+                              children: [
+                                Icon(Icons.qr_code,
+                                    size: 18, color: Colors.purple),
+                                SizedBox(width: 12),
+                                Text('Generar QR'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'report',
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning,
+                                    size: 18, color: Colors.red),
+                                SizedBox(width: 12),
+                                Text('Reportar falla'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -754,6 +878,15 @@ class _GlobalEquipmentInventoryScreenState
                           '${equipment.brand} ${equipment.model}',
                           style:
                               TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          equipment.category,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Row(
@@ -863,6 +996,7 @@ class _GlobalEquipmentInventoryScreenState
     );
   }
 
+
   Widget _buildStatisticsTab() {
     return Consumer<EquipmentProvider>(
       builder: (context, equipmentProvider, child) {
@@ -879,6 +1013,10 @@ class _GlobalEquipmentInventoryScreenState
               const SizedBox(height: 24),
               _buildStatisticsSection(
                   'Por Estado', _buildStatusStats(filteredEquipments)),
+              const SizedBox(height: 24),
+              // ← NUEVO: Estadísticas por tipo
+              _buildStatisticsSection(
+                  'Por Tipo', _buildTipoStats(filteredEquipments)),
               const SizedBox(height: 24),
               _buildStatisticsSection(
                   'Por Categoría', _buildCategoryStats(filteredEquipments)),
@@ -1149,6 +1287,44 @@ class _GlobalEquipmentInventoryScreenState
     );
   }
 
+  // ← NUEVO: Estadísticas por tipo
+  Widget _buildTipoStats(List<Equipment> equipments) {
+    Map<String, int> tipoCount = {};
+    for (var equipment in equipments) {
+      tipoCount[equipment.tipo] = (tipoCount[equipment.tipo] ?? 0) + 1;
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: tipoCount.entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(_getTipoIcon(entry.key),
+                          size: 16, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text(entry.key),
+                    ],
+                  ),
+                  Text(
+                    '${entry.value}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCategoryStats(List<Equipment> equipments) {
     Map<String, int> categoryCount = {};
     for (var equipment in equipments) {
@@ -1353,6 +1529,14 @@ class _GlobalEquipmentInventoryScreenState
                               });
                               setModalState(() {});
                             }),
+                            // ← NUEVO: Filtro de tipo
+                            _buildFilterSection('Tipo', _selectedTipo,
+                                _getUniqueTipos(allEquipments), (value) {
+                              setState(() {
+                                _selectedTipo = value;
+                              });
+                              setModalState(() {});
+                            }),
                             _buildFilterSection('Categoría', _selectedCategory,
                                 _getUniqueCategories(allEquipments), (value) {
                               setState(() {
@@ -1457,6 +1641,7 @@ class _GlobalEquipmentInventoryScreenState
       _selectedBranch = 'Todas';
       _selectedCountry = 'Todos';
       _selectedRegion = 'Todas';
+      _selectedTipo = 'Todos'; // ← NUEVO
       _selectedCategory = 'Todas';
       _selectedStatus = 'Todos';
       _selectedCondition = 'Todas';
@@ -1474,6 +1659,115 @@ class _GlobalEquipmentInventoryScreenState
     );
   }
 
+  void _handleCardAction(String action, Equipment equipment) {
+    switch (action) {
+      case 'view':
+        _showEquipmentDetail(equipment);
+        break;
+      case 'edit':
+        _navigateToEditEquipment(equipment);
+        break;
+      case 'qr':
+        _generateQRCode(equipment);
+        break;
+      case 'report':
+        _reportFailure(equipment);
+        break;
+    }
+  }
+
+  Future<void> _navigateToEditEquipment(Equipment equipment) async {
+    try {
+      final clientProvider =
+          Provider.of<ClientProvider>(context, listen: false);
+
+      if (clientProvider.clients.isEmpty) {
+        clientProvider.loadClients();
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
+      final client = clientProvider.clients.firstWhere(
+        (c) => c.id == equipment.clientId,
+        orElse: () => throw Exception('Cliente no encontrado'),
+      );
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddEquipmentScreen(
+            client: client,
+            equipment: equipment,
+          ),
+        ),
+      );
+
+      if (result == true && mounted) {
+        _loadEquipments();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _generateQRCode(Equipment equipment) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QRDisplayScreen(equipment: equipment),
+      ),
+    );
+  }
+
+  void _reportFailure(Equipment equipment) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FaultReportScreen(equipment: equipment),
+      ),
+    );
+  }
+
+  void _showAddEquipmentDialog() async {
+    // Cargar clientes
+    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+
+    if (clientProvider.clients.isEmpty) {
+      clientProvider.loadClients();
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    if (!mounted) return;
+
+    // Mostrar diálogo de búsqueda de clientes
+    final selectedClient = await showDialog<ClientModel>(
+      context: context,
+      builder: (context) => ClientSearchDialog(
+        clients: clientProvider.clients,
+      ),
+    );
+
+    if (selectedClient != null && mounted) {
+      // Navegar a agregar equipo con el cliente seleccionado
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddEquipmentScreen(client: selectedClient),
+        ),
+      );
+
+      if (result == true && mounted) {
+        _loadEquipments(); // Recargar inventario
+      }
+    }
+  }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'operativo':
@@ -1487,12 +1781,89 @@ class _GlobalEquipmentInventoryScreenState
     }
   }
 
+  // ← NUEVO: Iconos por tipo
+  IconData _getTipoIcon(String tipo) {
+    switch (tipo) {
+      case 'Climatización':
+        return Icons.ac_unit;
+      case 'Equipos Eléctricos':
+        return Icons.electrical_services;
+      case 'Paneles Eléctricos':
+        return Icons.electric_bolt;
+      case 'Generadores':
+        return Icons.power;
+      case 'UPS':
+        return Icons.battery_charging_full;
+      case 'Equipos de Cocina':
+        return Icons.kitchen;
+      case 'Facilidades':
+        return Icons.build;
+      default:
+        return Icons.devices;
+    }
+  }
+
   IconData _getCategoryIcon(String category) {
     String cat = category.toLowerCase();
-    if (cat.contains('ac') || cat.contains('aire')) return Icons.ac_unit;
-    if (cat.contains('panel')) return Icons.electrical_services;
-    if (cat.contains('generador')) return Icons.power;
-    if (cat.contains('ups')) return Icons.battery_charging_full;
+
+    // Climatización
+    if (cat.contains('split') ||
+        cat.contains('cassette') ||
+        cat.contains('ducto') ||
+        cat.contains('piso') ||
+        cat.contains('ventana') ||
+        cat.contains('portátil')) {
+      return Icons.ac_unit;
+    }
+
+    // Equipos Eléctricos
+    if (cat.contains('transformador') ||
+        cat.contains('tablero') ||
+        cat.contains('breaker') ||
+        cat.contains('contactor')) {
+      return Icons.electrical_services;
+    }
+
+    // Paneles
+    if (cat.contains('panel')) {
+      return Icons.electric_bolt;
+    }
+
+    // Generadores
+    if (cat.contains('generador') ||
+        cat.contains('diésel') ||
+        cat.contains('gas') ||
+        cat.contains('gasolina')) {
+      return Icons.power;
+    }
+
+    // UPS
+    if (cat.contains('ups') ||
+        cat.contains('línea interactiva') ||
+        cat.contains('online') ||
+        cat.contains('offline')) {
+      return Icons.battery_charging_full;
+    }
+
+    // Cocina
+    if (cat.contains('refrigerador') ||
+        cat.contains('estufa') ||
+        cat.contains('horno') ||
+        cat.contains('microondas') ||
+        cat.contains('lavavajillas') ||
+        cat.contains('campana')) {
+      return Icons.kitchen;
+    }
+
+    // Facilidades
+    if (cat.contains('bomba')) return Icons.water_drop;
+    if (cat.contains('ascensor')) return Icons.elevator;
+    if (cat.contains('portón')) return Icons.door_sliding;
+    if (cat.contains('cámara')) return Icons.videocam;
+    if (cat.contains('iluminación')) return Icons.lightbulb;
+    if (cat.contains('ventilación')) return Icons.air;
+    if (cat.contains('sistema')) return Icons.settings_applications;
+
     return Icons.build;
   }
 }

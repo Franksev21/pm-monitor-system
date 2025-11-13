@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/shared/widgets/branch_management_widget.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/client_provider.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -7,7 +8,7 @@ import '../../../config/theme/app_theme.dart';
 import '../../../shared/widgets/custom_widgets.dart';
 
 class AddClientScreen extends StatefulWidget {
-  final ClientModel? client; // Para editar cliente existente
+  final ClientModel? client;
 
   const AddClientScreen({super.key, this.client});
 
@@ -20,7 +21,6 @@ class _AddClientScreenState extends State<AddClientScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
 
-  // Controllers para información básica
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -28,23 +28,21 @@ class _AddClientScreenState extends State<AddClientScreen> {
   final _taxIdController = TextEditingController();
   final _notesController = TextEditingController();
 
-  // Controllers para dirección
   final _streetController = TextEditingController();
   final _cityController = TextEditingController();
   final _stateController = TextEditingController();
   final _countryController = TextEditingController();
   final _zipCodeController = TextEditingController();
 
-  // Variables de estado
   ClientType _selectedType = ClientType.small;
   ClientStatus _selectedStatus = ClientStatus.active;
+  List<BranchModel> _branches = [];
 
   @override
   void initState() {
     super.initState();
     _countryController.text = 'República Dominicana';
 
-    // Si estamos editando, cargar datos
     if (widget.client != null) {
       _loadClientData(widget.client!);
     }
@@ -66,6 +64,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
 
     _selectedType = client.type;
     _selectedStatus = client.status;
+    _branches = List.from(client.branches);
   }
 
   @override
@@ -104,6 +103,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
             Expanded(
               child: PageView(
                 controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (page) {
                   setState(() {
                     _currentPage = page;
@@ -112,6 +112,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
                 children: [
                   _buildBasicInfoPage(),
                   _buildAddressPage(),
+                  _buildBranchesPage(),
                   _buildSummaryPage(),
                 ],
               ),
@@ -125,14 +126,16 @@ class _AddClientScreenState extends State<AddClientScreen> {
 
   Widget _buildProgressIndicator() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       child: Row(
         children: [
-          _buildStepIndicator(0, 'Información', Icons.business),
+          _buildStepIndicator(0, 'Info', Icons.business),
           _buildStepConnector(0),
           _buildStepIndicator(1, 'Dirección', Icons.location_on),
           _buildStepConnector(1),
-          _buildStepIndicator(2, 'Resumen', Icons.check_circle),
+          _buildStepIndicator(2, 'Sucursales', Icons.store),
+          _buildStepConnector(2),
+          _buildStepIndicator(3, 'Resumen', Icons.check_circle),
         ],
       ),
     );
@@ -146,8 +149,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: Column(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isCompleted
@@ -159,16 +162,20 @@ class _AddClientScreenState extends State<AddClientScreen> {
             child: Icon(
               isCompleted ? Icons.check : icon,
               color: isCompleted || isActive ? Colors.white : Colors.grey[600],
-              size: 20,
+              size: 18,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
             style: AppTheme.bodySmall.copyWith(
+              fontSize: 11,
               color: isActive ? AppTheme.primaryColor : Colors.grey[600],
               fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -193,15 +200,10 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Información Básica',
-            style: AppTheme.headingMedium,
-          ),
+          Text('Información Básica', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
-          Text(
-            'Ingresa los datos principales del cliente',
-            style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600]),
-          ),
+          Text('Ingresa los datos principales del cliente',
+              style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
           const SizedBox(height: 24),
           CustomTextField(
             label: 'Nombre de la Empresa *',
@@ -313,15 +315,10 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Dirección Principal',
-            style: AppTheme.headingMedium,
-          ),
+          Text('Dirección Principal', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
-          Text(
-            'Ubicación de la oficina principal del cliente',
-            style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600]),
-          ),
+          Text('Ubicación de la oficina principal del cliente',
+              style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
           const SizedBox(height: 24),
           CustomTextField(
             label: 'Dirección *',
@@ -403,21 +400,30 @@ class _AddClientScreenState extends State<AddClientScreen> {
     );
   }
 
+  Widget _buildBranchesPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: BranchManagementWidget(
+        branches: _branches,
+        onBranchesChanged: (branches) {
+          setState(() {
+            _branches = branches;
+          });
+        },
+      ),
+    );
+  }
+
   Widget _buildSummaryPage() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Resumen del Cliente',
-            style: AppTheme.headingMedium,
-          ),
+          Text('Resumen del Cliente', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
-          Text(
-            'Revisa la información antes de guardar',
-            style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600]),
-          ),
+          Text('Revisa la información antes de guardar',
+              style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
           const SizedBox(height: 24),
           _buildSummaryCard(),
         ],
@@ -444,27 +450,58 @@ class _AddClientScreenState extends State<AddClientScreen> {
             _buildSummaryItem('Estado', _selectedStatus.displayName, Icons.info,
                 color: _getStatusColor(_selectedStatus)),
             const Divider(height: 24),
-            Text(
-              'Dirección',
-              style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-            ),
+            Text('Dirección Principal',
+                style:
+                    AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Text(
               '${_streetController.text}\n${_cityController.text}, ${_stateController.text}\n${_countryController.text} ${_zipCodeController.text}',
               style: AppTheme.bodyMedium,
             ),
+            if (_branches.isNotEmpty) ...[
+              const Divider(height: 24),
+              Row(
+                children: [
+                  Icon(Icons.store, size: 20, color: AppTheme.primaryColor),
+                  const SizedBox(width: 12),
+                  Text('Sucursales (${_branches.length})',
+                      style: AppTheme.bodyMedium
+                          .copyWith(fontWeight: FontWeight.w600)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ..._branches.map((branch) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: branch.isActive
+                                ? AppTheme.successColor
+                                : Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${branch.name} - ${branch.address.city}',
+                            style: AppTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
             if (_notesController.text.isNotEmpty) ...[
               const Divider(height: 24),
-              Text(
-                'Notas',
-                style:
-                    AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-              ),
+              Text('Notas',
+                  style: AppTheme.bodyMedium
+                      .copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Text(
-                _notesController.text,
-                style: AppTheme.bodyMedium,
-              ),
+              Text(_notesController.text, style: AppTheme.bodyMedium),
             ],
           ],
         ),
@@ -484,15 +521,12 @@ class _AddClientScreenState extends State<AddClientScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: AppTheme.bodySmall.copyWith(color: Colors.grey[600]),
-                ),
-                Text(
-                  value,
-                  style:
-                      AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w500),
-                ),
+                Text(label,
+                    style:
+                        AppTheme.bodySmall.copyWith(color: Colors.grey[600])),
+                Text(value,
+                    style: AppTheme.bodyMedium
+                        .copyWith(fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -534,7 +568,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
           Expanded(
             child: Consumer<ClientProvider>(
               builder: (context, clientProvider, child) {
-                if (_currentPage < 2) {
+                if (_currentPage < 3) {
                   return CustomButton(
                     text: 'Siguiente',
                     onPressed: () {
@@ -564,11 +598,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
   }
 
   bool _validateCurrentPage() {
-    if (_currentPage == 0) {
-      // Validar página de información básica
-      return _formKey.currentState!.validate();
-    } else if (_currentPage == 1) {
-      // Validar página de dirección
+    if (_currentPage == 0 || _currentPage == 1) {
       return _formKey.currentState!.validate();
     }
     return true;
@@ -592,7 +622,6 @@ class _AddClientScreenState extends State<AddClientScreen> {
     late ClientModel client;
 
     if (widget.client != null) {
-      // Actualizar cliente existente
       client = widget.client!.copyWith(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
@@ -604,13 +633,13 @@ class _AddClientScreenState extends State<AddClientScreen> {
         type: _selectedType,
         status: _selectedStatus,
         mainAddress: address,
+        branches: _branches,
         notes: _notesController.text.trim(),
         updatedAt: now,
       );
     } else {
-      // Crear nuevo cliente
       client = ClientModel(
-        id: '', // Firestore generará el ID
+        id: '',
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -621,6 +650,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
         type: _selectedType,
         status: _selectedStatus,
         mainAddress: address,
+        branches: _branches,
         notes: _notesController.text.trim(),
         createdAt: now,
         updatedAt: now,
@@ -644,7 +674,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
           backgroundColor: AppTheme.successColor,
         ),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

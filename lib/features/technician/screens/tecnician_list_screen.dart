@@ -625,7 +625,6 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
   // MÉTODO ACTUALIZADO: Ahora navega a AssignEquipmentScreen igual que en UserManagementScreen
   void _assignEquipment(
       TechnicianModel technician, TechnicianProvider provider) async {
-    // Convertir TechnicianModel a UserManagementModel para compatibilidad
     final userModel = UserManagementModel(
       id: technician.id,
       name: technician.fullName,
@@ -633,8 +632,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       phone: technician.phone,
       role: 'technician',
       isActive: technician.isActive,
+      createdAt: technician.createdAt ?? DateTime.now(), // ✅ AQUÍ
       hourlyRate: technician.hourlyRate,
-      createdAt: technician.createdAt,
       photoUrl: technician.profileImageUrl,
     );
 
@@ -645,7 +644,6 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       ),
     );
 
-    // Si se asignaron equipos, refrescar la lista
     if (result == true) {
       provider.refresh();
       provider.loadStats();

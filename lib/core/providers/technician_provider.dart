@@ -373,44 +373,6 @@ class TechnicianProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
-
-
-  ///metodo para asignar tenico a supervisor
-  Future<bool> assignSupervisor(
-    String technicianId,
-    String supervisorId,
-    String supervisorName,
-    String updatedBy,
-  ) async {
-    try {
-      setLoading(true);
-
-      if (supervisorId.isEmpty) {
-        // Encontrar el supervisor actual del técnico
-        final currentSupervisor = await _userManagementService
-            .getSupervisorByTechnician(technicianId);
-        if (currentSupervisor != null) {
-          await _userManagementService.removeTechnicianFromSupervisor(
-            currentSupervisor.id,
-            technicianId,
-          );
-        }
-      } else {
-        // Asignar supervisor
-        await _userManagementService.assignTechnicianToSupervisor(
-          supervisorId,
-          technicianId,
-        );
-      }
-      return true;
-    } catch (e) {
-      setError('Error al asignar supervisor: $e');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }
-
 // También agregar estos métodos helper si no los tienes:
   void setLoading(bool loading) {
     // Actualizar tu estado de loading

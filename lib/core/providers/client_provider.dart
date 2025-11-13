@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/core/services/client_user_sync_service.dart';
 import '../models/client_model.dart';
 import '../services/client_service.dart';
 
 class ClientProvider extends ChangeNotifier {
   final ClientService _clientService = ClientService();
+  final ClientUserSyncService _syncService = ClientUserSyncService();
 
   List<ClientModel> _clients = [];
   ClientModel? _selectedClient;
@@ -89,11 +91,30 @@ class ClientProvider extends ChangeNotifier {
     );
   }
 
-  // Crear cliente
+  // ✅ CREAR CLIENTE CON USUARIO AUTOMÁTICO
   Future<bool> createClient(ClientModel client) async {
     _setLoading(true);
     try {
+      // Crear cliente en Firestore
       await _clientService.createClient(client);
+
+      // Obtener el ID del cliente recién creado
+      // El ClientService ya actualiza el documento con su ID
+      final clientId = client.id.isEmpty
+          ? (await _clientService.getClients().first)
+              .where((c) => c.email == client.email)
+              .first
+              .id
+          : client.id;
+
+      // ✅ Crear usuario automáticamente
+      await _syncService.createUserForClient(
+        clientId: clientId,
+        clientName: client.name,
+        clientEmail: client.email,
+        clientPhone: client.phone,
+      );
+
       _clearError();
       _setLoading(false);
       return true;
@@ -128,6 +149,21 @@ class ClientProvider extends ChangeNotifier {
     } catch (e) {
       _setError(e.toString());
       return false;
+    }
+  }
+
+  // ✅ NUEVO: Sincronizar clientes existentes sin usuario
+  Future<int> syncExistingClients() async {
+    _setLoading(true);
+    try {
+      final syncedCount = await _syncService.syncAllClientsWithoutUsers();
+      _clearError();
+      _setLoading(false);
+      return syncedCount;
+    } catch (e) {
+      _setError('Error sincronizando clientes: $e');
+      _setLoading(false);
+      return 0;
     }
   }
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/services/user_management_service.dart';
 import 'package:pm_monitor/features/equipment/assign_equipment_screen.dart';
-import 'package:pm_monitor/features/technician/screens/assign_technician_screen.dart';
+import 'package:pm_monitor/features/technician/screens/assign_technician_screen.dart' hide UserManagementService;
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 
 class UserManagementScreen extends StatefulWidget {
@@ -728,9 +728,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       case 'assign_supervisor':
         _assignSupervisor(user);
         break;
-      case 'assign_technicians':
-        _assignTechnicians(user);
-        break;
+      // case 'assign_technicians':
+      //   _assignTechnicians(user);
+      //   break;
       case 'assign_locations':
         _assignLocations(user);
         break;
@@ -816,18 +816,16 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     );
   }
 
-void _assignTechnicians(UserManagementModel user) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AssignTechnicianScreen(supervisor: user),
-      ),
-    );
+// void _assignTechnicians(UserManagementModel user) async {
+//     final result = await Navigator.push(
+//       context,
+    
+//     );
 
-    if (result == true) {
-      _loadAllStats();
-    }
-  }
+//     if (result == true) {
+//       _loadAllStats();
+//     }
+//   }
 
   void _assignLocations(UserManagementModel user) {
     ScaffoldMessenger.of(context).showSnackBar(

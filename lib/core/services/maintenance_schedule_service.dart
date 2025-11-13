@@ -19,15 +19,26 @@ class MaintenanceScheduleService {
 
       DocumentReference docRef =
           await _firestore.collection(_collection).add(cleanData);
-      _notificationService.sendMaintenanceAssignedNotification(
+
+      // Solo enviar notificación si hay técnico asignado
+      if (maintenance.technicianId != null &&
+          maintenance.technicianId!.isNotEmpty) {
+        _notificationService.sendMaintenanceAssignedNotification(
           technicianId: maintenance.technicianId!,
           maintenanceId: docRef.id,
           equipmentName: maintenance.equipmentName,
-          scheduledDate: maintenance.scheduledDate);
-      debugPrint('Mantenimiento creado con ID: ${docRef.id}');
+          scheduledDate: maintenance.scheduledDate,
+        );
+        debugPrint(
+            '✅ Notificación enviada al técnico: ${maintenance.technicianName}');
+      } else {
+        debugPrint('⚠️ Mantenimiento creado sin técnico asignado');
+      }
+
+      debugPrint('✅ Mantenimiento creado con ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
-      debugPrint('Error creando mantenimiento: $e');
+      debugPrint('❌ Error creando mantenimiento: $e');
       rethrow;
     }
   }
@@ -351,8 +362,6 @@ class MaintenanceScheduleService {
           type: MaintenanceType.preventive,
           frequency: frequency,
           tasks: tasks,
-          estimatedDurationMinutes: estimatedDurationMinutes,
-          estimatedCost: estimatedCost,
           location: location,
           notes: notes,
           photoUrls: [],
@@ -404,10 +413,28 @@ class MaintenanceScheduleService {
             currentDate.minute,
           );
           break;
+        case FrequencyType.bimonthly:
+          currentDate = DateTime(
+            currentDate.year,
+            currentDate.month + 2,
+            currentDate.day,
+            currentDate.hour,
+            currentDate.minute,
+          );
+          break;
         case FrequencyType.quarterly:
           currentDate = DateTime(
             currentDate.year,
             currentDate.month + 3,
+            currentDate.day,
+            currentDate.hour,
+            currentDate.minute,
+          );
+          break;
+        case FrequencyType.quadrimestral:
+          currentDate = DateTime(
+            currentDate.year,
+            currentDate.month + 4,
             currentDate.day,
             currentDate.hour,
             currentDate.minute,
@@ -426,16 +453,6 @@ class MaintenanceScheduleService {
           currentDate = DateTime(
             currentDate.year + 1,
             currentDate.month,
-            currentDate.day,
-            currentDate.hour,
-            currentDate.minute,
-          );
-          break;
-        case FrequencyType.custom:
-          // Para personalizado, usar mensual por defecto
-          currentDate = DateTime(
-            currentDate.year,
-            currentDate.month + 1,
             currentDate.day,
             currentDate.hour,
             currentDate.minute,

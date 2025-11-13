@@ -622,7 +622,7 @@ class _AppleStyleMaintenanceCalendarState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          SizedBox(
             width: 60,
             child: Text(
               time,
@@ -742,19 +742,12 @@ class _AppleStyleMaintenanceCalendarState
                           ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${maintenance.estimatedDurationMinutes}m',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[500],
-                        ),
-                      ),
+                      // REMOVIDO: Text con estimatedDurationMinutes
                       // Botón PDF individual para administradores en mantenimientos completados
                       if (isAdmin &&
                           maintenance.status ==
                               MaintenanceStatus.completed) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () => _generateIndividualPDF(maintenance),
                           child: Container(
@@ -904,7 +897,7 @@ class _AppleStyleMaintenanceCalendarState
   void _showPDFOptionsDialog({
     required String title,
     required String subtitle,
-    required Uint8List pdfData, // Cambiado de List<int> a Uint8List
+    required Uint8List pdfData,
     required String fileName,
   }) {
     showDialog(
@@ -964,7 +957,6 @@ class _AppleStyleMaintenanceCalendarState
 
   // Métodos para manejar PDFs
   Future<void> _viewPDF(Uint8List pdfData, String fileName) async {
-    // Cambiado tipo
     try {
       await Printing.layoutPdf(
         onLayout: (format) async => pdfData,
@@ -977,7 +969,6 @@ class _AppleStyleMaintenanceCalendarState
 
   Future<void> _sharePDF(
       Uint8List pdfData, String fileName, String description) async {
-    // Cambiado tipo
     try {
       // Usando el método del servicio para compartir
       final maintenance = _selectedDayEvents.first.toFirestore();
@@ -989,7 +980,6 @@ class _AppleStyleMaintenanceCalendarState
   }
 
   Future<void> _savePDF(Uint8List pdfData, String fileName) async {
-    // Cambiado tipo
     try {
       // Usando el método del servicio para guardar
       final maintenance = _selectedDayEvents.first.toFirestore();
@@ -1055,8 +1045,7 @@ class _AppleStyleMaintenanceCalendarState
   }
 
   pw.Widget _buildCompletedSummary(List<MaintenanceSchedule> maintenances) {
-    final totalDuration =
-        maintenances.fold<int>(0, (sum, m) => sum + m.estimatedDurationMinutes);
+    // REMOVIDO: Cálculo de totalDuration
     final avgCompletion = maintenances.isNotEmpty
         ? maintenances.fold<int>(
                 0, (sum, m) => sum + (m.completionPercentage ?? 0)) /
@@ -1093,10 +1082,7 @@ class _AppleStyleMaintenanceCalendarState
                   PdfColors.green),
               _buildSummaryCard(
                   'Técnicos', technicianCount.toString(), PdfColors.blue),
-              _buildSummaryCard(
-                  'Tiempo Total',
-                  '${(totalDuration / 60).toStringAsFixed(1)}h',
-                  PdfColors.orange),
+              // REMOVIDO: Card de tiempo total
               _buildSummaryCard('Promedio',
                   '${avgCompletion.toStringAsFixed(1)}%', PdfColors.purple),
             ],
@@ -1157,8 +1143,8 @@ class _AppleStyleMaintenanceCalendarState
             1: const pw.FlexColumnWidth(1.5),
             2: const pw.FlexColumnWidth(1),
             3: const pw.FlexColumnWidth(1.5),
+            // REMOVIDO: Columna de Duración
             4: const pw.FlexColumnWidth(1),
-            5: const pw.FlexColumnWidth(1),
           },
           children: [
             // Header
@@ -1169,7 +1155,7 @@ class _AppleStyleMaintenanceCalendarState
                 _buildTableHeader('Cliente'),
                 _buildTableHeader('Hora'),
                 _buildTableHeader('Técnico'),
-                _buildTableHeader('Duración'),
+                // REMOVIDO: Header de Duración
                 _buildTableHeader('Progreso'),
               ],
             ),
@@ -1183,8 +1169,7 @@ class _AppleStyleMaintenanceCalendarState
                         DateFormat('HH:mm').format(maintenance.scheduledDate)),
                     _buildTableCell(
                         maintenance.technicianName ?? 'No asignado'),
-                    _buildTableCell(
-                        '${maintenance.estimatedDurationMinutes} min'),
+                    // REMOVIDO: Cell de estimatedDurationMinutes
                     _buildTableCell(
                         '${maintenance.completionPercentage ?? 0}%'),
                   ],
@@ -1204,14 +1189,13 @@ class _AppleStyleMaintenanceCalendarState
       if (!technicianPerformance.containsKey(techName)) {
         technicianPerformance[techName] = {
           'count': 0,
-          'totalTime': 0,
+          // REMOVIDO: totalTime
           'avgCompletion': 0.0,
         };
       }
 
       technicianPerformance[techName]!['count'] += 1;
-      technicianPerformance[techName]!['totalTime'] +=
-          maintenance.estimatedDurationMinutes;
+      // REMOVIDO: totalTime calculation
       final currentAvg =
           technicianPerformance[techName]!['avgCompletion'] as double;
       final newCompletion = maintenance.completionPercentage ?? 0;
@@ -1238,8 +1222,8 @@ class _AppleStyleMaintenanceCalendarState
           columnWidths: {
             0: const pw.FlexColumnWidth(2),
             1: const pw.FlexColumnWidth(1),
-            2: const pw.FlexColumnWidth(1.5),
-            3: const pw.FlexColumnWidth(1),
+            // REMOVIDO: Columna de tiempo total
+            2: const pw.FlexColumnWidth(1),
           },
           children: [
             // Header
@@ -1248,7 +1232,7 @@ class _AppleStyleMaintenanceCalendarState
               children: [
                 _buildTableHeader('Técnico'),
                 _buildTableHeader('Completados'),
-                _buildTableHeader('Tiempo Total'),
+                // REMOVIDO: Header de tiempo total
                 _buildTableHeader('Eficiencia Prom.'),
               ],
             ),
@@ -1258,8 +1242,7 @@ class _AppleStyleMaintenanceCalendarState
                   children: [
                     _buildTableCell(entry.key),
                     _buildTableCell(entry.value['count'].toString()),
-                    _buildTableCell(
-                        '${(entry.value['totalTime'] / 60).toStringAsFixed(1)}h'),
+                    // REMOVIDO: Cell de tiempo total
                     _buildTableCell(
                         '${(entry.value['avgCompletion'] as double).toStringAsFixed(1)}%'),
                   ],
@@ -1434,16 +1417,13 @@ class _AppleStyleMaintenanceCalendarState
                   'Fecha',
                   DateFormat('dd/MM/yyyy HH:mm')
                       .format(maintenance.scheduledDate)),
-              _buildDetailRow('Duración',
-                  '${maintenance.estimatedDurationMinutes} minutos'),
+              // REMOVIDO: Row de duración
+              // REMOVIDO: Row de costo estimado
               _buildDetailRow('Frecuencia', maintenance.frequencyDisplayName),
               if (maintenance.technicianName != null)
                 _buildDetailRow('Técnico', maintenance.technicianName!),
               if (maintenance.location != null)
                 _buildDetailRow('Ubicación', maintenance.location!),
-              if (maintenance.estimatedCost != null)
-                _buildDetailRow('Costo estimado',
-                    '\$${maintenance.estimatedCost!.toStringAsFixed(2)}'),
               if (maintenance.notes != null)
                 _buildDetailRow('Notas', maintenance.notes!),
               if (maintenance.tasks.isNotEmpty) ...[

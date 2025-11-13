@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
 import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
-import 'package:pm_monitor/features/maintenance/screens/add_maintenance_screen.dart';
 import 'package:pm_monitor/features/maintenance/screens/maintenance_execution_screen.dart';
 
 /// Calendario filtrado para técnicos - muestra solo mantenimientos asignados al técnico actual
@@ -591,13 +590,13 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '${maintenance.estimatedDurationMinutes}m',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[500],
-                        ),
-                      ),
+                      // Text(
+                      //   '${maintenance.estimatedDurationMinutes}m',
+                      //   style: TextStyle(
+                      //     fontSize: 11,
+                      //     color: Colors.grey[500],
+                      //   ),
+                      // ),
                     ],
                   ),
                 ],
@@ -625,8 +624,8 @@ void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
                   'Fecha',
                   DateFormat('dd/MM/yyyy HH:mm')
                       .format(maintenance.scheduledDate)),
-              _buildDetailRow('Duración',
-                  '${maintenance.estimatedDurationMinutes} minutos'),
+              // _buildDetailRow('Duración',
+              //     '${maintenance.estimatedDurationMinutes} minutos'),
               _buildDetailRow('Frecuencia', maintenance.frequencyDisplayName),
               if (maintenance.location != null)
                 _buildDetailRow('Ubicación', maintenance.location!),
@@ -663,7 +662,7 @@ void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
                   'type': maintenance.type.toString().split('.').last,
                   'status': maintenance.status.toString().split('.').last,
                   'tasks': maintenance.tasks,
-                  'estimatedDuration': maintenance.estimatedDurationMinutes,
+                  // 'estimatedDuration': maintenance.estimatedDurationMinutes,
                   'technicianId': maintenance.technicianId,
                   'technicianName': maintenance.technicianName,
                 };

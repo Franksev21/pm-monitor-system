@@ -310,7 +310,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 
   Widget _buildBasicInfo() {
     return _buildSection(
-      title: 'Información Básica',
+      title: 'Información General',
       icon: Icons.business,
       child: Column(
         children: [

@@ -1,750 +1,559 @@
-import 'package:flutter/material.dart';
-import 'package:pm_monitor/core/models/user_management_model.dart';
-import 'package:pm_monitor/core/services/user_management_service.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:pm_monitor/core/models/user_management_model.dart';
 
-class AssignTechnicianScreen extends StatefulWidget {
-  final UserManagementModel supervisor;
+// class UserManagementService {
+//   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  const AssignTechnicianScreen({
-    Key? key,
-    required this.supervisor,
-  }) : super(key: key);
+//   /// Obtener usuarios por rol
+//   Stream<List<UserManagementModel>> getUsersByRole(String role) {
+//     return _firestore
+//         .collection('users')
+//         .where('role', isEqualTo: role)
+//         .snapshots()
+//         .map((snapshot) {
+//       return snapshot.docs.map((doc) {
+//         try {
+//           return UserManagementModel.fromFirestore(doc);
+//         } catch (e) {
+//           print('Error parsing user ${doc.id}: $e');
+//           return UserManagementModel.fromMap(
+//             {
+//               'id': doc.id,
+//               'name': doc.data()['name'] ?? 'Usuario',
+//               'email': doc.data()['email'] ?? '',
+//               'phone': doc.data()['phone'] ?? '',
+//               'role': role,
+//               'isActive': doc.data()['isActive'] ?? true,
+//               'createdAt': Timestamp.now(),
+//             },
+//             doc.id,
+//           );
+//         }
+//       }).toList();
+//     });
+//   }
 
-  @override
-  State<AssignTechnicianScreen> createState() => _AssignTechnicianScreenState();
-}
+//   /// Obtener técnicos activos
+//   Future<List<UserManagementModel>> getActiveTechnicians() async {
+//     try {
+//       final snapshot = await _firestore
+//           .collection('users')
+//           .where('role', isEqualTo: 'technician')
+//           .where('isActive', isEqualTo: true)
+//           .get();
 
-class _AssignTechnicianScreenState extends State<AssignTechnicianScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final TextEditingController _searchController = TextEditingController();
-  final UserManagementService _userService = UserManagementService();
+//       return snapshot.docs.map((doc) {
+//         try {
+//           return UserManagementModel.fromFirestore(doc);
+//         } catch (e) {
+//           print('Error parsing technician ${doc.id}: $e');
+//           return UserManagementModel.fromMap(
+//             {
+//               'id': doc.id,
+//               'name': doc.data()['name'] ?? 'Técnico',
+//               'email': doc.data()['email'] ?? '',
+//               'phone': doc.data()['phone'] ?? '',
+//               'role': 'technician',
+//               'isActive': true,
+//               'createdAt': Timestamp.now(),
+//               'assignedEquipments': doc.data()['assignedEquipments'] ?? [],
+//               'supervisorId': doc.data()['supervisorId'],
+//             },
+//             doc.id,
+//           );
+//         }
+//       }).toList();
+//     } catch (e) {
+//       print('Error getting active technicians: $e');
+//       return [];
+//     }
+//   }
 
-  String _searchQuery = '';
-  List<UserManagementModel> _selectedTechnicians = [];
-  List<UserManagementModel> _allTechnicians = [];
-  bool _isLoading = false;
+//   /// Obtener supervisores activos
+//   Future<List<UserManagementModel>> getActiveSupervisors() async {
+//     try {
+//       final snapshot = await _firestore
+//           .collection('users')
+//           .where('role', isEqualTo: 'supervisor')
+//           .where('isActive', isEqualTo: true)
+//           .get();
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _loadTechnicians();
-  }
+//       return snapshot.docs.map((doc) {
+//         try {
+//           return UserManagementModel.fromFirestore(doc);
+//         } catch (e) {
+//           print('Error parsing supervisor ${doc.id}: $e');
+//           return UserManagementModel.fromMap(
+//             {
+//               'id': doc.id,
+//               'name': doc.data()['name'] ?? 'Supervisor',
+//               'email': doc.data()['email'] ?? '',
+//               'phone': doc.data()['phone'] ?? '',
+//               'role': 'supervisor',
+//               'isActive': true,
+//               'createdAt': Timestamp.now(),
+//               'assignedTechnicians': doc.data()['assignedTechnicians'] ?? [],
+//             },
+//             doc.id,
+//           );
+//         }
+//       }).toList();
+//     } catch (e) {
+//       print('Error getting active supervisors: $e');
+//       return [];
+//     }
+//   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _searchController.dispose();
-    super.dispose();
-  }
+//   /// Obtener supervisor de un técnico
+//   Future<UserManagementModel?> getSupervisorByTechnician(
+//       String technicianId) async {
+//     try {
+//       final techDoc =
+//           await _firestore.collection('users').doc(technicianId).get();
 
-  Future<void> _loadTechnicians() async {
-    setState(() {
-      _isLoading = true;
-    });
+//       if (!techDoc.exists) return null;
 
-    try {
-      final technicians = await _userService.getActiveTechnicians();
-      setState(() {
-        _allTechnicians = technicians;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar técnicos: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
+//       final supervisorId = techDoc.data()?['supervisorId'];
+//       if (supervisorId == null || supervisorId.isEmpty) return null;
 
-  List<UserManagementModel> _getUnassignedTechnicians(
-      List<UserManagementModel> allTechnicians) {
-    return allTechnicians
-        .where((technician) =>
-            technician.isActive &&
-            (technician.supervisorId == null ||
-                technician.supervisorId!.isEmpty))
-        .toList();
-  }
+//       final supervisorDoc =
+//           await _firestore.collection('users').doc(supervisorId).get();
 
-  List<UserManagementModel> _getAssignedTechnicians(
-      List<UserManagementModel> allTechnicians) {
-    return allTechnicians
-        .where((technician) =>
-            technician.isActive &&
-            technician.supervisorId == widget.supervisor.id)
-        .toList();
-  }
+//       if (!supervisorDoc.exists) return null;
 
-  List<UserManagementModel> _filterTechnicians(
-      List<UserManagementModel> technicians) {
-    if (_searchQuery.isEmpty) return technicians;
+//       return UserManagementModel.fromFirestore(supervisorDoc);
+//     } catch (e) {
+//       print('Error getting supervisor by technician: $e');
+//       return null;
+//     }
+//   }
 
-    final query = _searchQuery.toLowerCase();
-    return technicians
-        .where((technician) =>
-            technician.name.toLowerCase().contains(query) ||
-            technician.email.toLowerCase().contains(query) ||
-            technician.phone.toLowerCase().contains(query) ||
-            (technician.specialization?.toLowerCase().contains(query) ?? false))
-        .toList();
-  }
+//   /// Asignar técnico a supervisor
+//   Future<void> assignTechnicianToSupervisor(
+//       String supervisorId, String technicianId) async {
+//     try {
+//       final batch = _firestore.batch();
 
-  Future<void> _assignSelectedTechnicians() async {
-    if (_selectedTechnicians.isEmpty) return;
+//       // Actualizar supervisor
+//       final supervisorRef = _firestore.collection('users').doc(supervisorId);
+//       batch.update(supervisorRef, {
+//         'assignedTechnicians': FieldValue.arrayUnion([technicianId]),
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
 
-    setState(() {
-      _isLoading = true;
-    });
+//       // Actualizar técnico
+//       final technicianRef = _firestore.collection('users').doc(technicianId);
+//       batch.update(technicianRef, {
+//         'supervisorId': supervisorId,
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
 
-    try {
-      // Obtener técnicos ya asignados al supervisor
-      final currentAssigned = widget.supervisor.assignedTechnicians;
-      final newTechnicianIds = _selectedTechnicians.map((t) => t.id).toList();
-      final allAssignedIds = [...currentAssigned, ...newTechnicianIds];
+//       await batch.commit();
+//     } catch (e) {
+//       print('Error assigning technician to supervisor: $e');
+//       rethrow;
+//     }
+//   }
 
-      await _userService.assignTechniciansToSupervisor(
-        widget.supervisor.id,
-        allAssignedIds,
-      );
+//   /// Asignar múltiples técnicos a supervisor
+//   Future<void> assignTechniciansToSupervisor(
+//       String supervisorId, List<String> technicianIds) async {
+//     try {
+//       final batch = _firestore.batch();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                '${_selectedTechnicians.length} técnicos asignados correctamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
+//       // Actualizar supervisor
+//       final supervisorRef = _firestore.collection('users').doc(supervisorId);
+//       batch.update(supervisorRef, {
+//         'assignedTechnicians': technicianIds,
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
 
-        setState(() {
-          _selectedTechnicians.clear();
-        });
+//       // Actualizar cada técnico
+//       for (String technicianId in technicianIds) {
+//         final technicianRef = _firestore.collection('users').doc(technicianId);
+//         batch.update(technicianRef, {
+//           'supervisorId': supervisorId,
+//           'updatedAt': FieldValue.serverTimestamp(),
+//         });
+//       }
 
-        await _loadTechnicians();
-        Navigator.of(context).pop(true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al asignar técnicos: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
+//       await batch.commit();
+//     } catch (e) {
+//       print('Error assigning technicians to supervisor: $e');
+//       rethrow;
+//     }
+//   }
 
-  Future<void> _unassignTechnician(UserManagementModel technician) async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Desasignar Técnico'),
-        content: Text(
-            '¿Desasignar ${technician.name} de ${widget.supervisor.name}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
+//   /// Remover técnico de supervisor
+//   Future<void> removeTechnicianFromSupervisor(
+//       String supervisorId, String technicianId) async {
+//     try {
+//       final batch = _firestore.batch();
 
-              setState(() {
-                _isLoading = true;
-              });
+//       // Actualizar supervisor
+//       final supervisorRef = _firestore.collection('users').doc(supervisorId);
+//       batch.update(supervisorRef, {
+//         'assignedTechnicians': FieldValue.arrayRemove([technicianId]),
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
 
-              try {
-                await _userService.removeTechnicianFromSupervisor(
-                  widget.supervisor.id,
-                  technician.id,
-                );
+//       // Actualizar técnico
+//       final technicianRef = _firestore.collection('users').doc(technicianId);
+//       batch.update(technicianRef, {
+//         'supervisorId': null,
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
 
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Técnico desasignado correctamente'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  await _loadTechnicians();
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error al desasignar: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              } finally {
-                if (mounted) {
-                  setState(() {
-                    _isLoading = false;
-                  });
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Desasignar'),
-          ),
-        ],
-      ),
-    );
-  }
+//       await batch.commit();
+//     } catch (e) {
+//       print('Error removing technician from supervisor: $e');
+//       rethrow;
+//     }
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Asignar Técnicos',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              widget.supervisor.name,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: const Color(0xFF2196F3),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          if (_selectedTechnicians.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.check, color: Colors.white),
-              onPressed: _isLoading ? null : _assignSelectedTechnicians,
-            ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.person_add),
-              text: 'Disponibles',
-            ),
-            Tab(
-              icon: Icon(Icons.group),
-              text: 'Asignados',
-            ),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          // Barra de búsqueda
-          _buildSearchBar(),
+//   /// Obtener estadísticas del sistema
+//   Future<Map<String, dynamic>> getSystemStats() async {
+//     try {
+//       final usersSnapshot = await _firestore.collection('users').get();
 
-          // Contador de seleccionados
-          if (_selectedTechnicians.isNotEmpty) _buildSelectionCounter(),
+//       int totalTechnicians = 0;
+//       int activeTechnicians = 0;
+//       int totalSupervisors = 0;
+//       int activeSupervisors = 0;
+//       int totalClients = 0;
+//       int activeClients = 0;
 
-          // Contenido de las pestañas
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildAvailableTechniciansTab(),
-                _buildAssignedTechniciansTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: _selectedTechnicians.isNotEmpty && !_isLoading
-          ? FloatingActionButton.extended(
-              onPressed: _assignSelectedTechnicians,
-              backgroundColor: const Color(0xFF2196F3),
-              icon: const Icon(Icons.supervisor_account),
-              label: Text('Asignar ${_selectedTechnicians.length}'),
-            )
-          : null,
-    );
-  }
+//       for (var doc in usersSnapshot.docs) {
+//         final data = doc.data();
+//         final role = data['role'] as String?;
+//         final isActive = data['isActive'] as bool? ?? true;
 
-  Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (value) {
-          setState(() {
-            _searchQuery = value;
-          });
-        },
-        decoration: InputDecoration(
-          hintText: 'Buscar técnicos...',
-          prefixIcon: const Icon(Icons.search, color: Colors.grey),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.grey),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-        ),
-      ),
-    );
-  }
+//         if (role == 'technician') {
+//           totalTechnicians++;
+//           if (isActive) activeTechnicians++;
+//         } else if (role == 'supervisor') {
+//           totalSupervisors++;
+//           if (isActive) activeSupervisors++;
+//         } else if (role == 'client') {
+//           totalClients++;
+//           if (isActive) activeClients++;
+//         }
+//       }
 
-  Widget _buildSelectionCounter() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2196F3).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFF2196F3).withOpacity(0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.check_circle,
-            color: Color(0xFF2196F3),
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '${_selectedTechnicians.length} técnicos seleccionados',
-            style: const TextStyle(
-              color: Color(0xFF2196F3),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _selectedTechnicians.clear();
-              });
-            },
-            child: const Text('Limpiar'),
-          ),
-        ],
-      ),
-    );
-  }
+//       return {
+//         'technicians': {
+//           'total': totalTechnicians,
+//           'active': activeTechnicians,
+//         },
+//         'supervisors': {
+//           'total': totalSupervisors,
+//           'active': activeSupervisors,
+//         },
+//         'clients': {
+//           'total': totalClients,
+//           'active': activeClients,
+//         },
+//       };
+//     } catch (e) {
+//       print('Error getting system stats: $e');
+//       return {
+//         'technicians': {'total': 0, 'active': 0},
+//         'supervisors': {'total': 0, 'active': 0},
+//         'clients': {'total': 0, 'active': 0},
+//       };
+//     }
+//   }
 
-  Widget _buildAvailableTechniciansTab() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+//   /// Obtener estadísticas por rol
+//   Future<Map<String, int>> getStatsByRole(String role) async {
+//     try {
+//       final snapshot = await _firestore
+//           .collection('users')
+//           .where('role', isEqualTo: role)
+//           .get();
 
-    final unassignedTechnicians = _getUnassignedTechnicians(_allTechnicians);
-    final filteredTechnicians = _filterTechnicians(unassignedTechnicians);
+//       final users = snapshot.docs
+//           .map((doc) {
+//             try {
+//               return UserManagementModel.fromFirestore(doc);
+//             } catch (e) {
+//               print('Error parsing user stats ${doc.id}: $e');
+//               return null;
+//             }
+//           })
+//           .whereType<UserManagementModel>()
+//           .toList();
 
-    if (filteredTechnicians.isEmpty) {
-      return _buildEmptyWidget(
-        'No hay técnicos disponibles',
-        'Todos los técnicos están asignados a supervisores',
-        Icons.group,
-      );
-    }
+//       int activeCount = users.where((u) => u.isActive).length;
+//       int withAssignments = 0;
 
-    return RefreshIndicator(
-      onRefresh: _loadTechnicians,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: filteredTechnicians.length,
-        itemBuilder: (context, index) {
-          final technician = filteredTechnicians[index];
-          final isSelected =
-              _selectedTechnicians.any((t) => t.id == technician.id);
+//       if (role == 'technician') {
+//         for (var user in users) {
+//           final assignedEquipment = await _firestore
+//               .collection('equipments')
+//               .where('assignedTechnicianId', isEqualTo: user.id)
+//               .limit(1)
+//               .get();
 
-          return _buildTechnicianCard(
-            technician,
-            isSelected: isSelected,
-            onTap: () => _toggleTechnicianSelection(technician),
-            showAssignButton: true,
-          );
-        },
-      ),
-    );
-  }
+//           if (assignedEquipment.docs.isNotEmpty) {
+//             withAssignments++;
+//           }
+//         }
+//       } else if (role == 'supervisor') {
+//         for (var user in users) {
+//           final assignedTechnicians = await _firestore
+//               .collection('users')
+//               .where('role', isEqualTo: 'technician')
+//               .where('supervisorId', isEqualTo: user.id)
+//               .limit(1)
+//               .get();
 
-  Widget _buildAssignedTechniciansTab() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+//           if (assignedTechnicians.docs.isNotEmpty) {
+//             withAssignments++;
+//           }
+//         }
+//       } else if (role == 'client') {
+//         for (var user in users) {
+//           if (user.clientId != null && user.clientId!.isNotEmpty) {
+//             withAssignments++;
+//           }
+//         }
+//       }
 
-    final assignedTechnicians = _getAssignedTechnicians(_allTechnicians);
-    final filteredTechnicians = _filterTechnicians(assignedTechnicians);
+//       return {
+//         'total': users.length,
+//         'active': activeCount,
+//         'withAssignments': withAssignments,
+//       };
+//     } catch (e) {
+//       print('Error getting stats for role $role: $e');
+//       return {
+//         'total': 0,
+//         'active': 0,
+//         'withAssignments': 0,
+//       };
+//     }
+//   }
 
-    if (filteredTechnicians.isEmpty) {
-      return _buildEmptyWidget(
-        'No hay técnicos asignados',
-        'Este supervisor no tiene técnicos asignados aún',
-        Icons.person,
-      );
-    }
+//   /// Alternar estado activo/inactivo de un usuario
+//   Future<void> toggleUserStatus(String userId, bool newStatus) async {
+//     try {
+//       await _firestore.collection('users').doc(userId).update({
+//         'isActive': newStatus,
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
+//     } catch (e) {
+//       print('Error toggling user status: $e');
+//       rethrow;
+//     }
+//   }
 
-    return RefreshIndicator(
-      onRefresh: _loadTechnicians,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: filteredTechnicians.length,
-        itemBuilder: (context, index) {
-          final technician = filteredTechnicians[index];
+//   /// Actualizar tarifa por hora
+//   Future<void> updateHourlyRate(String userId, double rate) async {
+//     try {
+//       await _firestore.collection('users').doc(userId).update({
+//         'hourlyRate': rate,
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
+//     } catch (e) {
+//       print('Error updating hourly rate: $e');
+//       rethrow;
+//     }
+//   }
 
-          return _buildTechnicianCard(
-            technician,
-            onTap: () => _showTechnicianDetails(technician),
-            showUnassignButton: true,
-          );
-        },
-      ),
-    );
-  }
+//   /// Obtener un usuario por ID
+//   Future<UserManagementModel?> getUserById(String userId) async {
+//     try {
+//       final doc = await _firestore.collection('users').doc(userId).get();
 
-  void _toggleTechnicianSelection(UserManagementModel technician) {
-    setState(() {
-      final index =
-          _selectedTechnicians.indexWhere((t) => t.id == technician.id);
-      if (index >= 0) {
-        _selectedTechnicians.removeAt(index);
-      } else {
-        _selectedTechnicians.add(technician);
-      }
-    });
-  }
+//       if (!doc.exists) {
+//         return null;
+//       }
 
-  Widget _buildTechnicianCard(
-    UserManagementModel technician, {
-    bool isSelected = false,
-    VoidCallback? onTap,
-    bool showAssignButton = false,
-    bool showUnassignButton = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        elevation: isSelected ? 4 : 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: isSelected
-              ? const BorderSide(color: Color(0xFF2196F3), width: 2)
-              : BorderSide.none,
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Avatar del técnico
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: _getTechnicianColor(
-                      technician.specialization ?? 'General'),
-                  child: Text(
-                    _getInitials(technician.name),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+//       return UserManagementModel.fromFirestore(doc);
+//     } catch (e) {
+//       print('Error getting user by id: $e');
+//       return null;
+//     }
+//   }
 
-                const SizedBox(width: 16),
+//   /// Buscar usuarios por nombre o email
+//   Future<List<UserManagementModel>> searchUsers(String query) async {
+//     try {
+//       final nameQuery = await _firestore
+//           .collection('users')
+//           .where('name', isGreaterThanOrEqualTo: query)
+//           .where('name', isLessThanOrEqualTo: '$query\uf8ff')
+//           .get();
 
-                // Información del técnico
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              technician.name,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: technician.isActive
-                                  ? Colors.green
-                                  : Colors.red,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              technician.statusText,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        technician.specialization ?? 'Especialización general',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.email,
-                            size: 14,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              technician.email,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (technician.phone.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.phone,
-                              size: 14,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              technician.phone,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.build,
-                            size: 14,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${technician.assignedEquipments.length} equipos',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+//       final emailQuery = await _firestore
+//           .collection('users')
+//           .where('email', isGreaterThanOrEqualTo: query)
+//           .where('email', isLessThanOrEqualTo: '$query\uf8ff')
+//           .get();
 
-                // Botones de acción
-                if (showUnassignButton)
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle, color: Colors.red),
-                    onPressed: () => _unassignTechnician(technician),
-                    tooltip: 'Desasignar',
-                  ),
+//       final allDocs = [...nameQuery.docs, ...emailQuery.docs];
+//       final uniqueDocs = <String, DocumentSnapshot>{};
 
-                if (isSelected)
-                  const Icon(
-                    Icons.check_circle,
-                    color: Color(0xFF2196F3),
-                    size: 24,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-  Widget _buildEmptyWidget(String title, String subtitle, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              subtitle,
-              style: TextStyle(color: Colors.grey[500]),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+//       for (var doc in allDocs) {
+//         uniqueDocs[doc.id] = doc;
+//       }
 
-  void _showTechnicianDetails(UserManagementModel technician) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(technician.name),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDetailRow('Email:', technician.email),
-              _buildDetailRow(
-                  'Teléfono:',
-                  technician.phone.isNotEmpty
-                      ? technician.phone
-                      : 'No disponible'),
-              _buildDetailRow(
-                  'Especialización:', technician.specialization ?? 'General'),
-              _buildDetailRow('Equipos asignados:',
-                  '${technician.assignedEquipments.length}'),
-              _buildDetailRow('Tarifa/hora:',
-                  '\$${technician.hourlyRate?.toStringAsFixed(2) ?? "0.00"}'),
-              _buildDetailRow('Estado:', technician.statusText),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-  }
+//       return uniqueDocs.values
+//           .map((doc) {
+//             try {
+//               return UserManagementModel.fromFirestore(doc);
+//             } catch (e) {
+//               print('Error parsing search result ${doc.id}: $e');
+//               return null;
+//             }
+//           })
+//           .whereType<UserManagementModel>()
+//           .toList();
+//     } catch (e) {
+//       print('Error searching users: $e');
+//       return [];
+//     }
+//   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
-      ),
-    );
-  }
+//   /// Crear un nuevo usuario
+//   Future<String> createUser(UserManagementModel user) async {
+//     try {
+//       final docRef = await _firestore.collection('users').add({
+//         'name': user.name,
+//         'email': user.email,
+//         'phone': user.phone,
+//         'role': user.role,
+//         'isActive': user.isActive,
+//         'hourlyRate': user.hourlyRate,
+//         'supervisorId': user.supervisorId,
+//         'clientId': user.clientId,
+//         'createdAt': FieldValue.serverTimestamp(),
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
 
-  Color _getTechnicianColor(String specialization) {
-    String spec = specialization.toLowerCase();
-    if (spec.contains('aire') || spec.contains('hvac')) {
-      return Colors.blue;
-    } else if (spec.contains('eléctrico') || spec.contains('electrical')) {
-      return Colors.orange;
-    } else if (spec.contains('general') || spec.contains('mantenimiento')) {
-      return Colors.green;
-    } else {
-      return Colors.grey;
-    }
-  }
+//       return docRef.id;
+//     } catch (e) {
+//       print('Error creating user: $e');
+//       rethrow;
+//     }
+//   }
 
-  String _getInitials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    } else if (parts.isNotEmpty) {
-      return parts[0][0].toUpperCase();
-    }
-    return 'T';
-  }
-}
+//   /// Actualizar un usuario
+//   Future<void> updateUser(String userId, Map<String, dynamic> updates) async {
+//     try {
+//       updates['updatedAt'] = FieldValue.serverTimestamp();
+//       await _firestore.collection('users').doc(userId).update(updates);
+//     } catch (e) {
+//       print('Error updating user: $e');
+//       rethrow;
+//     }
+//   }
+
+//   /// Eliminar un usuario
+//   Future<void> deleteUser(String userId) async {
+//     try {
+//       await _firestore.collection('users').doc(userId).delete();
+//     } catch (e) {
+//       print('Error deleting user: $e');
+//       rethrow;
+//     }
+//   }
+
+//   /// Asignar equipos a técnico (actualiza array completo)
+//   Future<void> assignEquipmentsToTechnician(
+//       String technicianId, List<String> equipmentIds) async {
+//     try {
+//       await _firestore.collection('users').doc(technicianId).update({
+//         'assignedEquipments': equipmentIds,
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
+//     } catch (e) {
+//       print('Error assigning equipments to technician: $e');
+//       rethrow;
+//     }
+//   }
+
+//   /// Agregar un equipo a técnico (agrega al array existente)
+//   Future<void> addEquipmentToTechnician(
+//       String technicianId, String equipmentId) async {
+//     try {
+//       await _firestore.collection('users').doc(technicianId).update({
+//         'assignedEquipments': FieldValue.arrayUnion([equipmentId]),
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
+//     } catch (e) {
+//       print('Error adding equipment to technician: $e');
+//       rethrow;
+//     }
+//   }
+
+//   /// Remover un equipo de técnico
+//   Future<void> removeEquipmentFromTechnician(
+//       String technicianId, String equipmentId) async {
+//     try {
+//       await _firestore.collection('users').doc(technicianId).update({
+//         'assignedEquipments': FieldValue.arrayRemove([equipmentId]),
+//         'updatedAt': FieldValue.serverTimestamp(),
+//       });
+//     } catch (e) {
+//       print('Error removing equipment from technician: $e');
+//       rethrow;
+//     }
+//   }
+
+//   /// Obtener técnicos por supervisor
+//   Future<List<UserManagementModel>> getTechniciansBySupervisor(
+//       String supervisorId) async {
+//     try {
+//       final snapshot = await _firestore
+//           .collection('users')
+//           .where('role', isEqualTo: 'technician')
+//           .where('supervisorId', isEqualTo: supervisorId)
+//           .get();
+
+//       return snapshot.docs
+//           .map((doc) {
+//             try {
+//               return UserManagementModel.fromFirestore(doc);
+//             } catch (e) {
+//               print('Error parsing technician ${doc.id}: $e');
+//               return null;
+//             }
+//           })
+//           .whereType<UserManagementModel>()
+//           .toList();
+//     } catch (e) {
+//       print('Error getting technicians by supervisor: $e');
+//       return [];
+//     }
+//   }
+
+//   /// Obtener técnicos sin supervisor
+//   Future<List<UserManagementModel>> getUnassignedTechnicians() async {
+//     try {
+//       final snapshot = await _firestore
+//           .collection('users')
+//           .where('role', isEqualTo: 'technician')
+//           .where('isActive', isEqualTo: true)
+//           .get();
+
+//       return snapshot.docs
+//           .map((doc) {
+//             try {
+//               return UserManagementModel.fromFirestore(doc);
+//             } catch (e) {
+//               print('Error parsing technician ${doc.id}: $e');
+//               return null;
+//             }
+//           })
+//           .whereType<UserManagementModel>()
+//           .where(
+//               (tech) => tech.supervisorId == null || tech.supervisorId!.isEmpty)
+//           .toList();
+//     } catch (e) {
+//       print('Error getting unassigned technicians: $e');
+//       return [];
+//     }
+//   }
+// }

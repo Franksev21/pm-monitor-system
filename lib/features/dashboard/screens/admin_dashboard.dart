@@ -99,21 +99,21 @@ class AdminDashboard extends StatelessWidget {
                           );
                         },
                       ),
-                      _buildDashboardCard(
-                        'Gestión de Usuarios',
-                        Icons.manage_accounts,
-                        'Todo',
-                        Colors.teal,
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const UserManagementScreen(),
-                            ),
-                          );
-                        },
-                      ),
+                      // _buildDashboardCard(
+                      //   'Gestión de Usuarios',
+                      //   Icons.manage_accounts,
+                      //   'Todo',
+                      //   Colors.teal,
+                      //   () {
+                      //     Navigator.push(
+                      //       context,
+                      //       MaterialPageRoute(
+                      //         builder: (context) =>
+                      //             const UserManagementScreen(),
+                      //       ),
+                      //     );
+                      //   },
+                      // ),
                       _buildDashboardCard(
                         'Indicadores',
                         Icons.analytics,

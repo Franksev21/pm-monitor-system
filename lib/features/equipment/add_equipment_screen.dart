@@ -8,10 +8,12 @@ import 'package:pm_monitor/core/models/client_model.dart';
 
 class AddEquipmentScreen extends StatefulWidget {
   final ClientModel client;
+  final Equipment? equipment;
 
   const AddEquipmentScreen({
     Key? key,
     required this.client,
+    this.equipment,
   }) : super(key: key);
 
   @override
@@ -22,7 +24,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
 
-  // Controllers para los campos de texto
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _brandController = TextEditingController();
@@ -37,11 +38,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _equipmentNumberController = TextEditingController();
   final _rfidController = TextEditingController();
 
-  // Timer para debounce en validación
   Timer? _debounceTimer;
 
-  // Variables para dropdowns y selecciones
-  String _selectedCategory = 'AC - Split Pared';
+  String _selectedTipo = EquipmentTypes.climatizacion;
+  String _selectedCategory = 'Split Pared';
+  List<String> _availableCategories = EquipmentCategories.climatizacion;
   String _selectedCapacityUnit = 'BTU';
   String _selectedCondition = 'Bueno';
   String _selectedStatus = 'Operativo';
@@ -54,48 +55,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   bool _enableTemperatureAlerts = false;
   bool _hasTemperatureMonitoring = false;
   bool _isGeneratingNumber = false;
-
-  // Listas para los dropdowns - Categorías detalladas
-  final List<String> _categories = [
-    // Aire Acondicionado
-    'AC - Split Pared',
-    'AC - Split Piso/Techo',
-    'AC - Cassette',
-    'AC - Ducto',
-    'AC - Ventana',
-    'AC - Portátil',
-    'AC - Chiller',
-    'AC - Fan Coil',
-    'AC - Manejadora de Aire',
-    'AC - Unidad Condensadora',
-    // Paneles Eléctricos
-    'Panel - Principal',
-    'Panel - Distribución',
-    'Panel - Control',
-    'Panel - Transferencia',
-    'Panel - Medición',
-    // Generadores
-    'Generador - Diésel',
-    'Generador - Gas',
-    'Generador - Gasolina',
-    'Generador - Emergencia',
-    'Generador - Standby',
-    // UPS
-    'UPS - Línea Interactiva',
-    'UPS - Online',
-    'UPS - Offline',
-    'UPS - Modular',
-    // Facilidades
-    'Facilidad - Bomba de Agua',
-    'Facilidad - Sistema de Incendio',
-    'Facilidad - Ascensor',
-    'Facilidad - Portón Automático',
-    'Facilidad - Sistema de Acceso',
-    'Facilidad - Cámaras de Seguridad',
-    'Facilidad - Iluminación',
-    'Facilidad - Ventilación',
-    'Otro'
-  ];
+  bool _isEditing = false;
 
   final List<String> _capacityUnits = ['BTU', 'KW', 'HP', 'Ton', 'Otro'];
   final List<String> _conditions = ['Excelente', 'Bueno', 'Regular', 'Malo'];
@@ -123,22 +83,89 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     'Anual': 365,
   };
 
-  // Sucursal seleccionada (si el cliente tiene múltiples sucursales)
   BranchModel? _selectedBranch;
 
   @override
   void initState() {
     super.initState();
-    _generateEquipmentNumber();
-    _initializeClientData();
+    _isEditing = widget.equipment != null;
+
+    if (_isEditing) {
+      _loadEquipmentData();
+    } else {
+      _generateEquipmentNumber();
+      _initializeClientData();
+    }
+  }
+
+  void _loadEquipmentData() {
+    final eq = widget.equipment!;
+
+    _equipmentNumberController.text = eq.equipmentNumber;
+    _rfidController.text = eq.rfidTag;
+    _nameController.text = eq.name;
+    _descriptionController.text = eq.description;
+    _brandController.text = eq.brand;
+    _modelController.text = eq.model;
+    _capacityController.text = eq.capacity.toString();
+    _serialNumberController.text = eq.serialNumber;
+    _locationController.text = eq.location;
+    _branchController.text = eq.branch;
+    _addressController.text = eq.address;
+    _equipmentCostController.text = eq.equipmentCost.toString();
+    _estimatedHoursController.text = eq.estimatedMaintenanceHours.toString();
+
+    _selectedTipo = eq.tipo;
+    _availableCategories = EquipmentCategories.all[eq.tipo] ?? [];
+
+    String cleanCategory = eq.category
+        .replaceAll('AC - ', '')
+        .replaceAll('Panel - ', '')
+        .replaceAll('Generador - ', '')
+        .replaceAll('UPS - ', '')
+        .replaceAll('Facilidad - ', '')
+        .trim();
+
+    if (_availableCategories.contains(cleanCategory)) {
+      _selectedCategory = cleanCategory;
+    } else if (_availableCategories.contains(eq.category)) {
+      _selectedCategory = eq.category;
+    } else if (_availableCategories.isNotEmpty) {
+      _selectedCategory = _availableCategories.first;
+    }
+
+    _selectedCapacityUnit = eq.capacityUnit;
+    _selectedCondition = eq.condition;
+    _selectedStatus = eq.status;
+    _selectedCurrency = eq.currency;
+    _selectedMaintenanceFrequency = _capitalizeFirst(eq.maintenanceFrequency);
+    _selectedLifeScale = eq.lifeScale;
+    _selectedFrequencyDays = eq.frequencyDays;
+    _enableMaintenanceAlerts = eq.enableMaintenanceAlerts;
+    _enableFailureAlerts = eq.enableFailureAlerts;
+    _enableTemperatureAlerts = eq.enableTemperatureAlerts;
+    _hasTemperatureMonitoring = eq.hasTemperatureMonitoring;
+
+    if (eq.branchId != null && widget.client.branches.isNotEmpty) {
+      try {
+        _selectedBranch = widget.client.branches.firstWhere(
+          (b) => b.id == eq.branchId,
+        );
+      } catch (e) {
+        _selectedBranch = null;
+      }
+    }
+  }
+
+  String _capitalizeFirst(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
   }
 
   void _initializeClientData() {
-    // Configurar datos iniciales basados en el cliente
     _branchController.text = widget.client.name;
     _addressController.text = widget.client.mainAddress.fullAddress;
 
-    // Si el cliente tiene sucursales, usar la primera como predeterminada
     if (widget.client.branches.isNotEmpty) {
       _selectedBranch = widget.client.branches.first;
       _branchController.text = _selectedBranch!.name;
@@ -182,6 +209,19 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     });
   }
 
+  void _onTipoChanged(String? newTipo) {
+    if (newTipo == null) return;
+
+    setState(() {
+      _selectedTipo = newTipo;
+      _availableCategories = EquipmentCategories.all[newTipo] ?? [];
+
+      if (_availableCategories.isNotEmpty) {
+        _selectedCategory = _availableCategories.first;
+      }
+    });
+  }
+
   void _updateFrequencyDays(String frequency) {
     setState(() {
       _selectedMaintenanceFrequency = frequency;
@@ -204,7 +244,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   Future<void> _saveEquipment() async {
     if (!_formKey.currentState!.validate()) {
-      // Scroll to the first error
       _scrollController.animateTo(
         0,
         duration: const Duration(milliseconds: 300),
@@ -217,12 +256,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     final equipmentProvider =
         Provider.of<EquipmentProvider>(context, listen: false);
 
-    // Calcular próxima fecha de mantenimiento
     DateTime nextMaintenanceDate =
         DateTime.now().add(Duration(days: _selectedFrequencyDays));
 
-    // Obtener información de ubicación
     String branchName = _selectedBranch?.name ?? widget.client.name;
+    String? branchId = _selectedBranch?.id;
     String fullAddress = _selectedBranch?.address.fullAddress ??
         widget.client.mainAddress.fullAddress;
     String country =
@@ -230,9 +268,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     String region =
         _selectedBranch?.address.state ?? widget.client.mainAddress.state;
 
-    // Crear el equipo
-    Equipment newEquipment = Equipment(
+    Equipment equipment = Equipment(
+      id: _isEditing ? widget.equipment!.id : null,
       clientId: widget.client.id,
+      branchId: branchId,
       equipmentNumber: _equipmentNumberController.text.trim(),
       rfidTag: _rfidController.text.trim().isEmpty
           ? _equipmentNumberController.text.trim()
@@ -242,6 +281,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       description: _descriptionController.text.trim(),
       brand: _brandController.text.trim(),
       model: _modelController.text.trim(),
+      tipo: _selectedTipo,
       category: _selectedCategory,
       capacity: double.tryParse(_capacityController.text.trim()) ?? 0.0,
       capacityUnit: _selectedCapacityUnit,
@@ -257,22 +297,44 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       status: _selectedStatus,
       equipmentCost:
           double.tryParse(_equipmentCostController.text.trim()) ?? 0.0,
+      totalPmCost: _isEditing ? widget.equipment!.totalPmCost : 0.0,
+      totalCmCost: _isEditing ? widget.equipment!.totalCmCost : 0.0,
       currency: _selectedCurrency,
       maintenanceFrequency: _selectedMaintenanceFrequency.toLowerCase(),
       frequencyDays: _selectedFrequencyDays,
+      lastMaintenanceDate:
+          _isEditing ? widget.equipment!.lastMaintenanceDate : null,
       nextMaintenanceDate: nextMaintenanceDate,
       estimatedMaintenanceHours:
           int.tryParse(_estimatedHoursController.text.trim()) ?? 2,
+      assignedTechnicianId:
+          _isEditing ? widget.equipment!.assignedTechnicianId : null,
+      assignedTechnicianName:
+          _isEditing ? widget.equipment!.assignedTechnicianName : null,
+      assignedSupervisorId:
+          _isEditing ? widget.equipment!.assignedSupervisorId : null,
+      assignedSupervisorName:
+          _isEditing ? widget.equipment!.assignedSupervisorName : null,
+      photoUrls: _isEditing ? widget.equipment!.photoUrls : [],
+      documentUrls: _isEditing ? widget.equipment!.documentUrls : [],
       hasTemperatureMonitoring: _hasTemperatureMonitoring,
-      createdAt: DateTime.now(),
+      totalMaintenances: _isEditing ? widget.equipment!.totalMaintenances : 0,
+      totalFailures: _isEditing ? widget.equipment!.totalFailures : 0,
+      averageResponseTime:
+          _isEditing ? widget.equipment!.averageResponseTime : 0.0,
+      maintenanceEfficiency:
+          _isEditing ? widget.equipment!.maintenanceEfficiency : 0.0,
+      createdAt: _isEditing ? widget.equipment!.createdAt : DateTime.now(),
       updatedAt: DateTime.now(),
-      createdBy: authProvider.currentUser?.id ?? '',
+      createdBy: _isEditing
+          ? widget.equipment!.createdBy
+          : (authProvider.currentUser?.id ?? ''),
+      updatedBy: _isEditing ? (authProvider.currentUser?.id ?? '') : null,
       enableMaintenanceAlerts: _enableMaintenanceAlerts,
       enableFailureAlerts: _enableFailureAlerts,
       enableTemperatureAlerts: _enableTemperatureAlerts,
     );
 
-    // Mostrar loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -282,38 +344,42 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     );
 
     try {
-      bool success = await equipmentProvider.createEquipment(newEquipment);
+      bool success;
+      if (_isEditing) {
+        success = await equipmentProvider.updateEquipment(equipment);
+      } else {
+        success = await equipmentProvider.createEquipment(equipment);
+      }
 
-      // Cerrar loading
       if (mounted) Navigator.of(context).pop();
 
       if (success) {
-        // Mostrar mensaje de éxito
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Equipo agregado exitosamente'),
+            SnackBar(
+              content: Text(_isEditing
+                  ? 'Equipo actualizado exitosamente'
+                  : 'Equipo agregado exitosamente'),
               backgroundColor: Colors.green,
             ),
           );
 
-          // Regresar a la pantalla anterior
           Navigator.of(context).pop(true);
         }
       } else {
-        // Mostrar error
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                  equipmentProvider.errorMessage ?? 'Error al agregar equipo'),
+              content: Text(equipmentProvider.errorMessage ??
+                  (_isEditing
+                      ? 'Error al actualizar equipo'
+                      : 'Error al agregar equipo')),
               backgroundColor: Colors.red,
             ),
           );
         }
       }
     } catch (e) {
-      // Cerrar loading
       if (mounted) Navigator.of(context).pop();
 
       if (mounted) {
@@ -331,7 +397,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agregar Equipo'),
+        title: Text(_isEditing ? 'Editar Equipo' : 'Agregar Equipo'),
         backgroundColor: const Color(0xFF2196F3),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -356,42 +422,27 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Información del Cliente
               _buildSectionHeader('Cliente'),
               _buildClientInfoCard(),
               const SizedBox(height: 24),
-
-              // Información Básica del Equipo
               _buildSectionHeader('Información Básica'),
               _buildBasicInfoSection(),
               const SizedBox(height: 24),
-
-              // Especificaciones Técnicas
               _buildSectionHeader('Especificaciones Técnicas'),
               _buildTechnicalSpecsSection(),
               const SizedBox(height: 24),
-
-              // Ubicación
               _buildSectionHeader('Ubicación'),
               _buildLocationSection(),
               const SizedBox(height: 24),
-
-              // Estado y Condición
               _buildSectionHeader('Estado y Condición'),
               _buildStatusSection(),
               const SizedBox(height: 24),
-
-              // Mantenimiento
               _buildSectionHeader('Programación de Mantenimiento'),
               _buildMaintenanceSection(),
               const SizedBox(height: 24),
-
-              // Configuración de Alertas
               _buildSectionHeader('Configuración de Alertas'),
               _buildAlertsSection(),
               const SizedBox(height: 24),
-
-              // Botón de Guardar
               _buildSaveButton(),
               const SizedBox(height: 24),
             ],
@@ -451,14 +502,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           fontSize: 14,
                         ),
                       ),
-                      if (widget.client.email.isNotEmpty)
-                        Text(
-                          widget.client.email,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -480,32 +523,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 ),
               ],
             ),
-            if (widget.client.totalBranches > 0) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.business, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${widget.client.totalBranches} sucursal${widget.client.totalBranches > 1 ? 'es' : ''}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.contacts, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${widget.client.totalContacts} contacto${widget.client.totalContacts > 1 ? 's' : ''}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
       ),
@@ -519,7 +536,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Número de Equipo (generado automáticamente)
             Row(
               children: [
                 Expanded(
@@ -529,32 +545,32 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       labelText: 'Número de Equipo *',
                       border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.tag),
-                      suffixIcon: _isGeneratingNumber
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.refresh),
-                              onPressed: _generateEquipmentNumber,
-                              tooltip: 'Generar nuevo número',
-                            ),
+                      suffixIcon: _isEditing
+                          ? null
+                          : (_isGeneratingNumber
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: const Icon(Icons.refresh),
+                                  onPressed: _generateEquipmentNumber,
+                                  tooltip: 'Generar nuevo número',
+                                )),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 16),
                     ),
-                    readOnly: true, // Solo lectura, se genera automáticamente
+                    readOnly: true,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-
-            // RFID Tag (opcional)
             TextFormField(
               controller: _rfidController,
               decoration: const InputDecoration(
@@ -565,8 +581,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Nombre del Equipo
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
@@ -582,8 +596,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               },
             ),
             const SizedBox(height: 16),
-
-            // Descripción
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(
@@ -606,55 +618,32 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Marca y Modelo
-            Column(
-              children: [
-                // Marca
-                SizedBox(
-                  width: double.infinity,
-                  child: TextFormField(
-                    controller: _brandController,
-                    decoration: const InputDecoration(
-                      labelText: 'Marca *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.business),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'La marca es requerida';
-                      }
-                      return null;
-                    },
-                  ),
+            SizedBox(
+              width: double.infinity,
+              child: DropdownButtonFormField<String>(
+                value: _selectedTipo,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Equipo *',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 ),
-                const SizedBox(height: 16),
-                // Modelo
-                SizedBox(
-                  width: double.infinity,
-                  child: TextFormField(
-                    controller: _modelController,
-                    decoration: const InputDecoration(
-                      labelText: 'Modelo *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.model_training),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                isExpanded: true,
+                items: EquipmentTypes.all.map((tipo) {
+                  return DropdownMenuItem(
+                    value: tipo,
+                    child: Text(
+                      tipo,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'El modelo es requerido';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
+                  );
+                }).toList(),
+                onChanged: _onTipoChanged,
+              ),
             ),
             const SizedBox(height: 16),
-
-            // Categoría
             SizedBox(
               width: double.infinity,
               child: DropdownButtonFormField<String>(
@@ -662,12 +651,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Categoría *',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category),
+                  prefixIcon: Icon(Icons.devices),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 ),
                 isExpanded: true,
-                items: _categories.map((category) {
+                items: _availableCategories.map((category) {
                   return DropdownMenuItem(
                     value: category,
                     child: Text(
@@ -685,21 +674,54 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Capacidad y Unidad
-            Column(
+            Row(
               children: [
-                // Capacidad
-                SizedBox(
-                  width: double.infinity,
+                Expanded(
+                  child: TextFormField(
+                    controller: _brandController,
+                    decoration: const InputDecoration(
+                      labelText: 'Marca *',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.business),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'La marca es requerida';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _modelController,
+                    decoration: const InputDecoration(
+                      labelText: 'Modelo *',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.model_training),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El modelo es requerido';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
                   child: TextFormField(
                     controller: _capacityController,
                     decoration: const InputDecoration(
                       labelText: 'Capacidad *',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.power),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
@@ -713,17 +735,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Unidad de Capacidad
-                SizedBox(
-                  width: double.infinity,
+                const SizedBox(width: 12),
+                Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _selectedCapacityUnit,
                     decoration: const InputDecoration(
-                      labelText: 'Unidad de Capacidad',
+                      labelText: 'Unidad',
                       border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
                     isExpanded: true,
                     items: _capacityUnits.map((unit) {
@@ -742,19 +760,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // Número de Serie
-            SizedBox(
-              width: double.infinity,
-              child: TextFormField(
-                controller: _serialNumberController,
-                decoration: const InputDecoration(
-                  labelText: 'Número de Serie',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.confirmation_number),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                ),
+            TextFormField(
+              controller: _serialNumberController,
+              decoration: const InputDecoration(
+                labelText: 'Número de Serie',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.confirmation_number),
               ),
             ),
           ],
@@ -770,7 +781,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Selector de Sucursal (si el cliente tiene múltiples)
             if (widget.client.branches.isNotEmpty) ...[
               DropdownButtonFormField<BranchModel?>(
                 value: _selectedBranch,
@@ -797,7 +807,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
               const SizedBox(height: 16),
             ] else ...[
-              // Sucursal (solo texto si no hay múltiples sucursales)
               TextFormField(
                 controller: _branchController,
                 decoration: const InputDecoration(
@@ -809,8 +818,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
               const SizedBox(height: 16),
             ],
-
-            // Ubicación específica
             TextFormField(
               controller: _locationController,
               decoration: const InputDecoration(
@@ -827,8 +834,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               },
             ),
             const SizedBox(height: 16),
-
-            // Dirección (prellenada)
             TextFormField(
               controller: _addressController,
               decoration: const InputDecoration(
@@ -852,12 +857,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Condición y Estado
-            Column(
+            // ✅ FIX: Row con Expanded para evitar overflow
+            Row(
               children: [
-                // Condición
-                SizedBox(
-                  width: double.infinity,
+                Expanded(
+                  flex: 1,
                   child: DropdownButtonFormField<String>(
                     value: _selectedCondition,
                     decoration: const InputDecoration(
@@ -865,13 +869,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.health_and_safety),
                       contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                     ),
                     isExpanded: true,
                     items: _conditions.map((condition) {
                       return DropdownMenuItem(
                         value: condition,
-                        child: Text(condition),
+                        child: Text(
+                          condition,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -881,10 +889,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Estado
-                SizedBox(
-                  width: double.infinity,
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 1,
                   child: DropdownButtonFormField<String>(
                     value: _selectedStatus,
                     decoration: const InputDecoration(
@@ -892,13 +899,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.settings),
                       contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                     ),
                     isExpanded: true,
                     items: _statuses.map((status) {
                       return DropdownMenuItem(
                         value: status,
-                        child: Text(status),
+                        child: Text(
+                          status,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -912,7 +923,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Escala de Vida Útil
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -931,63 +941,45 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 4.0,
-                      thumbShape:
-                          const RoundSliderThumbShape(enabledThumbRadius: 8.0),
-                      overlayShape:
-                          const RoundSliderOverlayShape(overlayRadius: 16.0),
-                    ),
-                    child: Slider(
-                      value: _selectedLifeScale.toDouble(),
-                      min: 1,
-                      max: 10,
-                      divisions: 9,
-                      label: _selectedLifeScale.toString(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedLifeScale = value.round();
-                        });
-                      },
-                    ),
+                  Slider(
+                    value: _selectedLifeScale.toDouble(),
+                    min: 1,
+                    max: 10,
+                    divisions: 9,
+                    label: _selectedLifeScale.toString(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedLifeScale = value.round();
+                      });
+                    },
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // Costo del Equipo y Moneda
-            Column(
+            Row(
               children: [
-                // Costo del Equipo
-                SizedBox(
-                  width: double.infinity,
+                Expanded(
+                  flex: 2,
                   child: TextFormField(
                     controller: _equipmentCostController,
                     decoration: const InputDecoration(
                       labelText: 'Costo del Equipo',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.attach_money),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
                     keyboardType: TextInputType.number,
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Moneda
-                SizedBox(
-                  width: double.infinity,
+                const SizedBox(width: 12),
+                Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _selectedCurrency,
                     decoration: const InputDecoration(
                       labelText: 'Moneda',
                       border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
-                    isExpanded: true,
                     items: _currencies.map((currency) {
                       return DropdownMenuItem(
                         value: currency,
@@ -1016,22 +1008,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Frecuencia y Días
-            Column(
+            Row(
               children: [
-                // Frecuencia de Mantenimiento
-                SizedBox(
-                  width: double.infinity,
+                Expanded(
+                  flex: 2,
                   child: DropdownButtonFormField<String>(
                     value: _selectedMaintenanceFrequency,
                     decoration: const InputDecoration(
                       labelText: 'Frecuencia *',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.schedule),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
-                    isExpanded: true,
                     items: _frequencies.map((frequency) {
                       return DropdownMenuItem(
                         value: frequency,
@@ -1043,18 +1030,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Días
-                SizedBox(
-                  width: double.infinity,
+                const SizedBox(width: 12),
+                Expanded(
                   child: TextFormField(
                     initialValue: _selectedFrequencyDays.toString(),
                     decoration: const InputDecoration(
                       labelText: 'Días',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.calendar_today),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
                     keyboardType: TextInputType.number,
                     readOnly: true,
@@ -1063,31 +1046,24 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // Horas Estimadas por Mantenimiento
-            SizedBox(
-              width: double.infinity,
-              child: TextFormField(
-                controller: _estimatedHoursController,
-                decoration: const InputDecoration(
-                  labelText: 'Horas Estimadas por Mantenimiento *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.access_time),
-                  hintText: '2',
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Las horas estimadas son requeridas';
-                  }
-                  if (int.tryParse(value.trim()) == null) {
-                    return 'Ingrese un número válido';
-                  }
-                  return null;
-                },
+            TextFormField(
+              controller: _estimatedHoursController,
+              decoration: const InputDecoration(
+                labelText: 'Horas Estimadas por Mantenimiento *',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.access_time),
+                hintText: '2',
               ),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Las horas estimadas son requeridas';
+                }
+                if (int.tryParse(value.trim()) == null) {
+                  return 'Ingrese un número válido';
+                }
+                return null;
+              },
             ),
           ],
         ),
@@ -1102,7 +1078,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Alertas de Mantenimiento
             SwitchListTile(
               title: const Text('Alertas de Mantenimiento'),
               subtitle:
@@ -1115,8 +1090,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               },
             ),
             const Divider(),
-
-            // Alertas de Fallas
             SwitchListTile(
               title: const Text('Alertas de Fallas'),
               subtitle: const Text('Notificaciones para reportes de fallas'),
@@ -1128,8 +1101,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               },
             ),
             const Divider(),
-
-            // Monitoreo de Temperatura
             SwitchListTile(
               title: const Text('Monitoreo de Temperatura'),
               subtitle:
@@ -1146,7 +1117,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 });
               },
             ),
-
             if (_hasTemperatureMonitoring) ...[
               const Divider(),
               SwitchListTile(
@@ -1184,9 +1154,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : const Icon(Icons.save),
+                : Icon(_isEditing ? Icons.save : Icons.add),
             label: Text(
-              equipmentProvider.isCreating ? 'Guardando...' : 'Guardar Equipo',
+              equipmentProvider.isCreating
+                  ? 'Guardando...'
+                  : (_isEditing ? 'Actualizar Equipo' : 'Guardar Equipo'),
               style: const TextStyle(fontSize: 16),
             ),
             style: ElevatedButton.styleFrom(

@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Equipment {
   final String? id;
   final String clientId;
+  final String? branchId; // ID de la sucursal específica (opcional)
   final String equipmentNumber; // Número de identificación único
   final String rfidTag; // Tag RFID asociado
   final String qrCode; // Código QR generado
@@ -11,7 +13,9 @@ class Equipment {
   final String description;
   final String brand; // Marca
   final String model; // Modelo
-  final String category; // AA, Panel Eléctrico, Generador, UPS, etc.
+  final String
+      tipo; // Categoría principal: Climatización, Equipos Eléctricos, etc.
+  final String category; // Subcategoría: Split Pared, Panel Principal, etc.
   final double capacity; // Capacidad (BTU, KW, etc.)
   final String capacityUnit; // BTU, KW, HP, etc.
   final String serialNumber; // Número de serie del fabricante
@@ -19,7 +23,7 @@ class Equipment {
   // Ubicación y localización
   final String
       location; // Ubicación específica (Oficina 1, Sala de servidores, etc.)
-  final String branch; // Sucursal
+  final String branch; // Nombre de la sucursal
   final String country; // País
   final String region; // Región
   final String address; // Dirección completa
@@ -89,6 +93,7 @@ class Equipment {
   Equipment({
     this.id,
     required this.clientId,
+    this.branchId,
     required this.equipmentNumber,
     required this.rfidTag,
     required this.qrCode,
@@ -96,6 +101,7 @@ class Equipment {
     required this.description,
     required this.brand,
     required this.model,
+    required this.tipo,
     required this.category,
     required this.capacity,
     required this.capacityUnit,
@@ -172,6 +178,7 @@ class Equipment {
     return Equipment(
       id: doc.id,
       clientId: data['clientId'] ?? '',
+      branchId: data['branchId'],
       equipmentNumber: data['equipmentNumber'] ?? '',
       rfidTag: data['rfidTag'] ?? '',
       qrCode: data['qrCode'] ?? '',
@@ -179,6 +186,7 @@ class Equipment {
       description: data['description'] ?? '',
       brand: data['brand'] ?? '',
       model: data['model'] ?? '',
+      tipo: data['tipo'] ?? 'Climatización', // Default para compatibilidad
       category: data['category'] ?? '',
       capacity: safeDouble(data['capacity']),
       capacityUnit: data['capacityUnit'] ?? '',
@@ -241,6 +249,7 @@ class Equipment {
   Map<String, dynamic> toFirestore() {
     return {
       'clientId': clientId,
+      'branchId': branchId,
       'equipmentNumber': equipmentNumber,
       'rfidTag': rfidTag,
       'qrCode': qrCode,
@@ -248,6 +257,7 @@ class Equipment {
       'description': description,
       'brand': brand,
       'model': model,
+      'tipo': tipo,
       'category': category,
       'capacity': capacity,
       'capacityUnit': capacityUnit,
@@ -305,6 +315,7 @@ class Equipment {
   Equipment copyWith({
     String? id,
     String? clientId,
+    String? branchId,
     String? equipmentNumber,
     String? rfidTag,
     String? qrCode,
@@ -312,6 +323,7 @@ class Equipment {
     String? description,
     String? brand,
     String? model,
+    String? tipo,
     String? category,
     double? capacity,
     String? capacityUnit,
@@ -366,6 +378,7 @@ class Equipment {
     return Equipment(
       id: id ?? this.id,
       clientId: clientId ?? this.clientId,
+      branchId: branchId ?? this.branchId,
       equipmentNumber: equipmentNumber ?? this.equipmentNumber,
       rfidTag: rfidTag ?? this.rfidTag,
       qrCode: qrCode ?? this.qrCode,
@@ -373,6 +386,7 @@ class Equipment {
       description: description ?? this.description,
       brand: brand ?? this.brand,
       model: model ?? this.model,
+      tipo: tipo ?? this.tipo,
       category: category ?? this.category,
       capacity: capacity ?? this.capacity,
       capacityUnit: capacityUnit ?? this.capacityUnit,
@@ -438,6 +452,10 @@ class Equipment {
 
   String get displayName => '$brand $model - $name';
 
+  String get tipoDisplayName => tipo;
+
+  String get categoryDisplayName => category;
+
   bool get needsMaintenance {
     if (nextMaintenanceDate == null) return false;
     return DateTime.now().isAfter(nextMaintenanceDate!);
@@ -484,4 +502,124 @@ class Equipment {
     }
     return 'Al día';
   }
+}
+
+// Constantes para los tipos de equipos
+class EquipmentTypes {
+  static const String climatizacion = 'Climatización';
+  static const String equiposElectricos = 'Equipos Eléctricos';
+  static const String panelesElectricos = 'Paneles Eléctricos';
+  static const String generadores = 'Generadores';
+  static const String ups = 'UPS';
+  static const String equiposCocina = 'Equipos de Cocina';
+  static const String facilidades = 'Facilidades';
+  static const String otros = 'Otros';
+
+  static List<String> get all => [
+        climatizacion,
+        equiposElectricos,
+        panelesElectricos,
+        generadores,
+        ups,
+        equiposCocina,
+        facilidades,
+        otros,
+      ];
+}
+
+// Mapeo de tipos a categorías (subcategorías)
+class EquipmentCategories {
+  // Climatización
+  static const List<String> climatizacion = [
+    'Split Pared',
+    'Split Piso/Techo',
+    'Cassette',
+    'Ducto',
+    'Ventana',
+    'Portátil',
+    'Chiller',
+    'Fan Coil',
+    'Manejadora de Aire',
+    'Unidad Condensadora',
+  ];
+
+  // Equipos Eléctricos
+  static const List<String> equiposElectricos = [
+    'Transformador',
+    'Tablero de Distribución',
+    'Breaker',
+    'Interruptor',
+    'Toma Corriente',
+    'Iluminación LED',
+    'Balasto',
+    'Otro Equipo Eléctrico',
+  ];
+
+  // Paneles Eléctricos
+  static const List<String> panelesElectricos = [
+    'Panel Principal',
+    'Panel de Distribución',
+    'Panel de Control',
+    'Panel de Transferencia',
+    'Panel de Medición',
+  ];
+
+  // Generadores
+  static const List<String> generadores = [
+    'Generador Diésel',
+    'Generador Gas',
+    'Generador Gasolina',
+    'Generador Emergencia',
+    'Generador Standby',
+  ];
+
+  // UPS
+  static const List<String> ups = [
+    'UPS Línea Interactiva',
+    'UPS Online',
+    'UPS Offline',
+    'UPS Modular',
+  ];
+
+  // Equipos de Cocina
+  static const List<String> equiposCocina = [
+    'Refrigerador',
+    'Congelador',
+    'Horno',
+    'Estufa',
+    'Microondas',
+    'Lavavajillas',
+    'Campana Extractora',
+    'Freidora',
+    'Plancha',
+    'Otro Equipo de Cocina',
+  ];
+
+  // Facilidades
+  static const List<String> facilidades = [
+    'Bomba de Agua',
+    'Sistema de Incendio',
+    'Ascensor',
+    'Portón Automático',
+    'Sistema de Acceso',
+    'Cámaras de Seguridad',
+    'Iluminación',
+    'Ventilación',
+  ];
+
+  // Otros
+  static const List<String> otros = [
+    'Otro',
+  ];
+
+  static Map<String, List<String>> get all => {
+        EquipmentTypes.climatizacion: climatizacion,
+        EquipmentTypes.equiposElectricos: equiposElectricos,
+        EquipmentTypes.panelesElectricos: panelesElectricos,
+        EquipmentTypes.generadores: generadores,
+        EquipmentTypes.ups: ups,
+        EquipmentTypes.equiposCocina: equiposCocina,
+        EquipmentTypes.facilidades: facilidades,
+        EquipmentTypes.otros: otros,
+      };
 }
