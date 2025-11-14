@@ -9,6 +9,9 @@ import 'package:pm_monitor/core/services/equipment_service.dart';
 import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
 import 'package:pm_monitor/core/services/client_service.dart';
 import 'package:pm_monitor/shared/widgets/client_search_dialog_widget.dart';
+import 'dart:async';
+
+import 'package:pm_monitor/core/services/task_template_service.dart';
 
 class AddMaintenanceScreen extends StatefulWidget {
   final MaintenanceSchedule? maintenance;
@@ -53,6 +56,10 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   List<Equipment> _clientEquipments = [];
   List<Equipment> _branchEquipments = [];
   bool _isLoadingData = false;
+
+  final TaskTemplateService _taskTemplateService = TaskTemplateService();
+  bool _isLoadingTasks = false;
+  StreamSubscription? _tasksSubscription;
 
   final EquipmentService _equipmentService = EquipmentService();
   final MaintenanceScheduleService _maintenanceService =
@@ -140,13 +147,59 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     }
   }
 
+  // ← NUEVO: Método helper para convertir enum a string
+  String _getMaintenanceTypeString(MaintenanceType type) {
+    switch (type) {
+      case MaintenanceType.preventive:
+        return 'preventive';
+      case MaintenanceType.corrective:
+        return 'corrective';
+      case MaintenanceType.emergency:
+        return 'emergency';
+      case MaintenanceType.inspection:
+        return 'inspection';
+      case MaintenanceType.technicalAssistance:
+        return 'technicalAssistance';
+    }
+  }
+
+  // ← MODIFICADO: Ahora carga desde Firebase
   void _updateAvailableTasks() {
     setState(() {
-      _availableTasks = MaintenanceSchedule.getTasksForType(_selectedType);
-      // Limpiar tareas seleccionadas que no están en la nueva lista
-      _selectedTasks = _selectedTasks
-          .where((task) => _availableTasks.contains(task))
-          .toList();
+      _isLoadingTasks = true;
+    });
+
+    // Cancelar suscripción anterior si existe
+    _tasksSubscription?.cancel();
+
+    final typeString = _getMaintenanceTypeString(_selectedType);
+
+    // Escuchar cambios en tiempo real desde Firebase
+    _tasksSubscription = _taskTemplateService
+        .getActiveTemplatesByType(typeString)
+        .listen((templates) {
+      if (mounted) {
+        setState(() {
+          _availableTasks = templates.map((t) => t.name.toString()).toList();
+          _isLoadingTasks = false;
+          _selectedTasks = _selectedTasks
+              .where((task) => _availableTasks.contains(task))
+              .toList();
+        });
+      }
+    }, onError: (error) {
+      debugPrint('❌ Error cargando tareas: $error');
+      if (mounted) {
+        setState(() {
+          _isLoadingTasks = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cargando tareas: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     });
   }
 
@@ -188,6 +241,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   @override
   void dispose() {
     _notesController.dispose();
+    _tasksSubscription?.cancel(); // ← NUEVO: Cancelar suscripción
     super.dispose();
   }
 
@@ -409,7 +463,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.business),
               ),
-              isExpanded: true, // IMPORTANTE: Permite que el texto se ajuste
+              isExpanded: true,
               items: [
                 DropdownMenuItem<String>(
                   value: 'principal',
@@ -863,103 +917,121 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            ..._availableTasks.map((task) {
-              final isSelected = _selectedTasks.contains(task);
-              final frequency = _taskFrequencies[task] ?? FrequencyType.monthly;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: isSelected ? Colors.blue : Colors.grey[300]!,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  color: isSelected ? Colors.blue[50] : Colors.white,
-                ),
-                child: Column(
-                  children: [
-                    CheckboxListTile(
-                      title: Text(
-                        task,
-                        style: TextStyle(
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                      value: isSelected,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          if (value == true) {
-                            _selectedTasks.add(task);
-                            // Inicializar frecuencia por defecto
-                            if (showFrequencies &&
-                                !_taskFrequencies.containsKey(task)) {
-                              _taskFrequencies[task] = FrequencyType.monthly;
-                            }
-                          } else {
-                            _selectedTasks.remove(task);
-                            _taskFrequencies.remove(task);
-                          }
-                        });
-                      },
-                    ),
-
-                    // Mostrar selector de frecuencia solo si:
-                    // 1. La tarea está seleccionada
-                    // 2. El tipo de mantenimiento requiere frecuencia
-                    if (isSelected && showFrequencies) ...[
-                      const Divider(height: 1),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.schedule, size: 18),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Frecuencia:',
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DropdownButtonFormField<FrequencyType>(
-                                value: frequency,
-                                decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                ),
-                                items: FrequencyType.values.map((freq) {
-                                  return DropdownMenuItem(
-                                    value: freq,
-                                    child: Text(
-                                      _getFrequencyDisplayName(freq),
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _taskFrequencies[task] = value!;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+            // ← NUEVO: Mostrar loading mientras se cargan tareas
+            if (_isLoadingTasks) ...[
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Cargando tareas desde Firebase...'),
                     ],
-                  ],
+                  ),
                 ),
-              );
-            }),
-            if (_selectedTasks.isEmpty)
+              ),
+            ] else ...[
+              ..._availableTasks.map((task) {
+                final isSelected = _selectedTasks.contains(task);
+                final frequency =
+                    _taskFrequencies[task] ?? FrequencyType.monthly;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected ? Colors.blue : Colors.grey[300]!,
+                      width: isSelected ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    color: isSelected ? Colors.blue[50] : Colors.white,
+                  ),
+                  child: Column(
+                    children: [
+                      CheckboxListTile(
+                        title: Text(
+                          task,
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        value: isSelected,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            if (value == true) {
+                              _selectedTasks.add(task);
+                              // Inicializar frecuencia por defecto
+                              if (showFrequencies &&
+                                  !_taskFrequencies.containsKey(task)) {
+                                _taskFrequencies[task] = FrequencyType.monthly;
+                              }
+                            } else {
+                              _selectedTasks.remove(task);
+                              _taskFrequencies.remove(task);
+                            }
+                          });
+                        },
+                      ),
+
+                      // Mostrar selector de frecuencia solo si:
+                      // 1. La tarea está seleccionada
+                      // 2. El tipo de mantenimiento requiere frecuencia
+                      if (isSelected && showFrequencies) ...[
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.schedule, size: 18),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Frecuencia:',
+                                style: TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: DropdownButtonFormField<FrequencyType>(
+                                  value: frequency,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                  ),
+                                  items: FrequencyType.values.map((freq) {
+                                    return DropdownMenuItem(
+                                      value: freq,
+                                      child: Text(
+                                        _getFrequencyDisplayName(freq),
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _taskFrequencies[task] = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
+            ],
+            if (_selectedTasks.isEmpty && !_isLoadingTasks)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(

@@ -332,7 +332,6 @@ class MaintenanceSchedule {
     }
   }
 
-  // NUEVO: Obtener tareas por tipo de mantenimiento
   static List<String> getTasksForType(MaintenanceType type) {
     switch (type) {
       case MaintenanceType.preventive:

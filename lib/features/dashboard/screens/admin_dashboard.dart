@@ -3,6 +3,7 @@ import 'package:pm_monitor/features/maintenance/screens/global_Equipment_Invento
 import 'package:pm_monitor/features/client/screens/client_list_screen.dart';
 import 'package:pm_monitor/features/others/backup_management_screen.dart';
 import 'package:pm_monitor/features/others/screens/kpi_indicators_screen.dart';
+import 'package:pm_monitor/features/others/screens/task_template_screen.dart';
 import 'package:pm_monitor/features/technician/screens/tecnician_list_screen.dart';
 import 'package:pm_monitor/features/auth/screens/user_managament_screen.dart';
 import 'package:pm_monitor/features/calendar/screens/apple_style_calender.dart';
@@ -67,6 +68,20 @@ class AdminDashboard extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) =>
                                   const AppleStyleMaintenanceCalendar(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDashboardCard(
+                        'Templates',
+                        Icons.checklist,
+                        'Tareas',
+                        Colors.teal,
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TaskTemplatesScreen(),
                             ),
                           );
                         },
