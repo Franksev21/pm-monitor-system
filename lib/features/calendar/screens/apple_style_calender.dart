@@ -14,7 +14,7 @@ import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/services/client_service.dart';
 
 class AppleStyleMaintenanceCalendar extends StatefulWidget {
-  const AppleStyleMaintenanceCalendar({Key? key}) : super(key: key);
+  const AppleStyleMaintenanceCalendar({super.key});
 
   @override
   _AppleStyleMaintenanceCalendarState createState() =>
@@ -32,9 +32,9 @@ class _AppleStyleMaintenanceCalendarState
 
   DateTime _selectedDate = DateTime.now();
   DateTime _currentMonth = DateTime.now();
-  PageController _pageController = PageController(initialPage: 1000);
+  final PageController _pageController = PageController(initialPage: 1000);
 
-  Map<DateTime, List<MaintenanceSchedule>> _events = {};
+  final Map<DateTime, List<MaintenanceSchedule>> _events = {};
   List<MaintenanceSchedule> _selectedDayEvents = [];
   bool _isLoading = false;
   String? _userRole;
@@ -568,7 +568,7 @@ class _AppleStyleMaintenanceCalendarState
                                           title: Text(client.name),
                                           subtitle: Text(
                                               '${client.branches.length} sucursales'),
-                                          value: client.id!,
+                                          value: client.id,
                                           groupValue: _selectedClientId,
                                           onChanged: (value) {
                                             setModalState(() {
@@ -665,7 +665,7 @@ class _AppleStyleMaintenanceCalendarState
                                                     style: const TextStyle(
                                                         fontSize: 12))
                                                 : null,
-                                            value: branch.id!,
+                                            value: branch.id,
                                             groupValue: _selectedBranchId,
                                             onChanged: (value) {
                                               setModalState(() {

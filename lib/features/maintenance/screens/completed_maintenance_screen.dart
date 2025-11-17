@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class CompletedMaintenancesScreen extends StatefulWidget {
+  const CompletedMaintenancesScreen({super.key});
+
   @override
   _CompletedMaintenancesScreenState createState() =>
       _CompletedMaintenancesScreenState();

@@ -136,7 +136,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
               backgroundColor: Colors.white,
               child: Text(
                 widget.client.name[0].toUpperCase(),
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppTheme.primaryColor,
                   fontSize: 32,
                   fontWeight: FontWeight.bold,

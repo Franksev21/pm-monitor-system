@@ -113,7 +113,7 @@ class EquipmentPDFService {
       width: double.infinity,
       padding: const pw.EdgeInsets.all(20),
       decoration: pw.BoxDecoration(
-        gradient: pw.LinearGradient(
+        gradient: const pw.LinearGradient(
           colors: [PdfColors.blue700, PdfColors.blue500],
         ),
         borderRadius: pw.BorderRadius.circular(8),
@@ -137,7 +137,7 @@ class EquipmentPDFService {
                   ),
                   pw.Text(
                     'Sistema de Mantenimiento Preventivo',
-                    style: pw.TextStyle(
+                    style: const pw.TextStyle(
                       fontSize: 12,
                       color: PdfColors.white,
                     ),
@@ -157,7 +157,7 @@ class EquipmentPDFService {
                   ),
                   pw.Text(
                     'Generado: ${_formatDateTime(DateTime.now())}',
-                    style: pw.TextStyle(
+                    style: const pw.TextStyle(
                       fontSize: 10,
                       color: PdfColors.white,
                     ),
@@ -187,7 +187,7 @@ class EquipmentPDFService {
                 ),
                 pw.Text(
                   '${equipment.brand} ${equipment.model}',
-                  style: pw.TextStyle(
+                  style: const pw.TextStyle(
                     fontSize: 14,
                     color: PdfColors.grey700,
                   ),
@@ -238,7 +238,7 @@ class EquipmentPDFService {
                     child: pw.Text(
                       'QR Code\nNo disponible',
                       textAlign: pw.TextAlign.center,
-                      style: pw.TextStyle(
+                      style: const pw.TextStyle(
                         fontSize: 10,
                         color: PdfColors.grey600,
                       ),
@@ -264,7 +264,7 @@ class EquipmentPDFService {
                 pw.SizedBox(height: 8),
                 pw.Text(
                   'Este código QR contiene toda la información técnica del equipo en formato JSON estructurado para acceso rápido desde dispositivos móviles.',
-                  style: pw.TextStyle(
+                  style: const pw.TextStyle(
                     fontSize: 11,
                     color: PdfColors.grey700,
                   ),
@@ -289,7 +289,7 @@ class EquipmentPDFService {
                       padding: const pw.EdgeInsets.only(bottom: 2),
                       child: pw.Text(
                         item,
-                        style: pw.TextStyle(
+                        style: const pw.TextStyle(
                           fontSize: 10,
                           color: PdfColors.grey700,
                         ),
@@ -354,7 +354,7 @@ class EquipmentPDFService {
                     padding: const pw.EdgeInsets.all(8),
                     child: pw.Text(
                       row[1],
-                      style: pw.TextStyle(fontSize: 11),
+                      style: const pw.TextStyle(fontSize: 11),
                     ),
                   ),
                 ],
@@ -404,7 +404,7 @@ class EquipmentPDFService {
             children: [
               // Header
               pw.TableRow(
-                decoration: pw.BoxDecoration(color: PdfColors.grey200),
+                decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                 children: [
                   pw.Padding(
                     padding: const pw.EdgeInsets.all(8),
@@ -466,7 +466,7 @@ class EquipmentPDFService {
                 final isTotal = row[0].contains('TOTAL');
                 return pw.TableRow(
                   decoration: isTotal
-                      ? pw.BoxDecoration(color: PdfColors.green50)
+                      ? const pw.BoxDecoration(color: PdfColors.green50)
                       : null,
                   children: [
                     pw.Padding(
@@ -485,7 +485,7 @@ class EquipmentPDFService {
                       padding: const pw.EdgeInsets.all(8),
                       child: pw.Text(
                         row[1],
-                        style: pw.TextStyle(fontSize: 11),
+                        style: const pw.TextStyle(fontSize: 11),
                         textAlign: pw.TextAlign.center,
                       ),
                     ),
@@ -504,7 +504,7 @@ class EquipmentPDFService {
                     ),
                   ],
                 );
-              }).toList(),
+              }),
             ],
           ),
         ),
@@ -553,7 +553,7 @@ class EquipmentPDFService {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.all(12),
-      decoration: pw.BoxDecoration(
+      decoration: const pw.BoxDecoration(
         border: pw.Border(top: pw.BorderSide(color: PdfColors.grey400)),
       ),
       child: pw.Column(
@@ -569,14 +569,14 @@ class EquipmentPDFService {
           pw.SizedBox(height: 4),
           pw.Text(
             'Documento generado automáticamente el ${_formatDateTime(DateTime.now())}',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 9,
               color: PdfColors.grey600,
             ),
           ),
           pw.Text(
             'Este documento contiene información confidencial del equipo y debe ser manejado de acuerdo a las políticas de la empresa.',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 8,
               color: PdfColors.grey500,
             ),

@@ -200,7 +200,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Información Básica', style: AppTheme.headingMedium),
+          const Text('Información Básica', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
           Text('Ingresa los datos principales del cliente',
               style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
@@ -315,7 +315,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Dirección Principal', style: AppTheme.headingMedium),
+          const Text('Dirección Principal', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
           Text('Ubicación de la oficina principal del cliente',
               style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
@@ -420,7 +420,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Resumen del Cliente', style: AppTheme.headingMedium),
+          const Text('Resumen del Cliente', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
           Text('Revisa la información antes de guardar',
               style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
@@ -462,7 +462,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
               const Divider(height: 24),
               Row(
                 children: [
-                  Icon(Icons.store, size: 20, color: AppTheme.primaryColor),
+                  const Icon(Icons.store, size: 20, color: AppTheme.primaryColor),
                   const SizedBox(width: 12),
                   Text('Sucursales (${_branches.length})',
                       style: AppTheme.bodyMedium

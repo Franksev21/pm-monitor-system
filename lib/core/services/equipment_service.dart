@@ -102,8 +102,9 @@ class EquipmentService {
             .where((equipment) => equipment.isActive)
             .toList()
           ..sort((a, b) {
-            if (a.nextMaintenanceDate == null && b.nextMaintenanceDate == null)
+            if (a.nextMaintenanceDate == null && b.nextMaintenanceDate == null) {
               return 0;
+            }
             if (a.nextMaintenanceDate == null) return 1;
             if (b.nextMaintenanceDate == null) return -1;
             return a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!);
@@ -118,7 +119,7 @@ class EquipmentService {
   // Obtener equipos que necesitan mantenimiento - CORREGIDO
   Stream<List<Equipment>> getEquipmentsNeedingMaintenance() {
     DateTime today = DateTime.now();
-    DateTime weekFromNow = today.add(Duration(days: 7));
+    DateTime weekFromNow = today.add(const Duration(days: 7));
 
     return _firestore
         .collection(_collection)

@@ -18,10 +18,10 @@ class AddMaintenanceScreen extends StatefulWidget {
   final String? preselectedEquipmentId;
 
   const AddMaintenanceScreen({
-    Key? key,
+    super.key,
     this.maintenance,
     this.preselectedEquipmentId,
-  }) : super(key: key);
+  });
 
   @override
   _AddMaintenanceScreenState createState() => _AddMaintenanceScreenState();
@@ -32,14 +32,14 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   final _notesController = TextEditingController();
 
   // Estado local
-  Map<String, FrequencyType> _taskFrequencies = {};
+  final Map<String, FrequencyType> _taskFrequencies = {};
   String? _selectedBranchId;
   BranchModel? _selectedBranch;
   List<BranchModel> _availableBranches = [];
 
   // Archivos adjuntos
-  List<PlatformFile> _attachedFiles = [];
-  bool _isUploadingFiles = false;
+  final List<PlatformFile> _attachedFiles = [];
+  final bool _isUploadingFiles = false;
 
   // Form data
   ClientModel? _selectedClient;
@@ -500,7 +500,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
               ],
               onChanged: (value) {
                 setState(() {
@@ -731,7 +731,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                                   leading: CircleAvatar(
                                     backgroundColor:
                                         isSelected ? Colors.blue : Colors.grey,
-                                    child: Icon(
+                                    child: const Icon(
                                       Icons.ac_unit,
                                       color: Colors.white,
                                     ),

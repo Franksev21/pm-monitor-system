@@ -70,8 +70,9 @@ class UserManagementModel {
             .replaceAll(RegExp(r',\s*,'), ',')
             .trim();
         if (address.startsWith(',')) address = address.substring(1).trim();
-        if (address.endsWith(','))
+        if (address.endsWith(',')) {
           address = address.substring(0, address.length - 1);
+        }
       }
 
       List<String> locationsList = [];

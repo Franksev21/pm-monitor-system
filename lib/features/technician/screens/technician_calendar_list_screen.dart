@@ -7,7 +7,7 @@ import 'package:pm_monitor/features/maintenance/screens/maintenance_execution_sc
 
 /// Calendario filtrado para técnicos - muestra solo mantenimientos asignados al técnico actual
 class TechnicianCalendarScreen extends StatefulWidget {
-  const TechnicianCalendarScreen({Key? key}) : super(key: key);
+  const TechnicianCalendarScreen({super.key});
 
   @override
   _TechnicianCalendarScreenState createState() =>
@@ -21,9 +21,9 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
 
   DateTime _selectedDate = DateTime.now();
   DateTime _currentMonth = DateTime.now();
-  PageController _pageController = PageController(initialPage: 1000);
+  final PageController _pageController = PageController(initialPage: 1000);
 
-  Map<DateTime, List<MaintenanceSchedule>> _events = {};
+  final Map<DateTime, List<MaintenanceSchedule>> _events = {};
   List<MaintenanceSchedule> _selectedDayEvents = [];
   bool _isLoading = false;
 
@@ -471,7 +471,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          SizedBox(
             width: 60,
             child: Text(
               time,

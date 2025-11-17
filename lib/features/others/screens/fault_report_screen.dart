@@ -6,8 +6,7 @@ import '../../../core/services/fault_report_service.dart';
 class FaultReportScreen extends StatefulWidget {
   final Equipment equipment;
 
-  const FaultReportScreen({Key? key, required this.equipment})
-      : super(key: key);
+  const FaultReportScreen({super.key, required this.equipment});
 
   @override
   _FaultReportScreenState createState() => _FaultReportScreenState();
@@ -24,19 +23,19 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Reportar Falla'),
-        backgroundColor: Color(0xFF1976D2),
+        title: const Text('Reportar Falla'),
+        backgroundColor: const Color(0xFF1976D2),
         foregroundColor: Colors.white,
       ),
       body: ListView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         children: [
           _buildEquipmentCard(),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _buildDescriptionField(),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _buildSeveritySelector(),
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           _buildSubmitButton(),
         ],
       ),
@@ -46,38 +45,38 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
   Widget _buildEquipmentCard() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.ac_unit, color: Color(0xFF1976D2)),
-                SizedBox(width: 8),
+                const Icon(Icons.ac_unit, color: Color(0xFF1976D2)),
+                const SizedBox(width: 8),
                 Text(widget.equipment.equipmentNumber,
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                Spacer(),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                const Spacer(),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(widget.equipment.status,
-                      style: TextStyle(color: Colors.green, fontSize: 12)),
+                      style: const TextStyle(color: Colors.green, fontSize: 12)),
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text('${widget.equipment.brand} ${widget.equipment.model}',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             Text(widget.equipment.name,
                 style: TextStyle(color: Colors.grey[600])),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text('${widget.equipment.location}, ${widget.equipment.branch}',
                     style: TextStyle(color: Colors.grey[600], fontSize: 14)),
               ],
@@ -91,17 +90,17 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
   Widget _buildDescriptionField() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Descripción de la Falla',
+            const Text('Descripción de la Falla',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             TextField(
               controller: _descriptionController,
               maxLines: 4,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Describe el problema que presenta el equipo...',
                 border: OutlineInputBorder(),
               ),
@@ -115,13 +114,13 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
   Widget _buildSeveritySelector() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Nivel de Severidad',
+            const Text('Nivel de Severidad',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             ...[
               {'value': 'baja', 'title': 'Baja', 'color': Colors.green},
               {'value': 'media', 'title': 'Media', 'color': Colors.orange},
@@ -147,12 +146,12 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
                               shape: BoxShape.circle,
                             ),
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Text(option['title'] as String),
                         ],
                       ),
                     ))
-                .toList(),
+                ,
           ],
         ),
       ),
@@ -163,13 +162,13 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
     return ElevatedButton(
       onPressed: _isSubmitting ? null : _submitReport,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xFF1976D2),
+        backgroundColor: const Color(0xFF1976D2),
         foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       child: _isSubmitting
-          ? Row(
+          ? const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
@@ -180,14 +179,14 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
                 Text('Enviando...'),
               ],
             )
-          : Text('Reportar Falla', style: TextStyle(fontSize: 16)),
+          : const Text('Reportar Falla', style: TextStyle(fontSize: 16)),
     );
   }
 
   Future<void> _submitReport() async {
     if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Por favor describe la falla')),
+        const SnackBar(content: Text('Por favor describe la falla')),
       );
       return;
     }
@@ -227,16 +226,16 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 64),
-            SizedBox(height: 16),
-            Text('Falla Reportada',
+            const Icon(Icons.check_circle, color: Colors.green, size: 64),
+            const SizedBox(height: 16),
+            const Text('Falla Reportada',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            Text('Se han enviado notificaciones al equipo técnico',
+            const SizedBox(height: 8),
+            const Text('Se han enviado notificaciones al equipo técnico',
                 textAlign: TextAlign.center),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text('ID: $reportId',
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         actions: [
@@ -245,7 +244,7 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
               Navigator.pop(context);
               Navigator.pop(context);
             },
-            child: Text('Aceptar'),
+            child: const Text('Aceptar'),
           ),
         ],
       ),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class KPIIndicatorsScreen extends StatefulWidget {
+  const KPIIndicatorsScreen({super.key});
+
   @override
   _KPIIndicatorsScreenState createState() => _KPIIndicatorsScreenState();
 }
@@ -78,7 +80,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
 
     switch (selectedPeriod) {
       case 'week':
-        startDate = now.subtract(Duration(days: 7));
+        startDate = now.subtract(const Duration(days: 7));
         break;
       case 'month':
         startDate = DateTime(now.year, now.month - 1, now.day);
@@ -338,10 +340,10 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF2F2F7),
+      backgroundColor: const Color(0xFFF2F2F7),
       appBar: AppBar(
-        title: Text('Indicadores KPI'),
-        backgroundColor: Color(0xFF2196F3),
+        title: const Text('Indicadores KPI'),
+        backgroundColor: const Color(0xFF2196F3),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -352,27 +354,27 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
               _loadKPIData();
             },
             itemBuilder: (context) => [
-              PopupMenuItem(value: 'week', child: Text('Esta Semana')),
-              PopupMenuItem(value: 'month', child: Text('Este Mes')),
-              PopupMenuItem(value: 'quarter', child: Text('Este Trimestre')),
-              PopupMenuItem(value: 'year', child: Text('Este Año')),
+              const PopupMenuItem(value: 'week', child: Text('Esta Semana')),
+              const PopupMenuItem(value: 'month', child: Text('Este Mes')),
+              const PopupMenuItem(value: 'quarter', child: Text('Este Trimestre')),
+              const PopupMenuItem(value: 'year', child: Text('Este Año')),
             ],
           ),
         ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadKPIData,
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header
                     Container(
                       width: double.infinity,
-                      padding: EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
@@ -381,7 +383,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                             color: Colors.grey.withOpacity(0.1),
                             spreadRadius: 1,
                             blurRadius: 6,
-                            offset: Offset(0, 3),
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
@@ -395,18 +397,18 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                               color: Colors.grey[800],
                             ),
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           _buildMainGauge(),
                         ],
                       ),
                     ),
 
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
                     // Los 7 KPIs
                     GridView.count(
                       shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
+                      physics: const NeverScrollableScrollPhysics(),
                       crossAxisCount: 2,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
@@ -472,7 +474,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                       ],
                     ),
 
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
                     // Resumen
                     _buildSummaryCards(),
@@ -486,7 +488,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
   Widget _buildMainGauge() {
     double overallScore = _calculateOverallScore();
 
-    return Container(
+    return SizedBox(
       height: 150,
       width: 150,
       child: Stack(
@@ -508,7 +510,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             children: [
               Text(
                 '${overallScore.toStringAsFixed(0)}%',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF2196F3),
@@ -541,7 +543,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
     String displayValue = _formatDisplayValue(value, unit);
 
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -550,7 +552,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             color: Colors.grey.withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 6,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -568,7 +570,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             overflow: TextOverflow.ellipsis,
           ),
 
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
 
           // Gauge simplificado
           Expanded(
@@ -590,7 +592,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(icon, color: color, size: 20),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       displayValue,
                       style: TextStyle(
@@ -606,7 +608,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             ),
           ),
 
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
 
           // Indicador de colores
           _buildColorIndicator(),
@@ -623,34 +625,34 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             width: 8,
             height: 4,
             color: Colors.red,
-            margin: EdgeInsets.symmetric(horizontal: 1)),
+            margin: const EdgeInsets.symmetric(horizontal: 1)),
         Container(
             width: 8,
             height: 4,
             color: Colors.orange,
-            margin: EdgeInsets.symmetric(horizontal: 1)),
+            margin: const EdgeInsets.symmetric(horizontal: 1)),
         Container(
             width: 8,
             height: 4,
             color: Colors.yellow,
-            margin: EdgeInsets.symmetric(horizontal: 1)),
+            margin: const EdgeInsets.symmetric(horizontal: 1)),
         Container(
             width: 8,
             height: 4,
             color: Colors.lightGreen,
-            margin: EdgeInsets.symmetric(horizontal: 1)),
+            margin: const EdgeInsets.symmetric(horizontal: 1)),
         Container(
             width: 8,
             height: 4,
             color: Colors.green,
-            margin: EdgeInsets.symmetric(horizontal: 1)),
+            margin: const EdgeInsets.symmetric(horizontal: 1)),
       ],
     );
   }
 
   Widget _buildSummaryCards() {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -659,18 +661,18 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             color: Colors.grey.withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 6,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Resumen del Período',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -681,7 +683,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                   Colors.green,
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildSummaryItem(
                   'Ejecución',
@@ -692,7 +694,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
               ),
             ],
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -703,7 +705,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                   Colors.purple,
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildSummaryItem(
                   'Horas Totales',
@@ -722,7 +724,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
   Widget _buildSummaryItem(
       String title, String value, IconData icon, Color color) {
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
@@ -730,7 +732,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
       child: Row(
         children: [
           Icon(icon, color: color, size: 20),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

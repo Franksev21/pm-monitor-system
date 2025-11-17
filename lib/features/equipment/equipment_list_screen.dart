@@ -12,9 +12,9 @@ class ClientEquipmentListScreen extends StatefulWidget {
   final ClientModel client;
 
   const ClientEquipmentListScreen({
-    Key? key,
+    super.key,
     required this.client,
-  }) : super(key: key);
+  });
 
   @override
   State<ClientEquipmentListScreen> createState() =>
@@ -207,8 +207,9 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
         break;
       case 'Por mantenimiento':
         filtered.sort((a, b) {
-          if (a.nextMaintenanceDate == null && b.nextMaintenanceDate == null)
+          if (a.nextMaintenanceDate == null && b.nextMaintenanceDate == null) {
             return 0;
+          }
           if (a.nextMaintenanceDate == null) return 1;
           if (b.nextMaintenanceDate == null) return -1;
           return a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!);

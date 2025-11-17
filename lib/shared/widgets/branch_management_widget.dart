@@ -38,7 +38,7 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
+            const Text(
               'Sucursales',
               style: AppTheme.headingMedium,
             ),
@@ -63,7 +63,7 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
         else
           ..._branches.asMap().entries.map((entry) {
             return _buildBranchCard(entry.value, entry.key);
-          }).toList(),
+          }),
       ],
     );
   }
@@ -391,9 +391,9 @@ class _BranchDialogState extends State<_BranchDialog> {
             // Header
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.primaryColor,
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),

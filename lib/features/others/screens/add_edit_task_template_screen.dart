@@ -6,9 +6,9 @@ class AddEditTaskTemplateScreen extends StatefulWidget {
   final MaintenanceTaskTemplate? template;
 
   const AddEditTaskTemplateScreen({
-    Key? key,
+    super.key,
     this.template,
-  }) : super(key: key);
+  });
 
   @override
   State<AddEditTaskTemplateScreen> createState() =>

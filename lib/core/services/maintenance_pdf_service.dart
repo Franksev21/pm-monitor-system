@@ -201,7 +201,7 @@ class MaintenancePDFService {
             'User-Agent': 'PM-Monitor-PDF-Generator/1.0',
           },
         ).timeout(
-          Duration(seconds: 30),
+          const Duration(seconds: 30),
           onTimeout: () {
             throw Exception('Timeout al descargar foto');
           },
@@ -230,7 +230,7 @@ class MaintenancePDFService {
       width: double.infinity,
       padding: const pw.EdgeInsets.all(20),
       decoration: pw.BoxDecoration(
-        gradient: pw.LinearGradient(
+        gradient: const pw.LinearGradient(
           colors: [PdfColors.green700, PdfColors.green500],
         ),
         borderRadius: pw.BorderRadius.circular(8),
@@ -254,7 +254,7 @@ class MaintenancePDFService {
                   ),
                   pw.Text(
                     'Reporte de Mantenimiento Completado',
-                    style: pw.TextStyle(
+                    style: const pw.TextStyle(
                       fontSize: 12,
                       color: PdfColors.white,
                     ),
@@ -300,14 +300,14 @@ class MaintenancePDFService {
                 ),
                 pw.Text(
                   'Cliente: ${maintenance['clientName'] ?? 'No especificado'}',
-                  style: pw.TextStyle(
+                  style: const pw.TextStyle(
                     fontSize: 12,
                     color: PdfColors.grey700,
                   ),
                 ),
                 pw.Text(
                   'Técnico: ${maintenance['technicianName'] ?? 'No asignado'}',
-                  style: pw.TextStyle(
+                  style: const pw.TextStyle(
                     fontSize: 12,
                     color: PdfColors.grey700,
                   ),
@@ -532,7 +532,7 @@ class MaintenancePDFService {
         ],
 
         // Contador de fotos
-        if (photoImages.length > 0)
+        if (photoImages.isNotEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 8),
             child: pw.Row(
@@ -578,7 +578,7 @@ class MaintenancePDFService {
       width: double.infinity,
       padding: const pw.EdgeInsets.all(20),
       decoration: pw.BoxDecoration(
-        gradient: pw.LinearGradient(
+        gradient: const pw.LinearGradient(
           colors: [PdfColors.blue700, PdfColors.blue500],
         ),
         borderRadius: pw.BorderRadius.circular(8),
@@ -596,7 +596,7 @@ class MaintenancePDFService {
           ),
           pw.Text(
             'Reporte de Mantenimientos Completados',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 16,
               color: PdfColors.white,
             ),
@@ -604,14 +604,14 @@ class MaintenancePDFService {
           pw.SizedBox(height: 10),
           pw.Text(
             '$dayString, $dateString',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 14,
               color: PdfColors.white,
             ),
           ),
           pw.Text(
             '$count mantenimiento${count != 1 ? 's' : ''} completado${count != 1 ? 's' : ''}',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 12,
               color: PdfColors.white,
             ),
@@ -672,7 +672,7 @@ class MaintenancePDFService {
                     padding: const pw.EdgeInsets.all(8),
                     child: pw.Text(
                       row[1],
-                      style: pw.TextStyle(fontSize: 11),
+                      style: const pw.TextStyle(fontSize: 11),
                     ),
                   ),
                 ],
@@ -689,7 +689,7 @@ class MaintenancePDFService {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.all(12),
-      decoration: pw.BoxDecoration(
+      decoration: const pw.BoxDecoration(
         border: pw.Border(top: pw.BorderSide(color: PdfColors.grey400)),
       ),
       child: pw.Column(
@@ -705,14 +705,14 @@ class MaintenancePDFService {
           pw.SizedBox(height: 4),
           pw.Text(
             'Reporte generado automáticamente el ${_formatDateTime(DateTime.now())}',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 9,
               color: PdfColors.grey600,
             ),
           ),
           pw.Text(
             'Este documento certifica la ejecución y completación del mantenimiento según los estándares establecidos.',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 8,
               color: PdfColors.grey500,
             ),
@@ -787,7 +787,7 @@ class MaintenancePDFService {
           ),
           pw.Text(
             title,
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 10,
               color: PdfColors.grey700,
             ),
@@ -824,7 +824,7 @@ class MaintenancePDFService {
           children: [
             // Header
             pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.green100),
+              decoration: const pw.BoxDecoration(color: PdfColors.green100),
               children: [
                 _buildTableHeader('Equipo'),
                 _buildTableHeader('Cliente'),
@@ -905,7 +905,7 @@ class MaintenancePDFService {
           children: [
             // Header
             pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.blue100),
+              decoration: const pw.BoxDecoration(color: PdfColors.blue100),
               children: [
                 _buildTableHeader('Técnico'),
                 _buildTableHeader('Completados'),
@@ -948,7 +948,7 @@ class MaintenancePDFService {
       padding: const pw.EdgeInsets.all(8),
       child: pw.Text(
         text,
-        style: pw.TextStyle(fontSize: 9),
+        style: const pw.TextStyle(fontSize: 9),
       ),
     );
   }
@@ -976,7 +976,7 @@ class MaintenancePDFService {
           ),
           pw.Text(
             'Período: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}',
-            style: pw.TextStyle(fontSize: 14),
+            style: const pw.TextStyle(fontSize: 14),
           ),
         ],
       ),
@@ -1026,7 +1026,7 @@ class MaintenancePDFService {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.all(12),
-      decoration: pw.BoxDecoration(
+      decoration: const pw.BoxDecoration(
         border: pw.Border(top: pw.BorderSide(color: PdfColors.grey400)),
       ),
       child: pw.Column(
@@ -1042,7 +1042,7 @@ class MaintenancePDFService {
           pw.SizedBox(height: 4),
           pw.Text(
             'Reporte generado automáticamente el ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               fontSize: 9,
               color: PdfColors.grey600,
             ),

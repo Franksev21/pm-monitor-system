@@ -10,10 +10,10 @@ class MiniQRWidget extends StatelessWidget {
   final double size;
 
   const MiniQRWidget({
-    Key? key,
+    super.key,
     required this.equipment,
     this.size = 60,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -11,7 +11,7 @@ import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
 
 class GlobalEquipmentInventoryScreen extends StatefulWidget {
-  const GlobalEquipmentInventoryScreen({Key? key}) : super(key: key);
+  const GlobalEquipmentInventoryScreen({super.key});
 
   @override
   State<GlobalEquipmentInventoryScreen> createState() =>

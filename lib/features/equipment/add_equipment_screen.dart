@@ -11,10 +11,10 @@ class AddEquipmentScreen extends StatefulWidget {
   final Equipment? equipment;
 
   const AddEquipmentScreen({
-    Key? key,
+    super.key,
     required this.client,
     this.equipment,
-  }) : super(key: key);
+  });
 
   @override
   State<AddEquipmentScreen> createState() => _AddEquipmentScreenState();
@@ -801,7 +801,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       value: branch,
                       child: Text(branch.name),
                     );
-                  }).toList(),
+                  }),
                 ],
                 onChanged: _onBranchChanged,
               ),

@@ -171,7 +171,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                     onChanged: (status) {
                       clientProvider.setStatusFilter(status);
@@ -211,7 +211,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                     onChanged: (type) {
                       clientProvider.setTypeFilter(type);

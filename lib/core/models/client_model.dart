@@ -214,7 +214,7 @@ class BranchModel {
     return {
       'id': id,
       'name': name,
-      'address': address?.toJson(),
+      'address': address.toJson(),
       'managerName': managerName,
       'managerPhone': managerPhone,
       'isActive': isActive,

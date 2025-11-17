@@ -300,14 +300,14 @@ class TechnicianService {
           .collection(_collection)
           .where('role', isEqualTo: 'technician')
           .where('name', isGreaterThanOrEqualTo: query)
-          .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
           .get();
 
       final emailSnapshot = await _firestore
           .collection(_collection)
           .where('role', isEqualTo: 'technician')
           .where('email', isGreaterThanOrEqualTo: queryLower)
-          .where('email', isLessThanOrEqualTo: queryLower + '\uf8ff')
+          .where('email', isLessThanOrEqualTo: '$queryLower\uf8ff')
           .get();
 
       final Set<String> seenIds = {};

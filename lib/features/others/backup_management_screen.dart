@@ -3,7 +3,7 @@ import 'package:pm_monitor/core/services/simple_backup_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BackupManagementScreen extends StatefulWidget {
-  const BackupManagementScreen({Key? key}) : super(key: key);
+  const BackupManagementScreen({super.key});
 
   @override
   _BackupManagementScreenState createState() => _BackupManagementScreenState();
@@ -103,14 +103,14 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF2F2F7),
+      backgroundColor: const Color(0xFFF2F2F7),
       appBar: AppBar(
-        title: Text('Gestión de Backups'),
-        backgroundColor: Color(0xFF1976D2),
+        title: const Text('Gestión de Backups'),
+        backgroundColor: const Color(0xFF1976D2),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh),
             onPressed: _loadBackupInfo,
           ),
         ],
@@ -118,19 +118,19 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
       body: RefreshIndicator(
         onRefresh: _loadBackupInfo,
         child: ListView(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           children: [
             // Sección de información general
             _buildInfoSection(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Botón para crear backup
             _buildCreateBackupSection(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Lista de backups disponibles
             _buildBackupsList(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Acciones adicionales
             _buildAdditionalActions(),
@@ -143,11 +143,11 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
   Widget _buildInfoSection() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(Icons.info_outline, color: Color(0xFF1976D2)),
                 SizedBox(width: 8),
@@ -160,7 +160,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildInfoRow('Último backup:', _lastBackupInfo),
             _buildInfoRow('Espacio utilizado:', _storageUsage),
             _buildInfoRow(
@@ -173,7 +173,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -186,7 +186,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
           ),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -198,11 +198,11 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
   Widget _buildCreateBackupSection() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(Icons.backup, color: Colors.green),
                 SizedBox(width: 8),
@@ -215,7 +215,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Respalda todos los datos importantes: mantenimientos, equipos, clientes y usuarios.',
               style: TextStyle(
@@ -223,13 +223,13 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                 fontSize: 14,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isCreatingBackup ? null : _createBackup,
                 icon: _isCreatingBackup
-                    ? SizedBox(
+                    ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
@@ -237,14 +237,14 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : Icon(Icons.backup),
+                    : const Icon(Icons.backup),
                 label: Text(_isCreatingBackup
                     ? 'Creando backup...'
                     : 'Crear Backup Ahora'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
@@ -257,11 +257,11 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
   Widget _buildBackupsList() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(Icons.folder, color: Color(0xFF1976D2)),
                 SizedBox(width: 8),
@@ -274,9 +274,9 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             if (_isLoadingBackups)
-              Center(
+              const Center(
                 child: CircularProgressIndicator(),
               )
             else if (_availableBackups.isEmpty)
@@ -288,7 +288,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                       size: 48,
                       color: Colors.grey[400],
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'No hay backups disponibles',
                       style: TextStyle(
@@ -296,7 +296,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                         fontSize: 16,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       'Crea tu primer backup usando el botón de arriba',
                       style: TextStyle(
@@ -319,26 +319,26 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
 
   Widget _buildBackupItem(BackupInfo backup) {
     return Container(
-      margin: EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey[300]!),
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
         leading: Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Color(0xFF1976D2).withOpacity(0.1),
+            color: const Color(0xFF1976D2).withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
+          child: const Icon(
             Icons.insert_drive_file,
             color: Color(0xFF1976D2),
           ),
         ),
         title: Text(
           backup.formattedDate,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -361,7 +361,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
             }
           },
           itemBuilder: (context) => [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'download',
               child: Row(
                 children: [
@@ -371,7 +371,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'share',
               child: Row(
                 children: [
@@ -390,11 +390,11 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
   Widget _buildAdditionalActions() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(Icons.settings, color: Colors.orange),
                 SizedBox(width: 8),
@@ -407,20 +407,20 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _cleanupOldBackups,
-                icon: Icon(Icons.cleaning_services),
-                label: Text('Limpiar Backups Antiguos'),
+                icon: const Icon(Icons.cleaning_services),
+                label: const Text('Limpiar Backups Antiguos'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.orange,
-                  side: BorderSide(color: Colors.orange),
+                  side: const BorderSide(color: Colors.orange),
                 ),
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Esto eliminará backups antiguos, manteniendo solo los 5 más recientes para ahorrar espacio.',
               style: TextStyle(
@@ -443,15 +443,15 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text('Cancelar'),
+                child: const Text('Cancelar'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: Text('Confirmar'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
                 ),
+                child: Text('Confirmar'),
               ),
             ],
           ),
@@ -464,7 +464,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.green,
-        duration: Duration(seconds: 3),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -474,7 +474,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
-        duration: Duration(seconds: 5),
+        duration: const Duration(seconds: 5),
       ),
     );
   }

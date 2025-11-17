@@ -321,6 +321,7 @@ class TechnicianProvider with ChangeNotifier {
   }
 
   // Limpiar provider
+  @override
   void dispose() {
     _technicians.clear();
     _filteredTechnicians.clear();

@@ -94,7 +94,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           case UserRole.supervisor:
             return const AdminDashboard();
           case UserRole.technician:
-            return TechnicianDashboard();
+            return const TechnicianDashboard();
           case UserRole.client:
             return const ClientDashboard();
         }
@@ -138,7 +138,7 @@ class SplashScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.build_rounded,
                   size: 60,
                   color: AppTheme.primaryColor,

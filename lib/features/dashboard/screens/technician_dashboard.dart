@@ -888,7 +888,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TechnicianFaultsScreen(),
+        builder: (context) => const TechnicianFaultsScreen(),
       ),
     );
   }
@@ -1058,7 +1058,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PendingMaintenancesScreen(),
+        builder: (context) => const PendingMaintenancesScreen(),
       ),
     );
   }

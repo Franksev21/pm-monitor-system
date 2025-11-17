@@ -11,9 +11,9 @@ class EquipmentDetailScreen extends StatefulWidget {
   final Equipment equipment;
 
   const EquipmentDetailScreen({
-    Key? key,
+    super.key,
     required this.equipment,
-  }) : super(key: key);
+  });
 
   @override
   State<EquipmentDetailScreen> createState() => _EquipmentDetailScreenState();
@@ -140,13 +140,13 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
 
   Widget _buildHeaderContent(Equipment equipment) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1976D2),
-            const Color(0xFF1565C0),
+            Color(0xFF1976D2),
+            Color(0xFF1565C0),
           ],
         ),
       ),
@@ -868,7 +868,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
                             // TODO: Abrir documento
                           },
                         ))
-                    .toList(),
+                    ,
             ],
           ),
           const SizedBox(height: 24),

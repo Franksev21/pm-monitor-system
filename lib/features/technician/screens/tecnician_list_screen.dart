@@ -7,7 +7,7 @@ import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart
 import 'package:provider/provider.dart';
 
 class TechniciansListScreen extends StatefulWidget {
-  const TechniciansListScreen({Key? key}) : super(key: key);
+  const TechniciansListScreen({super.key});
 
   @override
   State<TechniciansListScreen> createState() => _TechniciansListScreenState();

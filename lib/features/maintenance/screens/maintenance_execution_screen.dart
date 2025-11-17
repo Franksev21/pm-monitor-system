@@ -6,8 +6,7 @@ import 'package:pm_monitor/core/services/maintenance_execution_service.dart';
 class MaintenanceExecutionScreen extends StatefulWidget {
   final Map<String, dynamic> maintenance;
 
-  const MaintenanceExecutionScreen({Key? key, required this.maintenance})
-      : super(key: key);
+  const MaintenanceExecutionScreen({super.key, required this.maintenance});
 
   @override
   _MaintenanceExecutionScreenState createState() =>
@@ -27,10 +26,10 @@ class _MaintenanceExecutionScreenState
   Map<String, dynamic>? equipmentData;
 
   // Datos del equipo para actualizar
-  TextEditingController _capacityController = TextEditingController();
-  TextEditingController _modelController = TextEditingController();
-  TextEditingController _brandController = TextEditingController();
-  TextEditingController _locationController = TextEditingController();
+  final TextEditingController _capacityController = TextEditingController();
+  final TextEditingController _modelController = TextEditingController();
+  final TextEditingController _brandController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
   String _selectedCondition = 'Bueno';
 
   @override
@@ -99,24 +98,24 @@ class _MaintenanceExecutionScreenState
     if (isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Cargando...'),
-          backgroundColor: Color(0xFF1976D2),
+          title: const Text('Cargando...'),
+          backgroundColor: const Color(0xFF1976D2),
           foregroundColor: Colors.white,
         ),
-        body: Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ejecutar Mantenimiento'),
-        backgroundColor: Color(0xFF1976D2),
+        title: const Text('Ejecutar Mantenimiento'),
+        backgroundColor: const Color(0xFF1976D2),
         foregroundColor: Colors.white,
         actions: [
           TextButton(
             onPressed: isSaving ? null : _saveProgress,
             child: isSaving 
-              ? SizedBox(
+              ? const SizedBox(
                   width: 20, 
                   height: 20, 
                   child: CircularProgressIndicator(
@@ -124,12 +123,12 @@ class _MaintenanceExecutionScreenState
                     strokeWidth: 2,
                   )
                 )
-              : Text('Guardar', style: TextStyle(color: Colors.white)),
+              : const Text('Guardar', style: TextStyle(color: Colors.white)),
           ),
           PopupMenuButton<String>(
             onSelected: _handleMenuSelection,
             itemBuilder: (context) => [
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'pause',
                 child: Row(
                   children: [
@@ -139,7 +138,7 @@ class _MaintenanceExecutionScreenState
                   ],
                 ),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'report_issue',
                 child: Row(
                   children: [
@@ -154,24 +153,24 @@ class _MaintenanceExecutionScreenState
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildMaintenanceHeader(),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildTaskChecklist(),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildEquipmentDataSection(),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildPhotosSection(),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildNotesSection(),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildProgressIndicator(),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildActionButtons(),
-            SizedBox(height: 50), // Espacio adicional al final
+            const SizedBox(height: 50), // Espacio adicional al final
           ],
         ),
       ),
@@ -181,27 +180,27 @@ class _MaintenanceExecutionScreenState
   Widget _buildMaintenanceHeader() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.build, color: Color(0xFF1976D2)),
-                SizedBox(width: 8),
+                const Icon(Icons.build, color: Color(0xFF1976D2)),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     widget.maintenance['equipmentName'] ?? 'Equipo',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
+                  child: const Text(
                     'EN EJECUCIÓN',
                     style: TextStyle(
                       color: Colors.orange,
@@ -212,7 +211,7 @@ class _MaintenanceExecutionScreenState
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             _buildInfoRow(Icons.business, 'Cliente:', widget.maintenance['clientName']),
             _buildInfoRow(Icons.location_on, 'Ubicación:', widget.maintenance['location']),
             if (equipmentData != null) ...[
@@ -227,11 +226,11 @@ class _MaintenanceExecutionScreenState
 
   Widget _buildInfoRow(IconData icon, String label, String? value) {
     return Padding(
-      padding: EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
           Icon(icon, size: 16, color: Colors.grey[600]),
-          SizedBox(width: 4),
+          const SizedBox(width: 4),
           Text(
             '$label ',
             style: TextStyle(
@@ -255,32 +254,32 @@ class _MaintenanceExecutionScreenState
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.checklist, color: Color(0xFF1976D2)),
-                SizedBox(width: 8),
-                Text(
+                const Icon(Icons.checklist, color: Color(0xFF1976D2)),
+                const SizedBox(width: 8),
+                const Text(
                   'Lista de Verificación',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   '${taskCompletion.values.where((v) => v).length}/${tasks.length}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFF1976D2),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             if (tasks.isEmpty)
               Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Text(
                   'No hay tareas definidas para este mantenimiento',
                   style: TextStyle(color: Colors.grey[600]),
@@ -289,7 +288,7 @@ class _MaintenanceExecutionScreenState
               )
             else
               ...tasks.map((task) => Card(
-                margin: EdgeInsets.only(bottom: 8),
+                margin: const EdgeInsets.only(bottom: 8),
                 child: CheckboxListTile(
                   title: Text(
                     task,
@@ -305,10 +304,10 @@ class _MaintenanceExecutionScreenState
                       taskCompletion[task] = value ?? false;
                     });
                   },
-                  activeColor: Color(0xFF1976D2),
+                  activeColor: const Color(0xFF1976D2),
                   controlAffinity: ListTileControlAffinity.leading,
                 ),
-              )).toList(),
+              )),
           ],
         ),
       ),
@@ -318,19 +317,19 @@ class _MaintenanceExecutionScreenState
   Widget _buildEquipmentDataSection() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.settings, color: Color(0xFF1976D2)),
-                SizedBox(width: 8),
-                Text(
+                const Icon(Icons.settings, color: Color(0xFF1976D2)),
+                const SizedBox(width: 8),
+                const Text(
                   'Datos del Equipo',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   'Opcional',
                   style: TextStyle(
@@ -340,18 +339,18 @@ class _MaintenanceExecutionScreenState
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildTextField(_capacityController, 'Capacidad', Icons.speed),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildTextField(_modelController, 'Modelo', Icons.info),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildTextField(_brandController, 'Marca', Icons.business),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildTextField(_locationController, 'Ubicación', Icons.location_on),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _selectedCondition,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Condición',
                 prefixIcon: Icon(Icons.assessment),
                 border: OutlineInputBorder(),
@@ -375,7 +374,7 @@ class _MaintenanceExecutionScreenState
                             shape: BoxShape.circle,
                           ),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(condition['value'] as String),
                       ],
                     ),
@@ -398,8 +397,8 @@ class _MaintenanceExecutionScreenState
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );
   }
@@ -407,19 +406,19 @@ class _MaintenanceExecutionScreenState
   Widget _buildPhotosSection() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.camera_alt, color: Color(0xFF1976D2)),
-                SizedBox(width: 8),
-                Text(
+                const Icon(Icons.camera_alt, color: Color(0xFF1976D2)),
+                const SizedBox(width: 8),
+                const Text(
                   'Fotos de Evidencia',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   selectedImages.isEmpty ? 'Requerido' : '${selectedImages.length} foto(s)',
                   style: TextStyle(
@@ -430,26 +429,26 @@ class _MaintenanceExecutionScreenState
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _addPhoto(ImageSource.camera),
-                    icon: Icon(Icons.camera_alt),
-                    label: Text('Tomar Foto'),
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text('Tomar Foto'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF1976D2),
+                      backgroundColor: const Color(0xFF1976D2),
                       foregroundColor: Colors.white,
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _addPhoto(ImageSource.gallery),
-                    icon: Icon(Icons.photo_library),
-                    label: Text('Galería'),
+                    icon: const Icon(Icons.photo_library),
+                    label: const Text('Galería'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey[600],
                       foregroundColor: Colors.white,
@@ -458,7 +457,7 @@ class _MaintenanceExecutionScreenState
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             if (selectedImages.isEmpty)
               Container(
                 height: 100,
@@ -472,7 +471,7 @@ class _MaintenanceExecutionScreenState
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.camera_alt, color: Colors.red[400], size: 32),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'Se requiere al menos una foto\npara completar el mantenimiento',
                       style: TextStyle(color: Colors.red[600], fontSize: 12),
@@ -484,8 +483,8 @@ class _MaintenanceExecutionScreenState
             else
               GridView.builder(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
@@ -509,12 +508,12 @@ class _MaintenanceExecutionScreenState
                         child: GestureDetector(
                           onTap: () => _removePhoto(index),
                           child: Container(
-                            padding: EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: Colors.red,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(Icons.close,
+                            child: const Icon(Icons.close,
                                 color: Colors.white, size: 16),
                           ),
                         ),
@@ -523,14 +522,14 @@ class _MaintenanceExecutionScreenState
                         bottom: 4,
                         left: 4,
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '${index + 1}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -551,19 +550,19 @@ class _MaintenanceExecutionScreenState
   Widget _buildNotesSection() {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.note_alt, color: Color(0xFF1976D2)),
-                SizedBox(width: 8),
-                Text(
+                const Icon(Icons.note_alt, color: Color(0xFF1976D2)),
+                const SizedBox(width: 8),
+                const Text(
                   'Notas Adicionales',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   'Opcional',
                   style: TextStyle(
@@ -573,11 +572,11 @@ class _MaintenanceExecutionScreenState
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             TextField(
               controller: _notesController,
               maxLines: 4,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Observaciones, problemas encontrados, recomendaciones...',
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.all(12),
@@ -597,43 +596,43 @@ class _MaintenanceExecutionScreenState
     
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.timeline, color: Color(0xFF1976D2)),
-                SizedBox(width: 8),
-                Text(
+                const Icon(Icons.timeline, color: Color(0xFF1976D2)),
+                const SizedBox(width: 8),
+                const Text(
                   'Progreso del Mantenimiento',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   '${(progress * 100).toInt()}%',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: progress == 1.0 ? Colors.green : Color(0xFF1976D2),
+                    color: progress == 1.0 ? Colors.green : const Color(0xFF1976D2),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             LinearProgressIndicator(
               value: progress,
               backgroundColor: Colors.grey[300],
               valueColor: AlwaysStoppedAnimation<Color>(
-                progress == 1.0 ? Colors.green : Color(0xFF1976D2),
+                progress == 1.0 ? Colors.green : const Color(0xFF1976D2),
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               '$completedTasks de $totalTasks tareas completadas',
               style: TextStyle(color: Colors.grey[600]),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Icon(
@@ -641,7 +640,7 @@ class _MaintenanceExecutionScreenState
                   color: hasPhotos ? Colors.green : Colors.grey,
                   size: 16,
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   hasPhotos 
                     ? '${selectedImages.length} foto(s) adjunta(s)'
@@ -671,7 +670,7 @@ class _MaintenanceExecutionScreenState
           child: ElevatedButton.icon(
             onPressed: (isSaving || isLoading) ? null : _saveProgress,
             icon: isSaving 
-              ? SizedBox(
+              ? const SizedBox(
                   width: 16, 
                   height: 16, 
                   child: CircularProgressIndicator(
@@ -679,34 +678,34 @@ class _MaintenanceExecutionScreenState
                     strokeWidth: 2
                   )
                 ) 
-              : Icon(Icons.save),
+              : const Icon(Icons.save),
             label: Text(isSaving ? 'Guardando...' : 'Guardar Progreso'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: (canComplete && !isLoading && !isSaving) ? _completeMaintenance : null,
-            icon: Icon(Icons.check_circle),
-            label: Text('Completar Mantenimiento'),
+            icon: const Icon(Icons.check_circle),
+            label: const Text('Completar Mantenimiento'),
             style: ElevatedButton.styleFrom(
               backgroundColor: canComplete ? Colors.green : Colors.grey,
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ),
         if (!canComplete)
           Padding(
-            padding: EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: 8),
             child: Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.amber[50],
                 border: Border.all(color: Colors.amber[300]!),
@@ -715,7 +714,7 @@ class _MaintenanceExecutionScreenState
               child: Row(
                 children: [
                   Icon(Icons.info_outline, color: Colors.amber[700], size: 20),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -766,15 +765,15 @@ class _MaintenanceExecutionScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Pausar Mantenimiento'),
+        title: const Text('Pausar Mantenimiento'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('¿Por qué deseas pausar este mantenimiento?'),
-            SizedBox(height: 16),
+            const Text('¿Por qué deseas pausar este mantenimiento?'),
+            const SizedBox(height: 16),
             TextField(
               controller: reasonController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Razón de la pausa...',
                 border: OutlineInputBorder(),
               ),
@@ -785,7 +784,7 @@ class _MaintenanceExecutionScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -798,13 +797,13 @@ class _MaintenanceExecutionScreenState
                 if (success) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Mantenimiento pausado')),
+                    const SnackBar(content: Text('Mantenimiento pausado')),
                   );
                 }
               }
             },
-            child: Text('Pausar'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: Text('Pausar'),
           ),
         ],
       ),
@@ -819,22 +818,22 @@ class _MaintenanceExecutionScreenState
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Reportar Problema'),
+          title: const Text('Reportar Problema'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: issueController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Describe el problema encontrado...',
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: selectedSeverity,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Severidad',
                   border: OutlineInputBorder(),
                 ),
@@ -855,7 +854,7 @@ class _MaintenanceExecutionScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancelar'),
+              child: const Text('Cancelar'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -868,13 +867,13 @@ class _MaintenanceExecutionScreenState
                   );
                   if (success) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Problema reportado correctamente')),
+                      const SnackBar(content: Text('Problema reportado correctamente')),
                     );
                   }
                 }
               },
-              child: Text('Reportar'),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text('Reportar'),
             ),
           ],
         ),
@@ -918,7 +917,7 @@ class _MaintenanceExecutionScreenState
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Progreso guardado correctamente'),
             backgroundColor: Colors.green,
           ),
@@ -938,17 +937,17 @@ class _MaintenanceExecutionScreenState
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Completar Mantenimiento'),
-        content: Text('¿Estás seguro de que deseas completar este mantenimiento? Esta acción no se puede deshacer.'),
+        title: const Text('Completar Mantenimiento'),
+        content: const Text('¿Estás seguro de que deseas completar este mantenimiento? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Completar'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: Text('Completar'),
           ),
         ],
       ),
@@ -979,7 +978,7 @@ class _MaintenanceExecutionScreenState
       if (success) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Mantenimiento completado exitosamente'),
             backgroundColor: Colors.green,
           ),
@@ -998,12 +997,12 @@ class _MaintenanceExecutionScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Error'),
+        title: const Text('Error'),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Aceptar'),
+            child: const Text('Aceptar'),
           ),
         ],
       ),

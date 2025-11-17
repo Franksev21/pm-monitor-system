@@ -7,7 +7,7 @@ import '../../../core/services/equipment_pdf_service.dart';
 class QRDisplayScreen extends StatefulWidget {
   final Equipment equipment;
 
-  const QRDisplayScreen({Key? key, required this.equipment}) : super(key: key);
+  const QRDisplayScreen({super.key, required this.equipment});
 
   @override
   State<QRDisplayScreen> createState() => _QRDisplayScreenState();
@@ -219,15 +219,15 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: const Color(0xFF1976D2),
+                  color: Color(0xFF1976D2),
                   size: 20,
                 ),
-                const SizedBox(width: 8),
-                const Text(
+                SizedBox(width: 8),
+                Text(
                   'Información del Equipo',
                   style: TextStyle(
                     fontSize: 18,
@@ -398,15 +398,15 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(
                   Icons.settings,
-                  color: const Color(0xFF1976D2),
+                  color: Color(0xFF1976D2),
                   size: 20,
                 ),
-                const SizedBox(width: 8),
-                const Text(
+                SizedBox(width: 8),
+                Text(
                   'Información Técnica',
                   style: TextStyle(
                     fontSize: 16,
@@ -664,7 +664,7 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
       if (file != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PDF guardado exitosamente'),
+            content: const Text('PDF guardado exitosamente'),
             backgroundColor: Colors.green,
             action: SnackBarAction(
               label: 'Ver ubicación',

@@ -463,7 +463,7 @@ class Equipment {
 
   bool get isOverdue {
     if (nextMaintenanceDate == null) return false;
-    return DateTime.now().isAfter(nextMaintenanceDate!.add(Duration(days: 7)));
+    return DateTime.now().isAfter(nextMaintenanceDate!.add(const Duration(days: 7)));
   }
 
   String get statusColor {

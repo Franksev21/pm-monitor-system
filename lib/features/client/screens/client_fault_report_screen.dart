@@ -183,12 +183,12 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                const Expanded(
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -207,7 +207,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
               ],
             ),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
           ),
         );

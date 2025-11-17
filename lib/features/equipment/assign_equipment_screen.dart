@@ -9,9 +9,9 @@ class AssignEquipmentScreen extends StatefulWidget {
   final UserManagementModel technician;
 
   const AssignEquipmentScreen({
-    Key? key,
+    super.key,
     required this.technician,
-  }) : super(key: key);
+  });
 
   @override
   State<AssignEquipmentScreen> createState() => _AssignEquipmentScreenState();
@@ -23,7 +23,7 @@ class _AssignEquipmentScreenState extends State<AssignEquipmentScreen>
   final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = '';
-  List<Equipment> _selectedEquipments = [];
+  final List<Equipment> _selectedEquipments = [];
   bool _isLoading = false;
 
   @override
@@ -357,9 +357,9 @@ class _AssignEquipmentScreenState extends State<AssignEquipmentScreen>
       ),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.check_circle,
-            color: const Color(0xFF2196F3),
+            color: Color(0xFF2196F3),
             size: 20,
           ),
           const SizedBox(width: 8),

@@ -224,13 +224,13 @@ class _ClientEquipmentInventoryScreenState
 
         if (userSnapshot.hasError) {
           print('❌ Error obteniendo usuario: ${userSnapshot.error}');
-          return Center(
+          return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                const Text('Error cargando datos del cliente'),
+                Icon(Icons.error_outline, size: 64, color: Colors.red),
+                SizedBox(height: 16),
+                Text('Error cargando datos del cliente'),
               ],
             ),
           );
@@ -509,7 +509,7 @@ class _ClientEquipmentInventoryScreenState
                         ),
                         if (brand.isNotEmpty || model.isNotEmpty)
                           Text(
-                            '$brand ${model}'.trim(),
+                            '$brand $model'.trim(),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],

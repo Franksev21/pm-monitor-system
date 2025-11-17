@@ -35,7 +35,7 @@ class WebImageService {
       // Crear una imagen programáticamente usando Canvas
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
-      final size = const Size(600, 800);
+      const size = Size(600, 800);
 
       // Fondo con gradiente
       final paint = Paint()
@@ -162,7 +162,7 @@ Ubicación: ${equipment.location}
 
   /// URL de fallback si falla la generación de imagen
   static String _generateFallbackURL(Equipment equipment) {
-    final baseUrl = 'https://pmmonitor-web.vercel.app/equipment-card';
+    const baseUrl = 'https://pmmonitor-web.vercel.app/equipment-card';
     final params = {
       'id': equipment.id ?? '',
       'number': equipment.equipmentNumber,

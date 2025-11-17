@@ -17,9 +17,9 @@ class ClientSearchDialog extends StatefulWidget {
   final List<ClientModel> clients;
 
   const ClientSearchDialog({
-    Key? key,
+    super.key,
     required this.clients,
-  }) : super(key: key);
+  });
 
   @override
   State<ClientSearchDialog> createState() => _ClientSearchDialogState();

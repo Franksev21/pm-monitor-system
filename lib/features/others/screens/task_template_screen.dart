@@ -4,7 +4,7 @@ import 'package:pm_monitor/core/services/task_template_service.dart';
 import 'package:pm_monitor/features/others/screens/add_edit_task_template_screen.dart';
 
 class TaskTemplatesScreen extends StatefulWidget {
-  const TaskTemplatesScreen({Key? key}) : super(key: key);
+  const TaskTemplatesScreen({super.key});
 
   @override
   State<TaskTemplatesScreen> createState() => _TaskTemplatesScreenState();

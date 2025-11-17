@@ -685,7 +685,7 @@ class EquipmentProvider with ChangeNotifier {
 
     DateTime now = DateTime.now();
     DateTime warningDate =
-        equipment.nextMaintenanceDate!.subtract(Duration(days: 3));
+        equipment.nextMaintenanceDate!.subtract(const Duration(days: 3));
 
     return now.isAfter(warningDate) &&
         now.isBefore(equipment.nextMaintenanceDate!);
@@ -765,7 +765,7 @@ class EquipmentProvider with ChangeNotifier {
   // Obtener próximos mantenimientos (próximos 30 días)
   List<Equipment> get upcomingMaintenances {
     DateTime now = DateTime.now();
-    DateTime monthFromNow = now.add(Duration(days: 30));
+    DateTime monthFromNow = now.add(const Duration(days: 30));
 
     return _clientEquipments
         .where((equipment) =>

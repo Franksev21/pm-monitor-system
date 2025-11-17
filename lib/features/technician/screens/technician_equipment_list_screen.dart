@@ -9,7 +9,7 @@ import 'package:pm_monitor/features/others/screens/qr_display_screen.dart';
 
 /// Lista de equipos filtrada para técnicos - muestra solo equipos asignados al técnico actual
 class TechnicianEquipmentListScreen extends StatefulWidget {
-  const TechnicianEquipmentListScreen({Key? key}) : super(key: key);
+  const TechnicianEquipmentListScreen({super.key});
 
   @override
   State<TechnicianEquipmentListScreen> createState() =>
@@ -171,8 +171,9 @@ class _TechnicianEquipmentListScreenState
         break;
       case 'Por mantenimiento':
         filtered.sort((a, b) {
-          if (a.nextMaintenanceDate == null && b.nextMaintenanceDate == null)
+          if (a.nextMaintenanceDate == null && b.nextMaintenanceDate == null) {
             return 0;
+          }
           if (a.nextMaintenanceDate == null) return 1;
           if (b.nextMaintenanceDate == null) return -1;
           return a.nextMaintenanceDate!.compareTo(b.nextMaintenanceDate!);

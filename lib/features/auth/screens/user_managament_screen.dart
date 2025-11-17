@@ -7,7 +7,7 @@ import 'package:pm_monitor/features/technician/screens/assign_technician_screen.
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 
 class UserManagementScreen extends StatefulWidget {
-  const UserManagementScreen({Key? key}) : super(key: key);
+  const UserManagementScreen({super.key});
 
   @override
   State<UserManagementScreen> createState() => _UserManagementScreenState();
@@ -20,7 +20,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
   final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = '';
-  Map<String, Map<String, int>> _statsCache = {};
+  final Map<String, Map<String, int>> _statsCache = {};
 
   final List<Map<String, dynamic>> _tabs = [
     {

@@ -84,7 +84,7 @@ class SimpleBackupService {
       'created_by': _auth.currentUser?.email ?? 'unknown',
       'total_collections': collections.length,
       'total_documents': data.values
-          .where((v) => v is List)
+          .whereType<List>()
           .cast<List>()
           .map((list) => list.length)
           .fold(0, (a, b) => a + b),

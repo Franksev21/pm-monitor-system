@@ -195,7 +195,7 @@ Generado: ${DateTime.now().toString().substring(0, 19)}''';
         mainAxisSize: MainAxisSize.min,
         children: [
           // Header
-          Text(
+          const Text(
             'PM MONITOR',
             style: TextStyle(
               fontSize: 18,

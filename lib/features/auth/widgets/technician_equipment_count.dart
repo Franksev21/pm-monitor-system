@@ -7,10 +7,10 @@ class TechnicianEquipmentCount extends StatelessWidget {
   final TextStyle? style;
 
   const TechnicianEquipmentCount({
-    Key? key,
+    super.key,
     required this.technicianId,
     this.style,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

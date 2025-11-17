@@ -6,10 +6,10 @@ class MaintenanceStatsWidget extends StatelessWidget {
   final VoidCallback? onTap;
 
   const MaintenanceStatsWidget({
-    Key? key,
+    super.key,
     required this.maintenances,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

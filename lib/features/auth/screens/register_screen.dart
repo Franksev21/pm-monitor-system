@@ -196,7 +196,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.primaryColor),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.primaryColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -242,7 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           'Únete a PM Monitor',
                           style: TextStyle(
                             fontSize: 24,
@@ -284,7 +284,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            BorderSide(color: AppTheme.primaryColor, width: 2),
+                            const BorderSide(color: AppTheme.primaryColor, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -380,7 +380,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            BorderSide(color: AppTheme.primaryColor, width: 2),
+                            const BorderSide(color: AppTheme.primaryColor, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -415,7 +415,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            BorderSide(color: AppTheme.primaryColor, width: 2),
+                            const BorderSide(color: AppTheme.primaryColor, width: 2),
                       ),
                     ),
                     hint: const Text('Selecciona tu rol'),
@@ -550,7 +550,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            BorderSide(color: AppTheme.primaryColor, width: 2),
+                            const BorderSide(color: AppTheme.primaryColor, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -595,9 +595,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                                         Colors.white),
                                   ),
                                 )
-                              : Row(
+                              : const Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
+                                  children: [
                                     Icon(Icons.person_add, size: 20),
                                     SizedBox(width: 8),
                                     Text(
@@ -626,14 +626,14 @@ class _RegisterScreenState extends State<RegisterScreen>
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: AppTheme.primaryColor),
+                        side: const BorderSide(color: AppTheme.primaryColor),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.arrow_back,
                               size: 20, color: AppTheme.primaryColor),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
                             'Ya tengo cuenta',
                             style: TextStyle(
