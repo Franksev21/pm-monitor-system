@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
 
 class MaintenanceStatsWidget extends StatelessWidget {
   final List<MaintenanceSchedule> maintenances;
@@ -195,17 +195,17 @@ class MaintenanceStatsWidget extends StatelessWidget {
 
     for (final maintenance in monthlyMaintenances) {
       switch (maintenance.status) {
-        case MaintenanceStatus.scheduled:
-          if (maintenance.isOverdue) {
+        case MaintenanceStatus.generated:
+          if (maintenance.status == MaintenanceStatus.executed) {
             overdue++;
           } else {
             scheduled++;
           }
           break;
-        case MaintenanceStatus.inProgress:
+        case MaintenanceStatus.executed:
           inProgress++;
           break;
-        case MaintenanceStatus.completed:
+        case MaintenanceStatus.executed:
           completed++;
           // Verificar si se completó a tiempo para calcular eficiencia
           if (maintenance.completedDate != null &&
@@ -214,10 +214,10 @@ class MaintenanceStatsWidget extends StatelessWidget {
             completedOnTime++;
           }
           break;
-        case MaintenanceStatus.overdue:
+        case MaintenanceStatus.assigned:
           overdue++;
           break;
-        case MaintenanceStatus.cancelled:
+        case MaintenanceStatus.executed:
           cancelled++;
           break;
       }

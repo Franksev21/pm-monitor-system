@@ -6,7 +6,7 @@ import 'package:pm_monitor/features/others/screens/kpi_indicators_screen.dart';
 import 'package:pm_monitor/features/others/screens/task_template_screen.dart';
 import 'package:pm_monitor/features/technician/screens/tecnician_list_screen.dart';
 import 'package:pm_monitor/features/auth/screens/user_managament_screen.dart';
-import 'package:pm_monitor/features/calendar/screens/apple_style_calender.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_management_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../config/theme/app_theme.dart';
@@ -67,7 +67,7 @@ class AdminDashboard extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  const AppleStyleMaintenanceCalendar(),
+                                  const MaintenanceManagementScreen(),
                             ),
                           );
                         },

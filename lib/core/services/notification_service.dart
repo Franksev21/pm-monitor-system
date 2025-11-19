@@ -6,6 +6,10 @@ class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
+  // ============================================
+  // NOTIFICACIONES DE FALLAS (Ya existente)
+  // ============================================
+
   Future<void> sendFaultNotifications({
     required String equipmentName,
     required String equipmentId,
@@ -46,7 +50,7 @@ class NotificationService {
       await _sendBatchNotifications(fcmTokens, title, body, data);
     }
 
-    // Crear notificación en pendingNotifications (como ya lo tienes funcionando)
+    // Crear notificación en pendingNotifications
     await _firestore.collection('pendingNotifications').add({
       'type': 'fault_report',
       'message':
@@ -61,6 +65,282 @@ class NotificationService {
     print('Notificaciones enviadas para reporte: $reportId');
   }
 
+  // ============================================
+  // ⭐ NUEVAS: NOTIFICACIONES DE MANTENIMIENTO
+  // ============================================
+
+  /// ⭐ Notificar asignación de mantenimiento a UN técnico
+  Future<void> sendMaintenanceAssignedNotification({
+    required String technicianId,
+    required String maintenanceId,
+  }) async {
+    try {
+      // Obtener datos del técnico
+      final techDoc =
+          await _firestore.collection('users').doc(technicianId).get();
+      if (!techDoc.exists) {
+        print('⚠️ Técnico no encontrado: $technicianId');
+        return;
+      }
+
+      final techData = techDoc.data()!;
+      final techName = techData['name'] ?? 'Técnico';
+      final fcmToken = techData['fcmToken'] as String?;
+
+      // Obtener datos del mantenimiento
+      final maintDoc = await _firestore
+          .collection('maintenanceSchedules')
+          .doc(maintenanceId)
+          .get();
+
+      if (!maintDoc.exists) {
+        print('⚠️ Mantenimiento no encontrado: $maintenanceId');
+        return;
+      }
+
+      final maintData = maintDoc.data()!;
+      final equipmentName = maintData['equipmentName'] ?? 'Equipo';
+      final scheduledDate = (maintData['scheduledDate'] as Timestamp).toDate();
+
+      // Crear mensaje
+      String message = '''📋 NUEVO MANTENIMIENTO ASIGNADO
+Equipo: $equipmentName
+Fecha programada: ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDate)}
+ID: $maintenanceId''';
+
+      // Guardar en pendingNotifications
+      await _firestore.collection('pendingNotifications').add({
+        'userId': technicianId,
+        'type': 'maintenance_assigned',
+        'title': '🔧 Nuevo Mantenimiento',
+        'message': message,
+        'data': {
+          'maintenanceId': maintenanceId,
+          'equipmentName': equipmentName,
+          'scheduledDate': Timestamp.fromDate(scheduledDate),
+        },
+        'status': 'pending',
+        'severity': 'media',
+        'createdAt': Timestamp.now(),
+      });
+
+      // Enviar push notification si tiene token
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        await _sendSingleNotification(
+          fcmToken,
+          '🔧 Nuevo Mantenimiento',
+          'Se te ha asignado: $equipmentName',
+          {
+            'type': 'maintenance_assigned',
+            'maintenanceId': maintenanceId,
+            'equipmentName': equipmentName,
+          },
+        );
+      }
+
+      print('✅ Notificación enviada a $techName');
+    } catch (e) {
+      print('❌ Error enviando notificación de asignación: $e');
+    }
+  }
+
+  /// ⭐ Notificar asignación MASIVA de mantenimientos
+  Future<void> sendBulkMaintenanceAssignedNotification({
+    required String technicianId,
+    required int maintenanceCount,
+  }) async {
+    try {
+      // Obtener datos del técnico
+      final techDoc =
+          await _firestore.collection('users').doc(technicianId).get();
+      if (!techDoc.exists) {
+        print('⚠️ Técnico no encontrado: $technicianId');
+        return;
+      }
+
+      final techData = techDoc.data()!;
+      final techName = techData['name'] ?? 'Técnico';
+      final fcmToken = techData['fcmToken'] as String?;
+
+      // Crear mensaje
+      String message = '''📋 NUEVOS MANTENIMIENTOS ASIGNADOS
+Se te han asignado $maintenanceCount mantenimientos.
+Revisa tu calendario para ver los detalles.''';
+
+      // Guardar en pendingNotifications
+      await _firestore.collection('pendingNotifications').add({
+        'userId': technicianId,
+        'type': 'bulk_maintenance_assigned',
+        'title': '🔧 Nuevos Mantenimientos',
+        'message': message,
+        'data': {
+          'maintenanceCount': maintenanceCount,
+        },
+        'status': 'pending',
+        'severity': 'media',
+        'createdAt': Timestamp.now(),
+      });
+
+      // Enviar push notification si tiene token
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        await _sendSingleNotification(
+          fcmToken,
+          '🔧 Nuevos Mantenimientos',
+          'Se te han asignado $maintenanceCount mantenimientos',
+          {
+            'type': 'bulk_maintenance_assigned',
+            'maintenanceCount': maintenanceCount.toString(),
+          },
+        );
+      }
+
+      print('✅ Notificación masiva enviada a $techName');
+    } catch (e) {
+      print('❌ Error enviando notificación masiva: $e');
+    }
+  }
+
+  /// ⭐ Notificar mantenimiento completado (a supervisor/admin)
+  Future<void> sendMaintenanceCompletedNotification({
+    required String maintenanceId,
+    required String completedBy,
+  }) async {
+    try {
+      // Obtener datos del mantenimiento
+      final maintDoc = await _firestore
+          .collection('maintenanceSchedules')
+          .doc(maintenanceId)
+          .get();
+
+      if (!maintDoc.exists) {
+        print('⚠️ Mantenimiento no encontrado: $maintenanceId');
+        return;
+      }
+
+      final maintData = maintDoc.data()!;
+      final equipmentName = maintData['equipmentName'] ?? 'Equipo';
+      final completionPercentage = maintData['completionPercentage'] ?? 0;
+
+      // Obtener supervisores y admins
+      final supervisorsSnapshot = await _firestore
+          .collection('users')
+          .where('role', whereIn: ['supervisor', 'admin'])
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      if (supervisorsSnapshot.docs.isEmpty) {
+        print('⚠️ No hay supervisores/admins activos');
+        return;
+      }
+
+      // Crear mensaje
+      String message = '''✅ MANTENIMIENTO COMPLETADO
+Equipo: $equipmentName
+Completado por: $completedBy
+Progreso: $completionPercentage%
+ID: $maintenanceId''';
+
+      // Enviar a cada supervisor/admin
+      for (final supervisorDoc in supervisorsSnapshot.docs) {
+        final supervisorData = supervisorDoc.data();
+        final supervisorId = supervisorDoc.id;
+        final fcmToken = supervisorData['fcmToken'] as String?;
+
+        // Guardar en pendingNotifications
+        await _firestore.collection('pendingNotifications').add({
+          'userId': supervisorId,
+          'type': 'maintenance_completed',
+          'title': '✅ Mantenimiento Completado',
+          'message': message,
+          'data': {
+            'maintenanceId': maintenanceId,
+            'equipmentName': equipmentName,
+            'completedBy': completedBy,
+            'completionPercentage': completionPercentage,
+          },
+          'status': 'pending',
+          'severity': 'baja',
+          'createdAt': Timestamp.now(),
+        });
+
+        // Enviar push notification si tiene token
+        if (fcmToken != null && fcmToken.isNotEmpty) {
+          await _sendSingleNotification(
+            fcmToken,
+            '✅ Mantenimiento Completado',
+            '$equipmentName - $completionPercentage%',
+            {
+              'type': 'maintenance_completed',
+              'maintenanceId': maintenanceId,
+              'equipmentName': equipmentName,
+            },
+          );
+        }
+      }
+
+      print('✅ Notificaciones de completado enviadas');
+    } catch (e) {
+      print('❌ Error enviando notificación de completado: $e');
+    }
+  }
+
+  /// ⭐ VERSIÓN MEJORADA: Asignación con datos del equipo
+  Future<void> sendMaintenanceAssignedNotificationWithEquipment({
+    required String technicianId,
+    required String maintenanceId,
+    required String equipmentName,
+    required DateTime scheduledDate,
+  }) async {
+    try {
+      final techDoc =
+          await _firestore.collection('users').doc(technicianId).get();
+      if (!techDoc.exists) return;
+
+      final techData = techDoc.data()!;
+      final fcmToken = techData['fcmToken'] as String?;
+
+      String message = '''📋 NUEVO MANTENIMIENTO ASIGNADO
+Equipo: $equipmentName
+Fecha programada: ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDate)}
+ID: $maintenanceId''';
+
+      await _firestore.collection('pendingNotifications').add({
+        'userId': technicianId,
+        'type': 'maintenance_assigned',
+        'title': '🔧 Nuevo Mantenimiento',
+        'message': message,
+        'data': {
+          'maintenanceId': maintenanceId,
+          'equipmentName': equipmentName,
+          'scheduledDate': Timestamp.fromDate(scheduledDate),
+        },
+        'status': 'pending',
+        'severity': 'media',
+        'createdAt': Timestamp.now(),
+      });
+
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        await _sendSingleNotification(
+          fcmToken,
+          '🔧 Nuevo Mantenimiento',
+          'Se te ha asignado: $equipmentName',
+          {
+            'type': 'maintenance_assigned',
+            'maintenanceId': maintenanceId,
+          },
+        );
+      }
+
+      print('✅ Notificación enviada');
+    } catch (e) {
+      print('❌ Error: $e');
+    }
+  }
+
+  // ============================================
+  // MÉTODOS AUXILIARES (Ya existentes)
+  // ============================================
+
   Future<void> _sendBatchNotifications(
     List<String> tokens,
     String title,
@@ -68,7 +348,6 @@ class NotificationService {
     Map<String, String> data,
   ) async {
     try {
-      // Guardar para procesamiento por Cloud Function o procesamiento local
       await _firestore.collection('batchNotifications').add({
         'tokens': tokens,
         'title': title,
@@ -78,9 +357,7 @@ class NotificationService {
         'status': 'pending',
       });
 
-      // Envío directo para tokens individuales (alternativa)
       for (String token in tokens.take(5)) {
-        // Limitar a 5 para evitar rate limits
         try {
           await _sendSingleNotification(token, title, body, data);
         } catch (e) {
@@ -92,33 +369,6 @@ class NotificationService {
     }
   }
 
-  Future<void> sendMaintenanceAssignedNotification({
-    required String technicianId,
-    required String maintenanceId,
-    required String equipmentName,
-    required DateTime scheduledDate,
-  }) async {
-    String message = '''
-📋 NUEVO MANTENIMIENTO ASIGNADO
-Equipo: $equipmentName
-Fecha programada: ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDate)}
-ID: $maintenanceId
-''';
-
-    await _firestore.collection('pendingNotifications').add({
-      'type': 'maintenance_assigned',
-      'message': message,
-      'technicianId': technicianId,
-      'maintenanceId': maintenanceId,
-      'equipmentName': equipmentName,
-      'scheduledDate': Timestamp.fromDate(scheduledDate),
-      'createdAt': Timestamp.now(),
-      'status': 'pending',
-    });
-
-    print('Notificación de mantenimiento asignado enviada');
-  }
-
   Future<void> _sendSingleNotification(
     String token,
     String title,
@@ -126,8 +376,6 @@ ID: $maintenanceId
     Map<String, String> data,
   ) async {
     try {
-      // Usar HTTP API directamente si es necesario
-      // Por ahora solo guardamos el log
       await _firestore.collection('sentNotifications').add({
         'token': token,
         'title': title,
@@ -141,7 +389,10 @@ ID: $maintenanceId
     }
   }
 
-  // Actualizar token FCM del usuario
+  // ============================================
+  // CONFIGURACIÓN Y PERMISOS (Ya existentes)
+  // ============================================
+
   Future<void> updateUserFCMToken(String userId) async {
     try {
       String? token = await _messaging.getToken();
@@ -157,33 +408,38 @@ ID: $maintenanceId
     }
   }
 
-  // Configurar listeners de mensajes
   void setupMessageListeners() {
-    // Mensajes en primer plano
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Mensaje recibido en primer plano: ${message.notification?.title}');
 
-      if (message.data['type'] == 'fault_report') {
+      final messageType = message.data['type'];
+
+      if (messageType == 'fault_report') {
         print('Es un reporte de falla: ${message.data['reportId']}');
-        // Aquí puedes mostrar una notificación local o actualizar la UI
+      } else if (messageType == 'maintenance_assigned') {
+        print('Nuevo mantenimiento asignado: ${message.data['maintenanceId']}');
+      } else if (messageType == 'maintenance_completed') {
+        print('Mantenimiento completado: ${message.data['maintenanceId']}');
       }
     });
 
-    // Click en notificación
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('Notificación clickeada: ${message.data}');
 
-      if (message.data['type'] == 'fault_report') {
+      final messageType = message.data['type'];
+
+      if (messageType == 'fault_report') {
         String reportId = message.data['reportId'] ?? '';
         String equipmentId = message.data['equipmentId'] ?? '';
-
         print('Navegar a reporte: $reportId, equipo: $equipmentId');
-        // Aquí implementar navegación usando tu sistema de rutas
+      } else if (messageType == 'maintenance_assigned' ||
+          messageType == 'maintenance_completed') {
+        String maintenanceId = message.data['maintenanceId'] ?? '';
+        print('Navegar a mantenimiento: $maintenanceId');
       }
     });
   }
 
-  // Solicitar permisos de notificación
   Future<void> requestNotificationPermissions() async {
     try {
       NotificationSettings settings = await _messaging.requestPermission(

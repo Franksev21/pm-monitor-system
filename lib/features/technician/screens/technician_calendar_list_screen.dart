@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
 import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
 import 'package:pm_monitor/features/maintenance/screens/maintenance_execution_screen.dart';
 
-/// Calendario filtrado para técnicos - muestra solo mantenimientos asignados al técnico actual
 class TechnicianCalendarScreen extends StatefulWidget {
   const TechnicianCalendarScreen({super.key});
 
@@ -54,14 +53,18 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
       final startDate = DateTime(_currentMonth.year, _currentMonth.month, 1);
       final endDate = DateTime(_currentMonth.year, _currentMonth.month + 2, 0);
 
-      print('=== DEBUG CALENDARIO ===');
-      print('User ID: ${user.uid}');
-      print('Rango de fechas: $startDate - $endDate');
+      debugPrint('=== DEBUG CALENDARIO TÉCNICO ===');
+      debugPrint('User ID: ${user.uid}');
+      debugPrint('Rango de fechas: $startDate - $endDate');
 
-      // FILTRO PRINCIPAL: Solo mantenimientos asignados al técnico actual
-      final maintenances =
-          await _maintenanceService.getMaintenancesByDateRangeAndTechnician(
-              startDate, endDate, user.uid);
+      // ✅ CORREGIDO: Usar getFilteredMaintenances con technicianId
+      final maintenances = await _maintenanceService.getFilteredMaintenances(
+        startDate: startDate,
+        endDate: endDate,
+        technicianId: user.uid, // ✅ Solo mantenimientos del técnico actual
+      );
+
+      debugPrint('Mantenimientos encontrados: ${maintenances.length}');
 
       _events.clear();
       for (var maintenance in maintenances) {
@@ -80,16 +83,21 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
 
       _updateSelectedDayEvents();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error cargando mantenimientos: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint('Error cargando mantenimientos: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cargando mantenimientos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -555,18 +563,16 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (maintenance.location != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            maintenance.location!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        const SizedBox(height: 2),
+                        Text(
+                          maintenance.location,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
                           ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
                   ),
@@ -581,7 +587,8 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          maintenance.statusDisplayName,
+                          MaintenanceSchedule.getStatusDisplayName(
+                              maintenance.status), // ✅ CORREGIDO
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -590,13 +597,13 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      // Text(
-                      //   '${maintenance.estimatedDurationMinutes}m',
-                      //   style: TextStyle(
-                      //     fontSize: 11,
-                      //     color: Colors.grey[500],
-                      //   ),
-                      // ),
+                      Text(
+                        '${maintenance.estimatedHours ?? 0}h', // ✅ CORREGIDO
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -608,7 +615,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
     );
   }
 
-void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
+  void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -619,16 +626,27 @@ void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildDetailRow('Cliente', maintenance.clientName),
-              _buildDetailRow('Estado', maintenance.statusDisplayName),
               _buildDetailRow(
-                  'Fecha',
-                  DateFormat('dd/MM/yyyy HH:mm')
-                      .format(maintenance.scheduledDate)),
-              // _buildDetailRow('Duración',
-              //     '${maintenance.estimatedDurationMinutes} minutos'),
-              _buildDetailRow('Frecuencia', maintenance.frequencyDisplayName),
-              if (maintenance.location != null)
-                _buildDetailRow('Ubicación', maintenance.location!),
+                'Estado',
+                MaintenanceSchedule.getStatusDisplayName(
+                    maintenance.status), // ✅ CORREGIDO
+              ),
+              _buildDetailRow(
+                'Fecha',
+                DateFormat('dd/MM/yyyy HH:mm')
+                    .format(maintenance.scheduledDate),
+              ),
+              _buildDetailRow(
+                'Duración estimada',
+                '${maintenance.estimatedHours ?? 0} horas', // ✅ CORREGIDO
+              ),
+              if (maintenance.frequency != null)
+                _buildDetailRow(
+                  'Frecuencia',
+                  MaintenanceSchedule.getFrequencyDisplayName(
+                      maintenance.frequency!), // ✅ CORREGIDO
+                ),
+              _buildDetailRow('Ubicación', maintenance.location),
               if (maintenance.notes != null)
                 _buildDetailRow('Notas', maintenance.notes!),
               if (maintenance.tasks.isNotEmpty) ...[
@@ -647,32 +665,33 @@ void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
           ),
         ),
         actions: [
-          if (maintenance.status == MaintenanceStatus.scheduled)
+          // ✅ CORREGIDO: Solo mostrar botón "Iniciar" si está ASIGNADO
+          if (maintenance.status == MaintenanceStatus.assigned)
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(context);
-                final maintenanceData = {
-                  'id': maintenance.id,
-                  'equipmentName': maintenance.equipmentName,
-                  'equipmentId': maintenance.equipmentId,
-                  'clientName': maintenance.clientName,
-                  'clientId': maintenance.clientId,
-                  'location': maintenance.location,
-                  'scheduledDate': maintenance.scheduledDate,
-                  'type': maintenance.type.toString().split('.').last,
-                  'status': maintenance.status.toString().split('.').last,
-                  'tasks': maintenance.tasks,
-                  // 'estimatedDuration': maintenance.estimatedDurationMinutes,
-                  'technicianId': maintenance.technicianId,
-                  'technicianName': maintenance.technicianName,
-                };
 
                 // Navegar a MaintenanceExecutionScreen
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => MaintenanceExecutionScreen(
-                        maintenance: maintenanceData),
+                      maintenance: {
+                        'id': maintenance.id,
+                        'equipmentName': maintenance.equipmentName,
+                        'equipmentId': maintenance.equipmentId,
+                        'clientName': maintenance.clientName,
+                        'clientId': maintenance.clientId,
+                        'location': maintenance.location,
+                        'scheduledDate': maintenance.scheduledDate,
+                        'type': maintenance.type.toString().split('.').last,
+                        'status': maintenance.status.toString().split('.').last,
+                        'tasks': maintenance.tasks,
+                        'estimatedHours': maintenance.estimatedHours,
+                        'technicianId': maintenance.technicianId,
+                        'technicianName': maintenance.technicianName,
+                      },
+                    ),
                   ),
                 ).then((value) {
                   if (value == true) {
@@ -723,18 +742,15 @@ void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
     );
   }
 
+  // ✅ CORREGIDO: Actualizar colores para nuevos estados
   Color _getEventColor(MaintenanceSchedule maintenance) {
     switch (maintenance.status) {
-      case MaintenanceStatus.scheduled:
-        return maintenance.isOverdue ? Colors.red : const Color(0xFF007AFF);
-      case MaintenanceStatus.inProgress:
-        return Colors.orange;
-      case MaintenanceStatus.completed:
-        return Colors.green;
-      case MaintenanceStatus.overdue:
-        return Colors.red;
-      case MaintenanceStatus.cancelled:
-        return Colors.grey;
+      case MaintenanceStatus.generated:
+        return Colors.grey[400]!;
+      case MaintenanceStatus.assigned:
+        return Colors.orange[600]!;
+      case MaintenanceStatus.executed:
+        return Colors.green[600]!;
     }
   }
 

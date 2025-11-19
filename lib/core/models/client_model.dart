@@ -308,7 +308,7 @@ extension ClientTypeExtension on ClientType {
   String get displayName {
     switch (this) {
       case ClientType.small:
-        return 'Pequeño';
+        return 'Local';
       case ClientType.medium:
         return 'Mediano';
       case ClientType.large:

@@ -1,40 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pm_monitor/core/services/notification_service.dart';
-import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
 
 class MaintenanceScheduleService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'maintenanceSchedules';
-  static final MaintenanceScheduleService _instance =
-      MaintenanceScheduleService._internal();
-  factory MaintenanceScheduleService() => _instance;
-  MaintenanceScheduleService._internal();
   final NotificationService _notificationService = NotificationService();
 
-  Future<String?> createMaintenance(MaintenanceSchedule maintenance) async {
+  // ============================================
+  // MÉTODOS BÁSICOS (CRUD)
+  // ============================================
+
+  /// Crear mantenimiento (estado inicial: GENERATED)
+  Future<String> createMaintenance(MaintenanceSchedule maintenance) async {
     try {
-      // Validar y limpiar datos antes de guardar
-      final cleanData = _sanitizeMaintenanceData(maintenance.toFirestore());
-
-      DocumentReference docRef =
-          await _firestore.collection(_collection).add(cleanData);
-
-      // Solo enviar notificación si hay técnico asignado
-      if (maintenance.technicianId != null &&
-          maintenance.technicianId!.isNotEmpty) {
-        _notificationService.sendMaintenanceAssignedNotification(
-          technicianId: maintenance.technicianId!,
-          maintenanceId: docRef.id,
-          equipmentName: maintenance.equipmentName,
-          scheduledDate: maintenance.scheduledDate,
-        );
-        debugPrint(
-            '✅ Notificación enviada al técnico: ${maintenance.technicianName}');
-      } else {
-        debugPrint('⚠️ Mantenimiento creado sin técnico asignado');
-      }
-
+      debugPrint('📝 Creando mantenimiento...');
+      
+      final data = maintenance.toFirestore();
+      data['status'] = 'generated'; // ← Siempre inicia en GENERATED
+      
+      final docRef = await _firestore.collection(_collection).add(data);
+      
       debugPrint('✅ Mantenimiento creado con ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
@@ -43,123 +30,92 @@ class MaintenanceScheduleService {
     }
   }
 
-  /// Actualizar un mantenimiento existente con validación
-  Future<bool> updateMaintenance(MaintenanceSchedule maintenance) async {
+  /// Actualizar mantenimiento
+  Future<void> updateMaintenance(MaintenanceSchedule maintenance) async {
     try {
-      if (maintenance.id.isEmpty) {
-        throw Exception('ID del mantenimiento no puede estar vacío');
-      }
-
-      final cleanData = _sanitizeMaintenanceData(maintenance.toFirestore());
-
+      debugPrint('🔄 Actualizando mantenimiento ${maintenance.id}...');
+      
       await _firestore
           .collection(_collection)
           .doc(maintenance.id)
-          .update(cleanData);
-
-      debugPrint('Mantenimiento actualizado: ${maintenance.id}');
-      return true;
+          .update(maintenance.toFirestore());
+      
+      debugPrint('✅ Mantenimiento actualizado');
     } catch (e) {
-      debugPrint('Error actualizando mantenimiento: $e');
+      debugPrint('❌ Error actualizando mantenimiento: $e');
       rethrow;
     }
   }
 
-  /// Limpiar y validar datos antes de enviar a Firestore
-  Map<String, dynamic> _sanitizeMaintenanceData(Map<String, dynamic> data) {
-    final sanitized = Map<String, dynamic>.from(data);
-
-    // Asegurar que estimatedDurationMinutes sea int
-    if (sanitized['estimatedDurationMinutes'] != null) {
-      final duration = sanitized['estimatedDurationMinutes'];
-      if (duration is double) {
-        sanitized['estimatedDurationMinutes'] = duration.round();
-      } else if (duration is String) {
-        sanitized['estimatedDurationMinutes'] = int.tryParse(duration) ?? 60;
-      }
-    }
-
-    // Asegurar que completionPercentage sea int
-    if (sanitized['completionPercentage'] != null) {
-      final percentage = sanitized['completionPercentage'];
-      if (percentage is double) {
-        sanitized['completionPercentage'] = percentage.round();
-      } else if (percentage is String) {
-        sanitized['completionPercentage'] = int.tryParse(percentage) ?? 0;
-      }
-    }
-
-    // Asegurar que los costos sean double
-    if (sanitized['estimatedCost'] != null) {
-      final cost = sanitized['estimatedCost'];
-      if (cost is int) {
-        sanitized['estimatedCost'] = cost.toDouble();
-      } else if (cost is String) {
-        sanitized['estimatedCost'] = double.tryParse(cost);
-      }
-    }
-
-    if (sanitized['actualCost'] != null) {
-      final cost = sanitized['actualCost'];
-      if (cost is int) {
-        sanitized['actualCost'] = cost.toDouble();
-      } else if (cost is String) {
-        sanitized['actualCost'] = double.tryParse(cost);
-      }
-    }
-
-    // Validar arrays
-    if (sanitized['tasks'] == null) {
-      sanitized['tasks'] = <String>[];
-    }
-    if (sanitized['photoUrls'] == null) {
-      sanitized['photoUrls'] = <String>[];
-    }
-
-    return sanitized;
-  }
-
-  /// Eliminar un mantenimiento
-  Future<bool> deleteMaintenance(String maintenanceId) async {
+  /// Eliminar mantenimiento
+  Future<void> deleteMaintenance(String id) async {
     try {
-      await _firestore.collection(_collection).doc(maintenanceId).delete();
-      debugPrint('Mantenimiento eliminado: $maintenanceId');
-      return true;
+      debugPrint('🗑️ Eliminando mantenimiento $id...');
+      
+      await _firestore.collection(_collection).doc(id).delete();
+      
+      debugPrint('✅ Mantenimiento eliminado');
     } catch (e) {
-      debugPrint('Error eliminando mantenimiento: $e');
+      debugPrint('❌ Error eliminando mantenimiento: $e');
       rethrow;
     }
   }
 
-  /// Obtener todos los mantenimientos con manejo de errores mejorado
+  /// Obtener mantenimiento por ID
+  Future<MaintenanceSchedule?> getMaintenanceById(String id) async {
+    try {
+      final doc = await _firestore.collection(_collection).doc(id).get();
+      
+      if (!doc.exists) return null;
+      
+      return MaintenanceSchedule.fromFirestore(doc);
+    } catch (e) {
+      debugPrint('❌ Error obteniendo mantenimiento: $e');
+      return null;
+    }
+  }
+
+  // ============================================
+  // STREAMS (TIEMPO REAL)
+  // ============================================
+
+  /// Stream de todos los mantenimientos
   Stream<List<MaintenanceSchedule>> getAllMaintenances() {
     return _firestore
         .collection(_collection)
-        .orderBy('scheduledDate', descending: false)
+        .orderBy('scheduledDate', descending: true)
         .snapshots()
-        .map((snapshot) {
-      try {
-        return snapshot.docs
-            .map((doc) {
-              try {
-                return MaintenanceSchedule.fromFirestore(doc);
-              } catch (e) {
-                debugPrint('Error procesando documento ${doc.id}: $e');
-                debugPrint('Datos del documento: ${doc.data()}');
-                return null;
-              }
-            })
-            .where((maintenance) => maintenance != null)
-            .cast<MaintenanceSchedule>()
-            .toList();
-      } catch (e) {
-        debugPrint('Error procesando snapshot de mantenimientos: $e');
-        return <MaintenanceSchedule>[];
-      }
-    });
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
   }
 
-  /// Obtener mantenimientos por técnico con validación
+  /// Stream de mantenimientos por cliente
+  Stream<List<MaintenanceSchedule>> getMaintenancesByClient(String clientId) {
+    return _firestore
+        .collection(_collection)
+        .where('clientId', isEqualTo: clientId)
+        .orderBy('scheduledDate', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
+  }
+
+  /// Stream de mantenimientos por equipo
+  Stream<List<MaintenanceSchedule>> getMaintenancesByEquipment(
+      String equipmentId) {
+    return _firestore
+        .collection(_collection)
+        .where('equipmentId', isEqualTo: equipmentId)
+        .orderBy('scheduledDate', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
+  }
+
+  /// Stream de mantenimientos por técnico
   Stream<List<MaintenanceSchedule>> getMaintenancesByTechnician(
       String technicianId) {
     return _firestore
@@ -167,519 +123,385 @@ class MaintenanceScheduleService {
         .where('technicianId', isEqualTo: technicianId)
         .orderBy('scheduledDate', descending: false)
         .snapshots()
-        .map((snapshot) {
-      try {
-        return snapshot.docs
-            .map((doc) {
-              try {
-                return MaintenanceSchedule.fromFirestore(doc);
-              } catch (e) {
-                debugPrint('Error procesando mantenimiento ${doc.id}: $e');
-                return null;
-              }
-            })
-            .where((maintenance) => maintenance != null)
-            .cast<MaintenanceSchedule>()
-            .toList();
-      } catch (e) {
-        debugPrint('Error en getMaintenancesByTechnician: $e');
-        return <MaintenanceSchedule>[];
-      }
-    });
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
   }
 
-  /// Obtener mantenimientos por cliente con validación
-  Stream<List<MaintenanceSchedule>> getMaintenancesByClient(String clientId) {
-    return _firestore
-        .collection(_collection)
-        .where('clientId', isEqualTo: clientId)
-        .orderBy('scheduledDate', descending: false)
-        .snapshots()
-        .map((snapshot) {
-      try {
-        return snapshot.docs
-            .map((doc) {
-              try {
-                return MaintenanceSchedule.fromFirestore(doc);
-              } catch (e) {
-                debugPrint('Error procesando mantenimiento ${doc.id}: $e');
-                return null;
-              }
-            })
-            .where((maintenance) => maintenance != null)
-            .cast<MaintenanceSchedule>()
-            .toList();
-      } catch (e) {
-        debugPrint('Error en getMaintenancesByClient: $e');
-        return <MaintenanceSchedule>[];
-      }
-    });
-  }
-
-  /// Obtener mantenimientos por estado
-  Stream<List<MaintenanceSchedule>> getMaintenancesByStatus(
-      MaintenanceStatus status) {
-    return _firestore
-        .collection(_collection)
-        .where('status', isEqualTo: status.toString().split('.').last)
-        .orderBy('scheduledDate', descending: false)
-        .snapshots()
-        .map((snapshot) {
-      try {
-        return snapshot.docs
-            .map((doc) {
-              try {
-                return MaintenanceSchedule.fromFirestore(doc);
-              } catch (e) {
-                debugPrint('Error procesando mantenimiento ${doc.id}: $e');
-                return null;
-              }
-            })
-            .where((maintenance) => maintenance != null)
-            .cast<MaintenanceSchedule>()
-            .toList();
-      } catch (e) {
-        debugPrint('Error en getMaintenancesByStatus: $e');
-        return <MaintenanceSchedule>[];
-      }
-    });
-  }
-
-  /// Obtener mantenimientos por rango de fechas
-  Future<List<MaintenanceSchedule>> getMaintenancesByDateRange(
-      DateTime startDate, DateTime endDate) async {
-    try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('scheduledDate',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-          .where('scheduledDate',
-              isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy('scheduledDate')
-          .get();
-
-      return snapshot.docs
-          .map((doc) {
-            try {
-              return MaintenanceSchedule.fromFirestore(doc);
-            } catch (e) {
-              debugPrint('Error procesando mantenimiento ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((maintenance) => maintenance != null)
-          .cast<MaintenanceSchedule>()
-          .toList();
-    } catch (e) {
-      debugPrint('Error obteniendo mantenimientos por rango de fechas: $e');
-      rethrow;
-    }
-  }
-
-  /// Actualizar estado del mantenimiento con validación de tipos
-  Future<bool> updateMaintenanceStatus(
-    String maintenanceId,
-    MaintenanceStatus status, {
-    DateTime? completedDate,
-    String? completedBy,
-    int? completionPercentage,
-    Map<String, bool>? taskCompletion,
-  }) async {
-    try {
-      Map<String, dynamic> updateData = {
-        'status': status.toString().split('.').last,
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      };
-
-      if (completedDate != null) {
-        updateData['completedDate'] = Timestamp.fromDate(completedDate);
-      }
-
-      if (completedBy != null) {
-        updateData['completedBy'] = completedBy;
-      }
-
-      if (completionPercentage != null) {
-        // Asegurar que sea int
-        updateData['completionPercentage'] = completionPercentage.clamp(0, 100);
-      }
-
-      if (taskCompletion != null) {
-        updateData['taskCompletion'] = taskCompletion;
-      }
-
-      await _firestore
-          .collection(_collection)
-          .doc(maintenanceId)
-          .update(updateData);
-
-      debugPrint('Estado del mantenimiento actualizado: $maintenanceId');
-      return true;
-    } catch (e) {
-      debugPrint('Error actualizando estado del mantenimiento: $e');
-      rethrow;
-    }
-  }
-
-  /// Programar mantenimientos recurrentes con validación
-  Future<List<String>> scheduleRecurringMaintenances({
-    required String equipmentId,
-    required String equipmentName,
-    required String clientId,
-    required String clientName,
-    required FrequencyType frequency,
-    required DateTime startDate,
-    required int durationMonths,
-    required List<String> tasks,
-    required int estimatedDurationMinutes,
-    String? technicianId,
-    String? technicianName,
-    String? supervisorId,
-    String? supervisorName,
-    double? estimatedCost,
-    String? location,
-    String? notes,
-    required String createdBy,
-  }) async {
-    try {
-      List<String> createdIds = [];
-      final scheduleDates =
-          _generateRecurringDates(frequency, startDate, durationMonths);
-
-      for (final date in scheduleDates) {
-        final maintenance = MaintenanceSchedule(
-          id: '', // Se generará automáticamente
-          equipmentId: equipmentId,
-          equipmentName: equipmentName,
-          clientId: clientId,
-          clientName: clientName,
-          technicianId: technicianId,
-          technicianName: technicianName,
-          supervisorId: supervisorId,
-          supervisorName: supervisorName,
-          scheduledDate: date,
-          status: MaintenanceStatus.scheduled,
-          type: MaintenanceType.preventive,
-          frequency: frequency,
-          tasks: tasks,
-          location: location,
-          notes: notes,
-          photoUrls: [],
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          createdBy: createdBy,
-        );
-
-        final id = await createMaintenance(maintenance);
-        if (id != null) {
-          createdIds.add(id);
-        }
-      }
-
-      debugPrint('Creados ${createdIds.length} mantenimientos recurrentes');
-      return createdIds;
-    } catch (e) {
-      debugPrint('Error creando mantenimientos recurrentes: $e');
-      rethrow;
-    }
-  }
-
-  /// Generar fechas recurrentes basadas en la frecuencia
-  List<DateTime> _generateRecurringDates(
-    FrequencyType frequency,
-    DateTime startDate,
-    int durationMonths,
-  ) {
-    final dates = <DateTime>[];
-    var currentDate = startDate;
-    final endDate = startDate.add(Duration(days: durationMonths * 30));
-
-    while (currentDate.isBefore(endDate)) {
-      dates.add(currentDate);
-
-      switch (frequency) {
-        case FrequencyType.weekly:
-          currentDate = currentDate.add(const Duration(days: 7));
-          break;
-        case FrequencyType.biweekly:
-          currentDate = currentDate.add(const Duration(days: 14));
-          break;
-        case FrequencyType.monthly:
-          currentDate = DateTime(
-            currentDate.year,
-            currentDate.month + 1,
-            currentDate.day,
-            currentDate.hour,
-            currentDate.minute,
-          );
-          break;
-        case FrequencyType.bimonthly:
-          currentDate = DateTime(
-            currentDate.year,
-            currentDate.month + 2,
-            currentDate.day,
-            currentDate.hour,
-            currentDate.minute,
-          );
-          break;
-        case FrequencyType.quarterly:
-          currentDate = DateTime(
-            currentDate.year,
-            currentDate.month + 3,
-            currentDate.day,
-            currentDate.hour,
-            currentDate.minute,
-          );
-          break;
-        case FrequencyType.quadrimestral:
-          currentDate = DateTime(
-            currentDate.year,
-            currentDate.month + 4,
-            currentDate.day,
-            currentDate.hour,
-            currentDate.minute,
-          );
-          break;
-        case FrequencyType.biannual:
-          currentDate = DateTime(
-            currentDate.year,
-            currentDate.month + 6,
-            currentDate.day,
-            currentDate.hour,
-            currentDate.minute,
-          );
-          break;
-        case FrequencyType.annual:
-          currentDate = DateTime(
-            currentDate.year + 1,
-            currentDate.month,
-            currentDate.day,
-            currentDate.hour,
-            currentDate.minute,
-          );
-          break;
-      }
-    }
-
-    return dates;
-  }
-
-  /// Obtener mantenimientos vencidos
-  Future<List<MaintenanceSchedule>> getOverdueMaintenances() async {
-    try {
-      final now = DateTime.now();
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('status', isEqualTo: 'scheduled')
-          .where('scheduledDate', isLessThan: Timestamp.fromDate(now))
-          .get();
-
-      return snapshot.docs
-          .map((doc) {
-            try {
-              return MaintenanceSchedule.fromFirestore(doc);
-            } catch (e) {
-              debugPrint(
-                  'Error procesando mantenimiento vencido ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((maintenance) => maintenance != null)
-          .cast<MaintenanceSchedule>()
-          .toList();
-    } catch (e) {
-      debugPrint('Error obteniendo mantenimientos vencidos: $e');
-      rethrow;
-    }
-  }
-
-  /// Obtener próximos mantenimientos (siguientes X días)
-  Future<List<MaintenanceSchedule>> getUpcomingMaintenances(int days) async {
-    try {
-      final now = DateTime.now();
-      final futureDate = now.add(Duration(days: days));
-
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('status', isEqualTo: 'scheduled')
-          .where('scheduledDate', isGreaterThan: Timestamp.fromDate(now))
-          .where('scheduledDate', isLessThan: Timestamp.fromDate(futureDate))
-          .orderBy('scheduledDate')
-          .get();
-
-      return snapshot.docs
-          .map((doc) {
-            try {
-              return MaintenanceSchedule.fromFirestore(doc);
-            } catch (e) {
-              debugPrint(
-                  'Error procesando próximo mantenimiento ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((maintenance) => maintenance != null)
-          .cast<MaintenanceSchedule>()
-          .toList();
-    } catch (e) {
-      debugPrint('Error obteniendo próximos mantenimientos: $e');
-      rethrow;
-    }
-  }
-
-  /// Buscar mantenimientos por texto
-  Future<List<MaintenanceSchedule>> searchMaintenances(
-      String searchTerm) async {
-    try {
-      final snapshot = await _firestore.collection(_collection).get();
-      final searchLower = searchTerm.toLowerCase();
-
-      return snapshot.docs
-          .map((doc) {
-            try {
-              return MaintenanceSchedule.fromFirestore(doc);
-            } catch (e) {
-              debugPrint(
-                  'Error procesando mantenimiento en búsqueda ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((maintenance) => maintenance != null)
-          .cast<MaintenanceSchedule>()
-          .where((maintenance) =>
-              maintenance.equipmentName.toLowerCase().contains(searchLower) ||
-              maintenance.clientName.toLowerCase().contains(searchLower) ||
-              (maintenance.technicianName
-                      ?.toLowerCase()
-                      .contains(searchLower) ??
-                  false) ||
-              (maintenance.location?.toLowerCase().contains(searchLower) ??
-                  false))
-          .toList();
-    } catch (e) {
-      debugPrint('Error buscando mantenimientos: $e');
-      rethrow;
-    }
-  }
-
-  /// Obtener estadísticas de mantenimientos con manejo de errores
-  Future<Map<String, int>> getMaintenanceStats() async {
-    try {
-      final snapshot = await _firestore.collection(_collection).get();
-
-      final stats = <String, int>{
-        'total': 0,
-        'scheduled': 0,
-        'inProgress': 0,
-        'completed': 0,
-        'overdue': 0,
-        'cancelled': 0,
-      };
-
-      final now = DateTime.now();
-
-      for (final doc in snapshot.docs) {
-        try {
-          final maintenance = MaintenanceSchedule.fromFirestore(doc);
-          stats['total'] = stats['total']! + 1;
-
-          switch (maintenance.status) {
-            case MaintenanceStatus.scheduled:
-              if (maintenance.scheduledDate.isBefore(now)) {
-                stats['overdue'] = stats['overdue']! + 1;
-              } else {
-                stats['scheduled'] = stats['scheduled']! + 1;
-              }
-              break;
-            case MaintenanceStatus.inProgress:
-              stats['inProgress'] = stats['inProgress']! + 1;
-              break;
-            case MaintenanceStatus.completed:
-              stats['completed'] = stats['completed']! + 1;
-              break;
-            case MaintenanceStatus.overdue:
-              stats['overdue'] = stats['overdue']! + 1;
-              break;
-            case MaintenanceStatus.cancelled:
-              stats['cancelled'] = stats['cancelled']! + 1;
-              break;
-          }
-        } catch (e) {
-          debugPrint('Error procesando estadística para ${doc.id}: $e');
-          // Continuar con el siguiente documento
-        }
-      }
-
-      return stats;
-    } catch (e) {
-      debugPrint('Error obteniendo estadísticas: $e');
-      rethrow;
-    }
-  }
-
-  Future<List<MaintenanceSchedule>> getMaintenancesByDateRangeAndTechnician(
+  /// Stream de mantenimientos por rango de fechas
+  Stream<List<MaintenanceSchedule>> getMaintenancesByDateRange(
     DateTime startDate,
     DateTime endDate,
-    String technicianId,
-  ) async {
+  ) {
+    return _firestore
+        .collection(_collection)
+        .where('scheduledDate', isGreaterThanOrEqualTo: startDate)
+        .where('scheduledDate', isLessThanOrEqualTo: endDate)
+        .orderBy('scheduledDate', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
+  }
+
+  // ============================================
+  // ⭐ NUEVOS MÉTODOS - GESTIÓN DE ESTADOS
+  // ============================================
+
+  /// ⭐ Stream de mantenimientos GENERADOS (sin asignar)
+  Stream<List<MaintenanceSchedule>> getUnassignedMaintenances() {
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'generated')
+        .orderBy('scheduledDate', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
+  }
+
+  /// ⭐ Stream de mantenimientos ASIGNADOS
+  Stream<List<MaintenanceSchedule>> getAssignedMaintenances() {
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'assigned')
+        .orderBy('scheduledDate', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
+  }
+
+  /// ⭐ Stream de mantenimientos EJECUTADOS
+  Stream<List<MaintenanceSchedule>> getExecutedMaintenances() {
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'executed')
+        .orderBy('scheduledDate', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
+  }
+
+  /// ⭐ Stream de mantenimientos por estado específico
+  Stream<List<MaintenanceSchedule>> getMaintenancesByStatus(
+      MaintenanceStatus status) {
+    final statusString = status.toString().split('.').last;
+    
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: statusString)
+        .orderBy('scheduledDate', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceSchedule.fromFirestore(doc))
+            .toList());
+  }
+
+  // ============================================
+  // ⭐ ASIGNACIÓN DE TÉCNICOS
+  // ============================================
+
+  /// ⭐ Asignar técnico a UN mantenimiento
+  Future<void> assignTechnicianToMaintenance({
+    required String maintenanceId,
+    required String technicianId,
+    required String technicianName,
+  }) async {
     try {
-      QuerySnapshot snapshot = await _firestore
+      debugPrint('👤 Asignando técnico $technicianName a mantenimiento $maintenanceId...');
+      
+      await _firestore.collection(_collection).doc(maintenanceId).update({
+        'technicianId': technicianId,
+        'technicianName': technicianName,
+        'status': 'assigned',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      debugPrint('✅ Técnico asignado correctamente');
+      
+    
+      await _notificationService.sendMaintenanceAssignedNotification(
+        technicianId: technicianId,
+        maintenanceId: maintenanceId,
+      );
+    } catch (e) {
+      debugPrint('❌ Error asignando técnico: $e');
+      rethrow;
+    }
+  }
+
+  /// ⭐ Asignar técnico a MÚLTIPLES mantenimientos
+  Future<void> assignTechnicianToMaintenances({
+    required List<String> maintenanceIds,
+    required String technicianId,
+    required String technicianName,
+  }) async {
+    try {
+      debugPrint('👤 Asignando técnico $technicianName a ${maintenanceIds.length} mantenimientos...');
+      
+      final batch = _firestore.batch();
+      
+      for (final maintenanceId in maintenanceIds) {
+        final docRef = _firestore.collection(_collection).doc(maintenanceId);
+        
+        batch.update(docRef, {
+          'technicianId': technicianId,
+          'technicianName': technicianName,
+          'status': 'assigned',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      
+      await batch.commit();
+      
+      debugPrint('✅ ${maintenanceIds.length} mantenimientos asignados');
+      
+      // Notificar al técnico
+      await _notificationService.sendBulkMaintenanceAssignedNotification(
+        technicianId: technicianId,
+        maintenanceCount: maintenanceIds.length,
+      );
+    } catch (e) {
+      debugPrint('❌ Error asignando técnico a múltiples mantenimientos: $e');
+      rethrow;
+    }
+  }
+
+  /// ⭐ Reasignar técnico
+  Future<void> reassignTechnician({
+    required String maintenanceId,
+    required String newTechnicianId,
+    required String newTechnicianName,
+  }) async {
+    try {
+      debugPrint('🔄 Reasignando mantenimiento $maintenanceId...');
+      
+      await _firestore.collection(_collection).doc(maintenanceId).update({
+        'technicianId': newTechnicianId,
+        'technicianName': newTechnicianName,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      debugPrint('✅ Mantenimiento reasignado');
+      
+      // // Notificar al nuevo técnico
+      await _notificationService.sendMaintenanceAssignedNotification(
+        technicianId: newTechnicianId,
+        maintenanceId: maintenanceId,
+      );
+    } catch (e) {
+      debugPrint('❌ Error reasignando técnico: $e');
+      rethrow;
+    }
+  }
+
+  /// ⭐ Desasignar técnico (volver a GENERATED)
+  Future<void> unassignTechnician(String maintenanceId) async {
+    try {
+      debugPrint('↩️ Desasignando técnico del mantenimiento $maintenanceId...');
+      
+      await _firestore.collection(_collection).doc(maintenanceId).update({
+        'technicianId': null,
+        'technicianName': null,
+        'status': 'generated',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      debugPrint('✅ Técnico desasignado');
+    } catch (e) {
+      debugPrint('❌ Error desasignando técnico: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================
+  // ⭐ EJECUCIÓN DE MANTENIMIENTO
+  // ============================================
+
+  /// ⭐ Marcar como EJECUTADO
+  Future<void> markAsExecuted({
+    required String maintenanceId,
+    required String completedBy,
+    required Map<String, bool> taskCompletion,
+    List<String>? photoUrls,
+    String? notes,
+  }) async {
+    try {
+      debugPrint('✅ Marcando mantenimiento $maintenanceId como ejecutado...');
+      
+      // Calcular porcentaje de completado
+      final totalTasks = taskCompletion.length;
+      final completedTasks = taskCompletion.values.where((v) => v).length;
+      final percentage = totalTasks > 0 
+          ? ((completedTasks / totalTasks) * 100).round() 
+          : 0;
+      
+      await _firestore.collection(_collection).doc(maintenanceId).update({
+        'status': 'executed',
+        'completedBy': completedBy,
+        'completedDate': FieldValue.serverTimestamp(),
+        'taskCompletion': taskCompletion,
+        'completionPercentage': percentage,
+        'photoUrls': photoUrls,
+        'notes': notes,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      debugPrint('✅ Mantenimiento ejecutado ($percentage% completado)');
+      
+      // // Notificar al supervisor/admin
+      // await _notificationService.sendMaintenanceCompletedNotification(
+      //   maintenanceId: maintenanceId,
+      //   completedBy: completedBy,
+      // );
+    } catch (e) {
+      debugPrint('❌ Error marcando como ejecutado: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================
+  // ⭐ CÁLCULO DE HORAS (PARA CARGA DE TÉCNICOS)
+  // ============================================
+
+  /// ⭐ Obtener horas totales asignadas a un técnico en un rango de fechas
+  Future<double> getTechnicianHoursInDateRange({
+    required String technicianId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      debugPrint('📊 Calculando horas de técnico $technicianId...');
+      
+      final snapshot = await _firestore
           .collection(_collection)
           .where('technicianId', isEqualTo: technicianId)
-          .where('scheduledDate',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-          .where('scheduledDate',
-              isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-          .orderBy('scheduledDate')
+          .where('status', whereIn: ['assigned', 'executed']) // Solo asignados o ejecutados
+          .where('scheduledDate', isGreaterThanOrEqualTo: startDate)
+          .where('scheduledDate', isLessThanOrEqualTo: endDate)
           .get();
+      
+      double totalHours = 0.0;
+      
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final estimatedHours = data['estimatedHours'] as double? ?? 0.0;
+        totalHours += estimatedHours;
+      }
+      
+      debugPrint('✅ Total horas: $totalHours');
+      return totalHours;
+    } catch (e) {
+      debugPrint('❌ Error calculando horas: $e');
+      return 0.0;
+    }
+  }
 
+  /// ⭐ Obtener mantenimientos activos de un técnico
+  Future<int> getActiveMaintenancesCountnancesCount(String technicianId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('technicianId', isEqualTo: technicianId)
+          .where('status', isEqualTo: 'assigned')
+          .get();
+      
+      return snapshot.docs.length;
+    } catch (e) {
+      debugPrint('❌ Error contando mantenimientos activos: $e');
+      return 0;
+    }
+  }
+
+  // ============================================
+  // FILTROS AVANZADOS
+  // ============================================
+
+  /// Obtener mantenimientos con filtros múltiples
+  Future<List<MaintenanceSchedule>> getFilteredMaintenances({
+    DateTime? startDate,
+    DateTime? endDate,
+    MaintenanceStatus? status,
+    MaintenanceType? type,
+    String? clientId,
+    String? branchId,
+    String? technicianId,
+    String? equipmentType,
+  }) async {
+    try {
+      Query query = _firestore.collection(_collection);
+      
+      // Aplicar filtros
+      if (startDate != null) {
+        query = query.where('scheduledDate', isGreaterThanOrEqualTo: startDate);
+      }
+      
+      if (endDate != null) {
+        query = query.where('scheduledDate', isLessThanOrEqualTo: endDate);
+      }
+      
+      if (status != null) {
+        query = query.where('status', 
+            isEqualTo: status.toString().split('.').last);
+      }
+      
+      if (type != null) {
+        query = query.where('type', 
+            isEqualTo: type.toString().split('.').last);
+      }
+      
+      if (clientId != null) {
+        query = query.where('clientId', isEqualTo: clientId);
+      }
+      
+      if (branchId != null) {
+        query = query.where('branchId', isEqualTo: branchId);
+      }
+      
+      if (technicianId != null) {
+        query = query.where('technicianId', isEqualTo: technicianId);
+      }
+      
+      // Ejecutar query
+      final snapshot = await query.get();
+      
       return snapshot.docs
-          .map((doc) {
-            try {
-              return MaintenanceSchedule.fromFirestore(doc);
-            } catch (e) {
-              debugPrint('Error procesando mantenimiento ${doc.id}: $e');
-              return null;
-            }
-          })
-          .where((maintenance) => maintenance != null)
-          .cast<MaintenanceSchedule>()
+          .map((doc) => MaintenanceSchedule.fromFirestore(doc))
           .toList();
     } catch (e) {
-      debugPrint('Error obteniendo mantenimientos por técnico: $e');
+      debugPrint('❌ Error obteniendo mantenimientos filtrados: $e');
       return [];
     }
   }
 
-  /// Limpiar datos corruptos en la base de datos
-  Future<void> cleanCorruptedData() async {
+  // ============================================
+  // REPORTES Y ESTADÍSTICAS
+  // ============================================
+
+  /// Obtener conteo de mantenimientos por estado
+  Future<Map<String, int>> getMaintenanceCountsByStatus() async {
     try {
       final snapshot = await _firestore.collection(_collection).get();
-
+      
+      final counts = {
+        'generated': 0,
+        'assigned': 0,
+        'executed': 0,
+      };
+      
       for (final doc in snapshot.docs) {
-        try {
-          // Intentar parsear el documento
-          MaintenanceSchedule.fromFirestore(doc);
-        } catch (e) {
-          debugPrint('Documento corrupto encontrado: ${doc.id}');
-          debugPrint('Datos: ${doc.data()}');
-
-          // Intentar reparar datos corruptos
-          // ignore: unnecessary_cast
-          final data = doc.data() as Map<String, dynamic>;
-          final cleanedData = _sanitizeMaintenanceData(data);
-
-          try {
-            await doc.reference.update(cleanedData);
-            debugPrint('Documento reparado: ${doc.id}');
-          } catch (repairError) {
-            debugPrint(
-                'No se pudo reparar el documento ${doc.id}: $repairError');
-          }
+        final status = doc.data()['status'] as String?;
+        if (status != null && counts.containsKey(status)) {
+          counts[status] = counts[status]! + 1;
         }
       }
+      
+      return counts;
     } catch (e) {
-      debugPrint('Error en limpieza de datos: $e');
-      rethrow;
+      debugPrint('❌ Error obteniendo conteos: $e');
+      return {};
     }
   }
 }

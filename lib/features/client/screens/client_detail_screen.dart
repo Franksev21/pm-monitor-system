@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/features/calendar/screens/apple_style_calender.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_management_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/client_provider.dart';
 import '../../../core/providers/equipment_provider.dart'; // ✅ Agregado
@@ -626,7 +626,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            const AppleStyleMaintenanceCalendar(),
+                            const MaintenanceManagementScreen(),
                       ),
                     );
                   },

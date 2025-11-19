@@ -1,10 +1,43 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
 import 'package:pm_monitor/core/providers/auth_provider.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
+
+/// Formatter personalizado para entrada de moneda
+class CurrencyInputFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat('#,##0', 'en_US');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Remover caracteres no numéricos
+    String digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (digitsOnly.isEmpty) {
+      return const TextEditingValue(text: '');
+    }
+
+    // Formatear con comas
+    int value = int.parse(digitsOnly);
+    String formatted = _formatter.format(value);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class AddEquipmentScreen extends StatefulWidget {
   final ClientModel client;
@@ -37,6 +70,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _estimatedHoursController = TextEditingController();
   final _equipmentNumberController = TextEditingController();
   final _rfidController = TextEditingController();
+  final _customEquipmentTypeController = TextEditingController();
 
   Timer? _debounceTimer;
 
@@ -44,12 +78,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   String _selectedCategory = 'Split Pared';
   List<String> _availableCategories = EquipmentCategories.climatizacion;
   String _selectedCapacityUnit = 'BTU';
-  String _selectedCondition = 'Bueno';
+  String _selectedBrand = '';
   String _selectedStatus = 'Operativo';
   String _selectedCurrency = 'USD';
-  String _selectedMaintenanceFrequency = 'Mensual';
   int _selectedLifeScale = 5;
-  int _selectedFrequencyDays = 30;
   bool _enableMaintenanceAlerts = true;
   bool _enableFailureAlerts = true;
   bool _enableTemperatureAlerts = false;
@@ -58,32 +90,33 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   bool _isEditing = false;
 
   final List<String> _capacityUnits = ['BTU', 'KW', 'HP', 'Ton', 'Otro'];
-  final List<String> _conditions = ['Excelente', 'Bueno', 'Regular', 'Malo'];
   final List<String> _statuses = [
     'Operativo',
     'En mantenimiento',
     'Fuera de servicio'
   ];
   final List<String> _currencies = ['USD', 'DOP', 'EUR'];
-  final List<String> _frequencies = [
-    'Semanal',
-    'Mensual',
-    'Bimensual',
-    'Trimestral',
-    'Semestral',
-    'Anual'
+
+  // Lista de marcas comunes
+  final List<String> _equipmentBrands = [
+    // Refrigeración
+    'Carrier', 'Trane', 'York', 'Lennox', 'Rheem', 'Goodman', 'Daikin',
+    'Mitsubishi Electric', 'LG', 'Samsung', 'Panasonic', 'Fujitsu',
+    'Hitachi', 'Gree', 'Midea', 'Haier', 'Friedrich', 'Amana',
+    'Frigidaire', 'Emerson', 'Bard', 'McQuay', 'Climaveneta',
+    // Electrónicos/UPS/Generadores
+    'APC', 'Schneider Electric', 'Eaton', 'Tripp Lite', 'CyberPower',
+    'Vertiv', 'Riello', 'Socomec', 'Legrand', 'Caterpillar', 'Cummins',
+    'Generac', 'Kohler', 'Perkins', 'MTU', 'Stamford', 'Leroy Somer',
+    // Otros
+    'ABB', 'Siemens', 'General Electric', 'Honeywell', 'Johnson Controls',
+    'Otra', // Opción para marcas no listadas
   ];
 
-  final Map<String, int> _frequencyDaysMap = {
-    'Semanal': 7,
-    'Mensual': 30,
-    'Bimensual': 60,
-    'Trimestral': 90,
-    'Semestral': 180,
-    'Anual': 365,
-  };
-
   BranchModel? _selectedBranch;
+
+  // Formatter para moneda
+  final NumberFormat _currencyFormatter = NumberFormat('#,##0', 'en_US');
 
   @override
   void initState() {
@@ -96,6 +129,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _generateEquipmentNumber();
       _initializeClientData();
     }
+
+    // Ordenar marcas alfabéticamente
+    _equipmentBrands.sort();
   }
 
   void _loadEquipmentData() {
@@ -106,16 +142,33 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _nameController.text = eq.name;
     _descriptionController.text = eq.description;
     _brandController.text = eq.brand;
+    _selectedBrand = _equipmentBrands.contains(eq.brand) ? eq.brand : 'Otra';
+    if (_selectedBrand == 'Otra') {
+      _brandController.text = eq.brand;
+    }
     _modelController.text = eq.model;
     _capacityController.text = eq.capacity.toString();
     _serialNumberController.text = eq.serialNumber;
     _locationController.text = eq.location;
     _branchController.text = eq.branch;
     _addressController.text = eq.address;
-    _equipmentCostController.text = eq.equipmentCost.toString();
+
+    // Formatear costo con comas
+    if (eq.equipmentCost > 0) {
+      _equipmentCostController.text =
+          _currencyFormatter.format(eq.equipmentCost.toInt());
+    }
+
     _estimatedHoursController.text = eq.estimatedMaintenanceHours.toString();
 
     _selectedTipo = eq.tipo;
+
+    // Verificar si es un tipo personalizado (no está en la lista predefinida)
+    if (!EquipmentTypes.all.contains(eq.tipo)) {
+      _selectedTipo = 'Otros';
+      _customEquipmentTypeController.text = eq.tipo;
+    }
+
     _availableCategories = EquipmentCategories.all[eq.tipo] ?? [];
 
     String cleanCategory = eq.category
@@ -135,12 +188,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
 
     _selectedCapacityUnit = eq.capacityUnit;
-    _selectedCondition = eq.condition;
     _selectedStatus = eq.status;
     _selectedCurrency = eq.currency;
-    _selectedMaintenanceFrequency = _capitalizeFirst(eq.maintenanceFrequency);
     _selectedLifeScale = eq.lifeScale;
-    _selectedFrequencyDays = eq.frequencyDays;
     _enableMaintenanceAlerts = eq.enableMaintenanceAlerts;
     _enableFailureAlerts = eq.enableFailureAlerts;
     _enableTemperatureAlerts = eq.enableTemperatureAlerts;
@@ -157,20 +207,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
   }
 
-  String _capitalizeFirst(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
-  }
-
   void _initializeClientData() {
+    // Por defecto, seleccionar oficina principal (null)
+    _selectedBranch = null;
     _branchController.text = widget.client.name;
     _addressController.text = widget.client.mainAddress.fullAddress;
-
-    if (widget.client.branches.isNotEmpty) {
-      _selectedBranch = widget.client.branches.first;
-      _branchController.text = _selectedBranch!.name;
-      _addressController.text = _selectedBranch!.address.fullAddress;
-    }
   }
 
   @override
@@ -188,6 +229,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _estimatedHoursController.dispose();
     _equipmentNumberController.dispose();
     _rfidController.dispose();
+    _customEquipmentTypeController.dispose();
     _scrollController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
@@ -214,18 +256,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
     setState(() {
       _selectedTipo = newTipo;
+
+      // Limpiar campo personalizado si no es "Otros"
+      if (newTipo != 'Otros') {
+        _customEquipmentTypeController.clear();
+      }
+
       _availableCategories = EquipmentCategories.all[newTipo] ?? [];
 
       if (_availableCategories.isNotEmpty) {
         _selectedCategory = _availableCategories.first;
       }
-    });
-  }
-
-  void _updateFrequencyDays(String frequency) {
-    setState(() {
-      _selectedMaintenanceFrequency = frequency;
-      _selectedFrequencyDays = _frequencyDaysMap[frequency] ?? 30;
     });
   }
 
@@ -242,6 +283,152 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     });
   }
 
+  // Obtener la condición basada en la vida útil
+  String _getConditionFromLifeScale(int lifeScale) {
+    if (lifeScale <= 4) return 'Malo';
+    if (lifeScale == 5) return 'Crítico';
+    if (lifeScale >= 6 && lifeScale <= 7) return 'Regular';
+    if (lifeScale >= 8 && lifeScale <= 9) return 'Bueno';
+    return 'Excelente'; // 10
+  }
+
+  // Obtener color de la condición
+  Color _getConditionColor(String condition) {
+    switch (condition) {
+      case 'Excelente':
+        return Colors.green;
+      case 'Bueno':
+        return Colors.lightGreen;
+      case 'Regular':
+        return Colors.orange;
+      case 'Crítico':
+        return Colors.deepOrange;
+      case 'Malo':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Future<void> _showBrandSearchDialog() async {
+    String searchQuery = '';
+    List<String> filteredBrands = _equipmentBrands;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          void filterBrands(String query) {
+            setDialogState(() {
+              searchQuery = query;
+              if (query.isEmpty) {
+                filteredBrands = _equipmentBrands;
+              } else {
+                final queryLower = query.toLowerCase();
+                filteredBrands = _equipmentBrands.where((brand) {
+                  return brand.toLowerCase().contains(queryLower);
+                }).toList();
+              }
+            });
+          }
+
+          return Dialog(
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Seleccionar Marca',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar marca...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () => filterBrands(''),
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onChanged: filterBrands,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${filteredBrands.length} marcas',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: filteredBrands.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.search_off,
+                                    size: 64, color: Colors.grey[400]),
+                                const SizedBox(height: 16),
+                                Text('No se encontraron marcas',
+                                    style: TextStyle(color: Colors.grey[600])),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filteredBrands.length,
+                            itemBuilder: (context, index) {
+                              final brand = filteredBrands[index];
+                              final isSelected = _selectedBrand == brand;
+
+                              return ListTile(
+                                title: Text(brand),
+                                trailing: isSelected
+                                    ? const Icon(Icons.check_circle,
+                                        color: Colors.blue)
+                                    : null,
+                                selected: isSelected,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedBrand = brand;
+                                    if (brand == 'Otra') {
+                                      _brandController.clear();
+                                    } else {
+                                      _brandController.text = brand;
+                                    }
+                                  });
+                                  Navigator.pop(context);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _saveEquipment() async {
     if (!_formKey.currentState!.validate()) {
       _scrollController.animateTo(
@@ -252,12 +439,32 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       return;
     }
 
+    // Validar marca si es "Otra"
+    if (_selectedBrand == 'Otra' && _brandController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor ingresa el nombre de la marca'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validar tipo personalizado si es "Otros"
+    if (_selectedTipo == 'Otros' &&
+        _customEquipmentTypeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor ingresa el tipo de equipo'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final equipmentProvider =
         Provider.of<EquipmentProvider>(context, listen: false);
-
-    DateTime nextMaintenanceDate =
-        DateTime.now().add(Duration(days: _selectedFrequencyDays));
 
     String branchName = _selectedBranch?.name ?? widget.client.name;
     String? branchId = _selectedBranch?.id;
@@ -267,6 +474,18 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         _selectedBranch?.address.country ?? widget.client.mainAddress.country;
     String region =
         _selectedBranch?.address.state ?? widget.client.mainAddress.state;
+
+    // Obtener condición calculada
+    String calculatedCondition = _getConditionFromLifeScale(_selectedLifeScale);
+
+    // Parsear costo removiendo comas
+    String costText = _equipmentCostController.text.trim().replaceAll(',', '');
+    double equipmentCost = double.tryParse(costText) ?? 0.0;
+
+    // Determinar tipo de equipo final
+    String finalEquipmentType = _selectedTipo == 'Otros'
+        ? _customEquipmentTypeController.text.trim()
+        : _selectedTipo;
 
     Equipment equipment = Equipment(
       id: _isEditing ? widget.equipment!.id : null,
@@ -281,7 +500,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       description: _descriptionController.text.trim(),
       brand: _brandController.text.trim(),
       model: _modelController.text.trim(),
-      tipo: _selectedTipo,
+      tipo: finalEquipmentType,
       category: _selectedCategory,
       capacity: double.tryParse(_capacityController.text.trim()) ?? 0.0,
       capacityUnit: _selectedCapacityUnit,
@@ -291,22 +510,20 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       country: country,
       region: region,
       address: fullAddress,
-      condition: _selectedCondition,
+      condition: calculatedCondition, // Condición calculada
       lifeScale: _selectedLifeScale,
       isActive: true,
       status: _selectedStatus,
-      equipmentCost:
-          double.tryParse(_equipmentCostController.text.trim()) ?? 0.0,
+      equipmentCost: equipmentCost,
       totalPmCost: _isEditing ? widget.equipment!.totalPmCost : 0.0,
       totalCmCost: _isEditing ? widget.equipment!.totalCmCost : 0.0,
       currency: _selectedCurrency,
-      maintenanceFrequency: _selectedMaintenanceFrequency.toLowerCase(),
-      frequencyDays: _selectedFrequencyDays,
+      maintenanceFrequency: 'mensual',
+      frequencyDays: 30,
       lastMaintenanceDate:
           _isEditing ? widget.equipment!.lastMaintenanceDate : null,
-      nextMaintenanceDate: nextMaintenanceDate,
-      estimatedMaintenanceHours:
-          int.tryParse(_estimatedHoursController.text.trim()) ?? 2,
+      nextMaintenanceDate: DateTime.now().add(const Duration(days: 30)),
+      estimatedMaintenanceHours: 2,
       assignedTechnicianId:
           _isEditing ? widget.equipment!.assignedTechnicianId : null,
       assignedTechnicianName:
@@ -436,9 +653,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               const SizedBox(height: 24),
               _buildSectionHeader('Estado y Condición'),
               _buildStatusSection(),
-              const SizedBox(height: 24),
-              _buildSectionHeader('Programación de Mantenimiento'),
-              _buildMaintenanceSection(),
               const SizedBox(height: 24),
               _buildSectionHeader('Configuración de Alertas'),
               _buildAlertsSection(),
@@ -643,6 +857,28 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 onChanged: _onTipoChanged,
               ),
             ),
+
+            // Campo de texto para tipo personalizado
+            if (_selectedTipo == 'Otros') ...[
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _customEquipmentTypeController,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Equipo Personalizado *',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.edit),
+                  hintText: 'Escribir tipo de equipo',
+                ),
+                validator: (value) {
+                  if (_selectedTipo == 'Otros' &&
+                      (value == null || value.trim().isEmpty)) {
+                    return 'El tipo de equipo es requerido';
+                  }
+                  return null;
+                },
+              ),
+            ],
+
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -674,42 +910,69 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _brandController,
-                    decoration: const InputDecoration(
-                      labelText: 'Marca *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.business),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'La marca es requerida';
-                      }
-                      return null;
-                    },
+
+            // Marca con búsqueda
+            InkWell(
+              onTap: _showBrandSearchDialog,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Marca *',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.business),
+                  suffixIcon: Icon(Icons.search),
+                ),
+                child: Text(
+                  _selectedBrand.isEmpty
+                      ? 'Seleccionar marca...'
+                      : (_selectedBrand == 'Otra'
+                          ? _brandController.text.isEmpty
+                              ? 'Otra (escribir)'
+                              : _brandController.text
+                          : _selectedBrand),
+                  style: TextStyle(
+                    color: _selectedBrand.isEmpty
+                        ? Colors.grey[600]
+                        : Colors.black,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _modelController,
-                    decoration: const InputDecoration(
-                      labelText: 'Modelo *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.model_training),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'El modelo es requerido';
-                      }
-                      return null;
-                    },
-                  ),
+              ),
+            ),
+
+            // Campo de texto para "Otra" marca
+            if (_selectedBrand == 'Otra') ...[
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _brandController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de la Marca *',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.edit),
+                  hintText: 'Escribir nombre de la marca',
                 ),
-              ],
+                validator: (value) {
+                  if (_selectedBrand == 'Otra' &&
+                      (value == null || value.trim().isEmpty)) {
+                    return 'El nombre de la marca es requerido';
+                  }
+                  return null;
+                },
+              ),
+            ],
+
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _modelController,
+              decoration: const InputDecoration(
+                labelText: 'Modelo *',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.model_training),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'El modelo es requerido';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             Row(
@@ -851,78 +1114,38 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   }
 
   Widget _buildStatusSection() {
+    String currentCondition = _getConditionFromLifeScale(_selectedLifeScale);
+    Color conditionColor = _getConditionColor(currentCondition);
+
     return Card(
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // ✅ FIX: Row con Expanded para evitar overflow
-            Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedCondition,
-                    decoration: const InputDecoration(
-                      labelText: 'Condición *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.health_and_safety),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                    ),
-                    isExpanded: true,
-                    items: _conditions.map((condition) {
-                      return DropdownMenuItem(
-                        value: condition,
-                        child: Text(
-                          condition,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCondition = value!;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 1,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Estado *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.settings),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                    ),
-                    isExpanded: true,
-                    items: _statuses.map((status) {
-                      return DropdownMenuItem(
-                        value: status,
-                        child: Text(
-                          status,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedStatus = value!;
-                      });
-                    },
-                  ),
-                ),
-              ],
+            DropdownButtonFormField<String>(
+              value: _selectedStatus,
+              decoration: const InputDecoration(
+                labelText: 'Estado *',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.settings),
+              ),
+              isExpanded: true,
+              items: _statuses.map((status) {
+                return DropdownMenuItem(
+                  value: status,
+                  child: Text(status),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedStatus = value!;
+                });
+              },
             ),
             const SizedBox(height: 24),
 
+            // Indicador de Vida Útil con condición
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -933,12 +1156,47 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Vida Útil (Escala 1-10): $_selectedLifeScale',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Vida Útil: $_selectedLifeScale/10',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: conditionColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: conditionColor),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: conditionColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              currentCondition,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: conditionColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Slider(
@@ -947,11 +1205,25 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     max: 10,
                     divisions: 9,
                     label: _selectedLifeScale.toString(),
+                    activeColor: conditionColor,
                     onChanged: (value) {
                       setState(() {
                         _selectedLifeScale = value.round();
                       });
                     },
+                  ),
+                  const SizedBox(height: 8),
+                  // Leyenda
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      _buildLifeLegend('1-4: Malo', Colors.red),
+                      _buildLifeLegend('5: Crítico', Colors.deepOrange),
+                      _buildLifeLegend('6-7: Regular', Colors.orange),
+                      _buildLifeLegend('8-9: Bueno', Colors.lightGreen),
+                      _buildLifeLegend('10: Excelente', Colors.green),
+                    ],
                   ),
                 ],
               ),
@@ -968,8 +1240,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       labelText: 'Costo del Equipo',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.attach_money),
+                      hintText: '0',
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      CurrencyInputFormatter(),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1001,71 +1277,20 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     );
   }
 
-  Widget _buildMaintenanceSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedMaintenanceFrequency,
-                    decoration: const InputDecoration(
-                      labelText: 'Frecuencia *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.schedule),
-                    ),
-                    items: _frequencies.map((frequency) {
-                      return DropdownMenuItem(
-                        value: frequency,
-                        child: Text(frequency),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      _updateFrequencyDays(value!);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: _selectedFrequencyDays.toString(),
-                    decoration: const InputDecoration(
-                      labelText: 'Días',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
-                    keyboardType: TextInputType.number,
-                    readOnly: true,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _estimatedHoursController,
-              decoration: const InputDecoration(
-                labelText: 'Horas Estimadas por Mantenimiento *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.access_time),
-                hintText: '2',
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Las horas estimadas son requeridas';
-                }
-                if (int.tryParse(value.trim()) == null) {
-                  return 'Ingrese un número válido';
-                }
-                return null;
-              },
-            ),
-          ],
+  Widget _buildLifeLegend(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          color: color,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

@@ -153,7 +153,7 @@ class _AddEditTaskTemplateScreenState extends State<AddEditTaskTemplateScreen> {
         'icon': Icons.build_circle
       },
       {'value': 'emergency', 'label': 'Emergencia', 'icon': Icons.warning},
-      {'value': 'inspection', 'label': 'Inspección', 'icon': Icons.search},
+      {'value': 'inspection', 'label': 'Inspección / Levantamiento', 'icon': Icons.search},
       {
         'value': 'technicalAssistance',
         'label': 'Asistencia Técnica',

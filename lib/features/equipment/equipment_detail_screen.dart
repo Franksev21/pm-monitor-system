@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/others/screens/fault_report_screen.dart';
-import 'package:pm_monitor/features/calendar/screens/apple_style_calender.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_management_screen.dart';
 import 'package:pm_monitor/features/others/screens/qr_display_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
@@ -44,11 +44,6 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
     equipmentProvider.loadEquipmentById(widget.equipment.id!);
   }
 
-  void _showEditDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Próximamente: Editar equipo')),
-    );
-  }
 
   void _showReportFailureDialog() {
     Navigator.push(
@@ -63,7 +58,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const AppleStyleMaintenanceCalendar(),
+        builder: (context) => const MaintenanceManagementScreen(),
       ),
     );
   }
@@ -1026,11 +1021,6 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
                   background: _buildHeaderContent(equipment),
                 ),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: _showEditDialog,
-                    tooltip: 'Editar',
-                  ),
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       switch (value) {

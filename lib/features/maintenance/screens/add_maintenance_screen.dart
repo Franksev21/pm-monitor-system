@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:pm_monitor/features/calendar/screens/maintenance_calendar_model.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/services/equipment_service.dart';
@@ -1545,7 +1545,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         scheduledDate: scheduledDateTime,
         status: _isEditing
             ? widget.maintenance!.status
-            : MaintenanceStatus.scheduled,
+            : MaintenanceStatus.generated,
         type: _selectedType,
         frequency: mainFrequency,
         notes: _notesController.text.isEmpty ? null : _notesController.text,
