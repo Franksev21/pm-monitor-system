@@ -55,7 +55,7 @@ class MaintenanceSchedule {
   final int completionPercentage;
   final Map<String, bool>? taskCompletion;
   final Map<String, String>? taskFrequencies;
-  final double? estimatedHours; 
+  final double? estimatedHours;
   MaintenanceSchedule({
     required this.id,
     required this.equipmentId,
@@ -91,6 +91,15 @@ class MaintenanceSchedule {
   factory MaintenanceSchedule.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
+    // ✅ CALCULAR HORAS - CORREGIDO
+    double? estimatedHours;
+    if (data['estimatedHours'] != null) {
+      estimatedHours = (data['estimatedHours'] as num).toDouble();
+    } else if (data['estimatedDurationMinutes'] != null) {
+      final minutes = (data['estimatedDurationMinutes'] as num).toDouble();
+      estimatedHours = minutes / 60.0;
+    }
+
     return MaintenanceSchedule(
       id: doc.id,
       equipmentId: data['equipmentId'] ?? '',
@@ -104,7 +113,7 @@ class MaintenanceSchedule {
       supervisorId: data['supervisorId'],
       supervisorName: data['supervisorName'],
       scheduledDate: (data['scheduledDate'] as Timestamp).toDate(),
-      status: _parseStatus(data['status']), // ← Migración automática
+      status: _parseStatus(data['status']),
       type: _parseType(data['type']),
       frequency:
           data['frequency'] != null ? _parseFrequency(data['frequency']) : null,
@@ -121,14 +130,15 @@ class MaintenanceSchedule {
       completedDate: data['completedDate'] != null
           ? (data['completedDate'] as Timestamp).toDate()
           : null,
-      completionPercentage: (data['completionPercentage'] as num?)?.toInt() ?? 0,
+      completionPercentage:
+          (data['completionPercentage'] as num?)?.toInt() ?? 0,
       taskCompletion: data['taskCompletion'] != null
           ? Map<String, bool>.from(data['taskCompletion'])
           : null,
       taskFrequencies: data['taskFrequencies'] != null
           ? Map<String, String>.from(data['taskFrequencies'])
           : null,
-      estimatedHours: data['estimatedHours']?.toDouble(), // ✅ AGREGADO ?
+      estimatedHours: estimatedHours, // ✅ USAR EL VALOR CALCULADO
     );
   }
 

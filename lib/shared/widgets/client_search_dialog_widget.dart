@@ -1,24 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
 
-/// Widget de búsqueda y selección de clientes
-///
-/// Muestra un diálogo con búsqueda dinámica e inteligente que permite
-/// filtrar clientes por nombre, tipo o país.
-///
-/// Uso:
-/// ```dart
-/// final selectedClient = await showDialog<ClientModel>(
-///   context: context,
-///   builder: (context) => ClientSearchDialog(clients: clients),
-/// );
-/// ```
 class ClientSearchDialog extends StatefulWidget {
   final List<ClientModel> clients;
+  final bool returnFullModel; // ✨ NUEVO parámetro
 
   const ClientSearchDialog({
     super.key,
     required this.clients,
+    this.returnFullModel = true, // Por defecto devuelve el modelo completo
   });
 
   @override
@@ -260,7 +250,11 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
           ),
         ),
       ),
-      onTap: () => Navigator.pop(context, client),
+      // ✨ CAMBIO DINÁMICO: devuelve lo que se necesite
+      onTap: () => Navigator.pop(
+        context,
+        widget.returnFullModel ? client : client.id,
+      ),
     );
   }
 

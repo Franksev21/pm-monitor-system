@@ -118,9 +118,11 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
       setState(() {
         _clientEquipments = clientEquipments;
         _availableBranches = client.branches;
-        _selectedBranchId = null;
+        _selectedBranchId = 'principal';
         _selectedBranch = null;
-        _branchEquipments = [];
+        _branchEquipments = clientEquipments.where((eq) {
+          return eq.branchId == null || eq.branchId!.isEmpty;
+        }).toList();
       });
     } catch (e) {
       debugPrint('❌ Error cargando equipos: $e');
@@ -212,7 +214,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
       _selectedTasks = List.from(maintenance.tasks);
       _notesController.text = maintenance.notes ?? '';
 
-      // IMPORTANTE: Cargar frecuencias individuales de tareas al editar
       if (MaintenanceSchedule.requiresFrequency(maintenance.type)) {
         if (maintenance.taskFrequencies != null &&
             maintenance.taskFrequencies!.isNotEmpty) {
@@ -428,7 +429,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   void _showClientSearchDialog() async {
     final selectedClient = await showDialog<ClientModel>(
       context: context,
-      builder: (context) => ClientSearchDialog(clients: _clients),
+      builder: (context) => ClientSearchDialog(clients: _clients, returnFullModel: true),
     );
 
     if (selectedClient != null && mounted) {

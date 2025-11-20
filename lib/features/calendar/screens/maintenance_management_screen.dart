@@ -1,12 +1,13 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/services/client_service.dart';
+import 'package:pm_monitor/core/services/technician_availability_service.dart';
 import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
 import 'package:pm_monitor/features/maintenance/screens/add_maintenance_screen.dart';
+import 'package:pm_monitor/features/technician/screens/technician_availability_model.dart';
+import 'package:pm_monitor/shared/widgets/client_search_dialog_widget.dart';
 
 class MaintenanceManagementScreen extends StatefulWidget {
   const MaintenanceManagementScreen({Key? key}) : super(key: key);
@@ -21,6 +22,8 @@ class _MaintenanceManagementScreenState
   final MaintenanceScheduleService _maintenanceService =
       MaintenanceScheduleService();
   final ClientService _clientService = ClientService();
+  final TechnicianAvailabilityService _technicianAvailabilityService =
+      TechnicianAvailabilityService();
 
   // Lista de mantenimientos
   List<MaintenanceSchedule> _allMaintenances = []; // ✅ CORREGIDO
@@ -53,7 +56,6 @@ class _MaintenanceManagementScreenState
     'UPS',
     'Equipos de Cocina',
     'Facilidades',
-    'Otros',
   ];
 
   @override
@@ -61,6 +63,7 @@ class _MaintenanceManagementScreenState
     super.initState();
     _loadClients();
     _loadMaintenances();
+    _technicianAvailabilityService.getTechniciansAvailability();
   }
 
   Future<void> _loadClients() async {
@@ -196,7 +199,7 @@ class _MaintenanceManagementScreenState
   double get _totalSelectedHours {
     return _selectedMaintenances.fold(
       0.0,
-      (sum, m) => sum + (m.estimatedHours ?? 0.0).toInt(), // ✅ CORREGIDO
+      (sum, m) => sum + (m.estimatedHours ?? 2.0).toInt(), // ✅ CORREGIDO
     );
   }
 
@@ -569,6 +572,46 @@ class _MaintenanceManagementScreenState
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20),
+                padding: EdgeInsets.zero,
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddMaintenanceScreen(),
+                      ),
+                    ).then((_) =>
+                        _loadMaintenances()); // Recargar después de editar
+                  } else if (value == 'delete') {
+                    _confirmDeleteMaintenance(maintenance.id);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, size: 18),
+                        SizedBox(width: 8),
+                        Text('Editar'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, size: 18, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Eliminar', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -577,7 +620,6 @@ class _MaintenanceManagementScreenState
   }
 
   Widget _buildTypeChip(MaintenanceType type) {
-    // ✅ CORREGIDO: Usar helpers estáticos del modelo
     final color = _getMaintenanceTypeColor(type);
     final name = MaintenanceSchedule.getTypeDisplayName(type);
 
@@ -653,9 +695,11 @@ class _MaintenanceManagementScreenState
     String? tempClientId = _selectedClientId;
     String? tempBranchId = _selectedBranchId;
     String? tempEquipmentType = _selectedEquipmentType;
+    String? tempCustomEquipmentType; // Para el campo "Otro"
     MaintenanceType? tempMaintenanceType = _selectedMaintenanceType;
     MaintenanceStatus? tempStatus = _selectedStatus;
     String tempAssignmentFilter = _assignmentFilter;
+
 
     showModalBottomSheet(
       context: context,
@@ -698,9 +742,12 @@ class _MaintenanceManagementScreenState
                             tempClientId = null;
                             tempBranchId = null;
                             tempEquipmentType = null;
+                            tempCustomEquipmentType = null;
                             tempMaintenanceType = null;
                             tempStatus = null;
-                            tempAssignmentFilter = 'all';
+                            tempAssignmentFilter = '';
+                            tempEquipmentType = null;
+                            tempCustomEquipmentType = null;
                           });
                         },
                         child: const Text('Limpiar'),
@@ -720,7 +767,7 @@ class _MaintenanceManagementScreenState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Cliente
+                        // 🔍 Cliente con buscador emergente
                         const Text(
                           'Cliente',
                           style: TextStyle(
@@ -729,46 +776,79 @@ class _MaintenanceManagementScreenState
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String?>(
-                              isExpanded: true,
-                              value: tempClientId,
-                              hint: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('Todos los clientes'),
-                              ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              items: [
-                                const DropdownMenuItem<String?>(
-                                  value: null,
-                                  child: Text('Todos los clientes'),
+                        InkWell(
+                          onTap: () async {
+                            final selectedClientId =
+                                await _showClientSearchDialog();
+                            if (selectedClientId != null) {
+                              setModalState(() {
+                                tempClientId = selectedClientId;
+                                // Cargar sucursales del cliente
+                                final client = _clients.firstWhere(
+                                  (c) => c.id == selectedClientId,
+                                );
+                                _branches = client.branches;
+
+                                // ✨ Seleccionar "Principal" por defecto
+                                tempBranchId = 'principal';
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                              color: tempClientId != null
+                                  ? Colors.blue[50]
+                                  : Colors.white,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.person,
+                                  color: tempClientId != null
+                                      ? Colors.blue[700]
+                                      : Colors.grey[600],
                                 ),
-                                ..._clients.map((client) {
-                                  return DropdownMenuItem<String>(
-                                    value: client.id,
-                                    child: Text(client.name),
-                                  );
-                                }),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    tempClientId != null
+                                        ? _clients
+                                            .firstWhere(
+                                                (c) => c.id == tempClientId)
+                                            .name
+                                        : 'Todos los clientes',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: tempClientId != null
+                                          ? Colors.blue[700]
+                                          : Colors.grey[700],
+                                      fontWeight: tempClientId != null
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (tempClientId != null)
+                                  IconButton(
+                                    icon: const Icon(Icons.clear, size: 20),
+                                    onPressed: () {
+                                      setModalState(() {
+                                        tempClientId = null;
+                                        tempBranchId = null;
+                                      });
+                                    },
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  )
+                                else
+                                  Icon(Icons.search, color: Colors.grey[600]),
                               ],
-                              onChanged: (value) {
-                                setModalState(() {
-                                  tempClientId = value;
-                                  tempBranchId = null; // Reset sucursal
-                                  if (value != null) {
-                                    // Cargar sucursales del cliente
-                                    final client = _clients.firstWhere(
-                                      (c) => c.id == value,
-                                    );
-                                    _branches = client.branches;
-                                  }
-                                });
-                              },
                             ),
                           ),
                         ),
@@ -805,10 +885,34 @@ class _MaintenanceManagementScreenState
                                     value: null,
                                     child: Text('Todas las sucursales'),
                                   ),
+                                  DropdownMenuItem<String>(
+                                    value: 'principal',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.home,
+                                            size: 16, color: Colors.blue[700]),
+                                        const SizedBox(width: 8),
+                                        const Text('Principal'),
+                                      ],
+                                    ),
+                                  ),
                                   ..._branches.map((branch) {
                                     return DropdownMenuItem<String>(
                                       value: branch.id,
-                                      child: Text(branch.name),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.store,
+                                              size: 16,
+                                              color: Colors.orange[700]),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              branch.name,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     );
                                   }),
                                 ],
@@ -973,7 +1077,7 @@ class _MaintenanceManagementScreenState
 
                         const SizedBox(height: 16),
 
-                        // Tipo de Equipo
+                        // 📝 Tipo de Equipo con opción "Otro"
                         const Text(
                           'Tipo de Equipo',
                           style: TextStyle(
@@ -982,41 +1086,219 @@ class _MaintenanceManagementScreenState
                           ),
                         ),
                         const SizedBox(height: 8),
+
+                        // Lista de tipos de equipo
                         Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey[300]!),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String?>(
-                              isExpanded: true,
-                              value: tempEquipmentType,
-                              hint: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('Todos los equipos'),
-                              ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              items: [
-                                const DropdownMenuItem<String?>(
-                                  value: null,
-                                  child: Text('Todos los equipos'),
+                          child: Column(
+                            children: [
+                              // Opción: Todos
+                              InkWell(
+                                onTap: () {
+                                  setModalState(() {
+                                    tempEquipmentType = null;
+                                    tempCustomEquipmentType = null;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: tempEquipmentType == null
+                                        ? Colors.blue[50]
+                                        : Colors.white,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(8),
+                                      topRight: Radius.circular(8),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        tempEquipmentType == null
+                                            ? Icons.check_circle
+                                            : Icons.circle_outlined,
+                                        color: tempEquipmentType == null
+                                            ? Colors.blue[700]
+                                            : Colors.grey[400],
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Todos los equipos',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: tempEquipmentType == null
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                          color: tempEquipmentType == null
+                                              ? Colors.blue[700]
+                                              : Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                ..._equipmentTypes.map((type) {
-                                  return DropdownMenuItem<String>(
-                                    value: type,
-                                    child: Text(type),
-                                  );
-                                }),
-                              ],
-                              onChanged: (value) {
-                                setModalState(() {
-                                  tempEquipmentType = value;
-                                });
-                              },
-                            ),
+                              ),
+
+                              // Tipos predefinidos
+                              ..._equipmentTypes.map((type) {
+                                final isSelected = tempEquipmentType == type;
+                                return InkWell(
+                                  onTap: () {
+                                    setModalState(() {
+                                      tempEquipmentType = type;
+                                      tempCustomEquipmentType = null;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? Colors.blue[50]
+                                          : Colors.white,
+                                      border: Border(
+                                        top: BorderSide(
+                                            color: Colors.grey[300]!),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          isSelected
+                                              ? Icons.check_circle
+                                              : Icons.circle_outlined,
+                                          color: isSelected
+                                              ? Colors.blue[700]
+                                              : Colors.grey[400],
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          type,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                            color: isSelected
+                                                ? Colors.blue[700]
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+
+                              // Opción: Otro (Especificar)
+                              InkWell(
+                                onTap: () {
+                                  setModalState(() {
+                                    tempEquipmentType = 'Otro';
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: tempEquipmentType == 'Otro'
+                                        ? Colors.blue[50]
+                                        : Colors.white,
+                                    border: Border(
+                                      top: BorderSide(color: Colors.grey[300]!),
+                                    ),
+                                    borderRadius: const BorderRadius.only(
+                                      bottomLeft: Radius.circular(8),
+                                      bottomRight: Radius.circular(8),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        tempEquipmentType == 'Otro'
+                                            ? Icons.check_circle
+                                            : Icons.circle_outlined,
+                                        color: tempEquipmentType == 'Otro'
+                                            ? Colors.blue[700]
+                                            : Colors.grey[400],
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Otro (Especificar)',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight:
+                                              tempEquipmentType == 'Otro'
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal,
+                                          color: tempEquipmentType == 'Otro'
+                                              ? Colors.blue[700]
+                                              : Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+
+                        // Campo de texto cuando selecciona "Otro"
+                        if (tempEquipmentType == 'Otro') ...[
+                          const SizedBox(height: 12),
+                          TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Escribir tipo de equipo...',
+                              prefixIcon: const Icon(Icons.edit),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: Colors.blue[50],
+                            ),
+                            onChanged: (value) {
+                              tempCustomEquipmentType = value;
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline,
+                                    size: 16, color: Colors.blue[700]),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Escribe el tipo de equipo personalizado',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1037,7 +1319,14 @@ class _MaintenanceManagementScreenState
                         setState(() {
                           _selectedClientId = tempClientId;
                           _selectedBranchId = tempBranchId;
-                          _selectedEquipmentType = tempEquipmentType;
+                          // Si seleccionó "Otro" y escribió algo, usar el texto personalizado
+                          if (tempEquipmentType == 'Otro' &&
+                              tempCustomEquipmentType != null &&
+                              tempCustomEquipmentType!.isNotEmpty) {
+                            _selectedEquipmentType = tempCustomEquipmentType;
+                          } else {
+                            _selectedEquipmentType = tempEquipmentType;
+                          }
                           _selectedMaintenanceType = tempMaintenanceType;
                           _selectedStatus = tempStatus;
                           _assignmentFilter = tempAssignmentFilter;
@@ -1068,6 +1357,124 @@ class _MaintenanceManagementScreenState
           );
         },
       ),
+    );
+  }
+
+// 🔍 NUEVO: Método para mostrar diálogo de búsqueda de clientes
+  Future<String?> _showClientSearchDialog() async {
+    return await showDialog<String>(
+      context: context,
+      builder: (context) => ClientSearchDialog(
+        clients: _clients,
+        returnFullModel: false,
+      ),
+    );
+  }
+
+// 📝 NUEVO: Widget para selector de tipo de equipo con opción "Otro"
+  Widget _buildEquipmentTypeSelector(
+    String? currentValue,
+    Function(String?) onChanged,
+  ) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        bool isOther = currentValue != null &&
+            !_equipmentTypes.contains(currentValue) &&
+            currentValue != 'Todos';
+        String dropdownValue = isOther ? 'Otro' : currentValue ?? 'Todos';
+
+        return Column(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  value: dropdownValue,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: 'Todos',
+                      child: Text('Todos los equipos'),
+                    ),
+                    ..._equipmentTypes.map((type) {
+                      return DropdownMenuItem<String>(
+                        value: type,
+                        child: Text(type),
+                      );
+                    }),
+                    const DropdownMenuItem<String>(
+                      value: 'Otro',
+                      child: Text('Otro (Especificar)'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == 'Todos') {
+                        onChanged(null);
+                      } else if (value == 'Otro') {
+                        // Mantener el valor actual si ya es "otro"
+                        if (!isOther) {
+                          onChanged('Otro');
+                        }
+                      } else {
+                        onChanged(value);
+                      }
+                    });
+                  },
+                ),
+              ),
+            ),
+            // Campo de texto cuando selecciona "Otro"
+            if (dropdownValue == 'Otro') ...[
+              const SizedBox(height: 12),
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'Escribir tipo de equipo...',
+                  prefixIcon: const Icon(Icons.edit),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: Colors.blue[50],
+                ),
+                controller: TextEditingController(
+                  text: isOther ? currentValue : '',
+                ),
+                onChanged: (value) {
+                  onChanged(value.isEmpty ? null : value);
+                },
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.blue[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Escribe el tipo de equipo personalizado',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -1240,21 +1647,511 @@ class _MaintenanceManagementScreenState
   }
 
   void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
-    // TODO: Implementar pantalla de detalles
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Detalles: ${maintenance.equipmentName}')),
     );
   }
 
-  void _showTechnicianAssignment() {
-    // TODO: Implementar bottom sheet de asignación de técnicos
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Asignar ${_selectedIds.length} mantenimientos (${_totalSelectedHours.toStringAsFixed(1)} hrs)',
+  void _confirmDeleteMaintenance(String id) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Mantenimiento'),
+        content: const Text('¿Estás seguro?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+
+              try {
+                await _maintenanceService.deleteMaintenance(id);
+                _loadMaintenances();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Mantenimiento eliminado'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTechnicianAssignment() async {
+    // Cargar disponibilidad de técnicos
+    final availabilityService = TechnicianAvailabilityService();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FutureBuilder<List<TechnicianAvailability>>(
+        future: availabilityService.getTechniciansAvailability(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Container(
+              height: 400,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Container(
+              height: 400,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.person_off, size: 64, color: Colors.grey[300]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No hay técnicos disponibles',
+                      style: TextStyle(fontSize: 18, color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final technicians = snapshot.data!;
+
+          return _buildTechnicianAssignmentSheet(technicians);
+        },
+      ),
+    );
+  }
+
+  Widget _buildTechnicianAssignmentSheet(
+    List<TechnicianAvailability> technicians,
+  ) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[200]!),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Asignar Técnico',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 16, color: Colors.blue[700]),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${_selectedIds.length} mantenimiento${_selectedIds.length != 1 ? 's' : ''} • ${_totalSelectedHours.toStringAsFixed(1)} hrs',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ), // Lista de técnicos
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: technicians.length,
+              itemBuilder: (context, index) {
+                final tech = technicians[index];
+                return _buildTechnicianCard(tech);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTechnicianCard(TechnicianAvailability tech) {
+    final canAccept = tech.canAcceptHours(_totalSelectedHours);
+    final utilizationColor = tech.isOverloaded
+        ? Colors.red
+        : tech.isNearLimit
+            ? Colors.orange
+            : tech.assignedHours > tech.regularHours
+                ? Colors.amber
+                : Colors.green;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: canAccept ? Colors.grey[300]! : Colors.red[200]!,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: canAccept
+            ? () => _confirmAssignment(tech)
+            : () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${tech.name} no tiene suficiente disponibilidad (${tech.availableHours.toStringAsFixed(1)} hrs disponibles)',
+                    ),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // Avatar
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: utilizationColor.withOpacity(0.2),
+                    child: Text(
+                      tech.name.substring(0, 1).toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: utilizationColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tech.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${tech.activeMaintenances} activo${tech.activeMaintenances != 1 ? 's' : ''}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Estado
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: utilizationColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      tech.availabilityStatus,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: utilizationColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Barra de progreso
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${tech.assignedHours.toStringAsFixed(1)} / ${tech.maxWeeklyHours.toStringAsFixed(0)} hrs',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        '${tech.utilizationPercentage.toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: utilizationColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: tech.utilizationPercentage / 100,
+                      backgroundColor: Colors.grey[200],
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(utilizationColor),
+                      minHeight: 8,
+                    ),
+                  ),
+                ],
+              ),
+
+              if (!canAccept) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber,
+                          size: 16, color: Colors.red[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Insuficiente disponibilidad para esta asignación',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.red[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  void _confirmAssignment(TechnicianAvailability tech) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Asignación'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                '¿Asignar ${_selectedIds.length} mantenimiento${_selectedIds.length != 1 ? 's' : ''} a:'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tech.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                      'Horas actuales: ${tech.assignedHours.toStringAsFixed(1)} hrs'),
+                  Text(
+                      'Horas a agregar: ${_totalSelectedHours.toStringAsFixed(1)} hrs'),
+                  const Divider(),
+                  Text(
+                    'Total: ${(tech.assignedHours + _totalSelectedHours).toStringAsFixed(1)} hrs',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context); // Cerrar diálogo
+              Navigator.pop(context); // Cerrar bottom sheet
+              await _performAssignment(tech);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF007AFF),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performAssignment(TechnicianAvailability tech) async {
+    try {
+      // Mostrar loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Asignando mantenimientos...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Realizar asignación
+      await _maintenanceService.assignTechnicianToMaintenances(
+        maintenanceIds: _selectedIds.toList(),
+        technicianId: tech.id,
+        technicianName: tech.name,
+      );
+
+      // Cerrar loading
+      Navigator.pop(context);
+
+
+      setState(() {
+        _selectedIds.clear();
+        _selectAll = false;
+      });
+
+      await _loadMaintenances();
+
+      // Mostrar éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '✅ ${_selectedIds.length} mantenimiento${_selectedIds.length != 1 ? 's asignados' : ' asignado'} a ${tech.name}',
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      // Cerrar loading si está abierto
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showErrorSnackBar(String message) {

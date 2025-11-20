@@ -16,12 +16,12 @@ class MaintenanceScheduleService {
   Future<String> createMaintenance(MaintenanceSchedule maintenance) async {
     try {
       debugPrint('📝 Creando mantenimiento...');
-      
+
       final data = maintenance.toFirestore();
       data['status'] = 'generated'; // ← Siempre inicia en GENERATED
-      
+
       final docRef = await _firestore.collection(_collection).add(data);
-      
+
       debugPrint('✅ Mantenimiento creado con ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
@@ -34,12 +34,12 @@ class MaintenanceScheduleService {
   Future<void> updateMaintenance(MaintenanceSchedule maintenance) async {
     try {
       debugPrint('🔄 Actualizando mantenimiento ${maintenance.id}...');
-      
+
       await _firestore
           .collection(_collection)
           .doc(maintenance.id)
           .update(maintenance.toFirestore());
-      
+
       debugPrint('✅ Mantenimiento actualizado');
     } catch (e) {
       debugPrint('❌ Error actualizando mantenimiento: $e');
@@ -51,9 +51,9 @@ class MaintenanceScheduleService {
   Future<void> deleteMaintenance(String id) async {
     try {
       debugPrint('🗑️ Eliminando mantenimiento $id...');
-      
+
       await _firestore.collection(_collection).doc(id).delete();
-      
+
       debugPrint('✅ Mantenimiento eliminado');
     } catch (e) {
       debugPrint('❌ Error eliminando mantenimiento: $e');
@@ -65,9 +65,9 @@ class MaintenanceScheduleService {
   Future<MaintenanceSchedule?> getMaintenanceById(String id) async {
     try {
       final doc = await _firestore.collection(_collection).doc(id).get();
-      
+
       if (!doc.exists) return null;
-      
+
       return MaintenanceSchedule.fromFirestore(doc);
     } catch (e) {
       debugPrint('❌ Error obteniendo mantenimiento: $e');
@@ -144,10 +144,6 @@ class MaintenanceScheduleService {
             .toList());
   }
 
-  // ============================================
-  // ⭐ NUEVOS MÉTODOS - GESTIÓN DE ESTADOS
-  // ============================================
-
   /// ⭐ Stream de mantenimientos GENERADOS (sin asignar)
   Stream<List<MaintenanceSchedule>> getUnassignedMaintenances() {
     return _firestore
@@ -188,7 +184,7 @@ class MaintenanceScheduleService {
   Stream<List<MaintenanceSchedule>> getMaintenancesByStatus(
       MaintenanceStatus status) {
     final statusString = status.toString().split('.').last;
-    
+
     return _firestore
         .collection(_collection)
         .where('status', isEqualTo: statusString)
@@ -210,18 +206,18 @@ class MaintenanceScheduleService {
     required String technicianName,
   }) async {
     try {
-      debugPrint('👤 Asignando técnico $technicianName a mantenimiento $maintenanceId...');
-      
+      debugPrint(
+          '👤 Asignando técnico $technicianName a mantenimiento $maintenanceId...');
+
       await _firestore.collection(_collection).doc(maintenanceId).update({
         'technicianId': technicianId,
         'technicianName': technicianName,
         'status': 'assigned',
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      
+
       debugPrint('✅ Técnico asignado correctamente');
-      
-    
+
       await _notificationService.sendMaintenanceAssignedNotification(
         technicianId: technicianId,
         maintenanceId: maintenanceId,
@@ -239,13 +235,14 @@ class MaintenanceScheduleService {
     required String technicianName,
   }) async {
     try {
-      debugPrint('👤 Asignando técnico $technicianName a ${maintenanceIds.length} mantenimientos...');
-      
+      debugPrint(
+          '👤 Asignando técnico $technicianName a ${maintenanceIds.length} mantenimientos...');
+
       final batch = _firestore.batch();
-      
+
       for (final maintenanceId in maintenanceIds) {
         final docRef = _firestore.collection(_collection).doc(maintenanceId);
-        
+
         batch.update(docRef, {
           'technicianId': technicianId,
           'technicianName': technicianName,
@@ -253,11 +250,11 @@ class MaintenanceScheduleService {
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }
-      
+
       await batch.commit();
-      
+
       debugPrint('✅ ${maintenanceIds.length} mantenimientos asignados');
-      
+
       // Notificar al técnico
       await _notificationService.sendBulkMaintenanceAssignedNotification(
         technicianId: technicianId,
@@ -277,15 +274,15 @@ class MaintenanceScheduleService {
   }) async {
     try {
       debugPrint('🔄 Reasignando mantenimiento $maintenanceId...');
-      
+
       await _firestore.collection(_collection).doc(maintenanceId).update({
         'technicianId': newTechnicianId,
         'technicianName': newTechnicianName,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      
+
       debugPrint('✅ Mantenimiento reasignado');
-      
+
       // // Notificar al nuevo técnico
       await _notificationService.sendMaintenanceAssignedNotification(
         technicianId: newTechnicianId,
@@ -301,14 +298,14 @@ class MaintenanceScheduleService {
   Future<void> unassignTechnician(String maintenanceId) async {
     try {
       debugPrint('↩️ Desasignando técnico del mantenimiento $maintenanceId...');
-      
+
       await _firestore.collection(_collection).doc(maintenanceId).update({
         'technicianId': null,
         'technicianName': null,
         'status': 'generated',
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      
+
       debugPrint('✅ Técnico desasignado');
     } catch (e) {
       debugPrint('❌ Error desasignando técnico: $e');
@@ -330,14 +327,13 @@ class MaintenanceScheduleService {
   }) async {
     try {
       debugPrint('✅ Marcando mantenimiento $maintenanceId como ejecutado...');
-      
+
       // Calcular porcentaje de completado
       final totalTasks = taskCompletion.length;
       final completedTasks = taskCompletion.values.where((v) => v).length;
-      final percentage = totalTasks > 0 
-          ? ((completedTasks / totalTasks) * 100).round() 
-          : 0;
-      
+      final percentage =
+          totalTasks > 0 ? ((completedTasks / totalTasks) * 100).round() : 0;
+
       await _firestore.collection(_collection).doc(maintenanceId).update({
         'status': 'executed',
         'completedBy': completedBy,
@@ -348,9 +344,9 @@ class MaintenanceScheduleService {
         'notes': notes,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      
+
       debugPrint('✅ Mantenimiento ejecutado ($percentage% completado)');
-      
+
       // // Notificar al supervisor/admin
       // await _notificationService.sendMaintenanceCompletedNotification(
       //   maintenanceId: maintenanceId,
@@ -362,62 +358,70 @@ class MaintenanceScheduleService {
     }
   }
 
-  // ============================================
-  // ⭐ CÁLCULO DE HORAS (PARA CARGA DE TÉCNICOS)
-  // ============================================
-
-  /// ⭐ Obtener horas totales asignadas a un técnico en un rango de fechas
-  Future<double> getTechnicianHoursInDateRange({
+Future<double> getTechnicianHoursInDateRange({
     required String technicianId,
     required DateTime startDate,
     required DateTime endDate,
   }) async {
     try {
-      debugPrint('📊 Calculando horas de técnico $technicianId...');
-      
       final snapshot = await _firestore
           .collection(_collection)
           .where('technicianId', isEqualTo: technicianId)
-          .where('status', whereIn: ['assigned', 'executed']) // Solo asignados o ejecutados
-          .where('scheduledDate', isGreaterThanOrEqualTo: startDate)
-          .where('scheduledDate', isLessThanOrEqualTo: endDate)
           .get();
-      
+
       double totalHours = 0.0;
-      
+
       for (final doc in snapshot.docs) {
         final data = doc.data();
-        final estimatedHours = data['estimatedHours'] as double? ?? 0.0;
-        totalHours += estimatedHours;
+        final status = data['status'] as String?;
+
+        // ✅ SOLO filtrar por estado pendiente, SIN filtrar por fecha
+        if (status == 'generated' || status == 'assigned') {
+          double? hours;
+          if (data['estimatedHours'] != null) {
+            hours = (data['estimatedHours'] as num).toDouble();
+          } else if (data['estimatedDurationMinutes'] != null) {
+            hours = (data['estimatedDurationMinutes'] as num).toDouble() / 60.0;
+          }
+
+          if (hours != null && hours > 0) {
+            totalHours += hours;
+          }
+        }
       }
-      
-      debugPrint('✅ Total horas: $totalHours');
+
       return totalHours;
     } catch (e) {
-      debugPrint('❌ Error calculando horas: $e');
+      debugPrint('❌ Error: $e');
       return 0.0;
     }
   }
 
-  /// ⭐ Obtener mantenimientos activos de un técnico
-  Future<int> getActiveMaintenancesCountnancesCount(String technicianId) async {
+  Future<int> getActiveMaintenancesCount(String technicianId) async {
     try {
+      // ✅ Buscar directamente por technicianId
       final snapshot = await _firestore
           .collection(_collection)
           .where('technicianId', isEqualTo: technicianId)
-          .where('status', isEqualTo: 'assigned')
           .get();
-      
-      return snapshot.docs.length;
+
+      // Filtrar manualmente por estado
+      int activeCount = 0;
+      for (final doc in snapshot.docs) {
+        final status = doc.data()['status'] as String?;
+        if (status == 'generated' || status == 'assigned') {
+          activeCount++;
+        }
+      }
+
+      debugPrint(
+          '   👤 Técnico $technicianId: $activeCount mantenimientos activos (de ${snapshot.docs.length} totales)');
+      return activeCount;
     } catch (e) {
       debugPrint('❌ Error contando mantenimientos activos: $e');
       return 0;
     }
   }
-
-  // ============================================
-  // FILTROS AVANZADOS
-  // ============================================
 
   /// Obtener mantenimientos con filtros múltiples
   Future<List<MaintenanceSchedule>> getFilteredMaintenances({
@@ -432,41 +436,40 @@ class MaintenanceScheduleService {
   }) async {
     try {
       Query query = _firestore.collection(_collection);
-      
+
       // Aplicar filtros
       if (startDate != null) {
         query = query.where('scheduledDate', isGreaterThanOrEqualTo: startDate);
       }
-      
+
       if (endDate != null) {
         query = query.where('scheduledDate', isLessThanOrEqualTo: endDate);
       }
-      
+
       if (status != null) {
-        query = query.where('status', 
-            isEqualTo: status.toString().split('.').last);
+        query =
+            query.where('status', isEqualTo: status.toString().split('.').last);
       }
-      
+
       if (type != null) {
-        query = query.where('type', 
-            isEqualTo: type.toString().split('.').last);
+        query = query.where('type', isEqualTo: type.toString().split('.').last);
       }
-      
+
       if (clientId != null) {
         query = query.where('clientId', isEqualTo: clientId);
       }
-      
+
       if (branchId != null) {
         query = query.where('branchId', isEqualTo: branchId);
       }
-      
+
       if (technicianId != null) {
         query = query.where('technicianId', isEqualTo: technicianId);
       }
-      
+
       // Ejecutar query
       final snapshot = await query.get();
-      
+
       return snapshot.docs
           .map((doc) => MaintenanceSchedule.fromFirestore(doc))
           .toList();
@@ -484,20 +487,20 @@ class MaintenanceScheduleService {
   Future<Map<String, int>> getMaintenanceCountsByStatus() async {
     try {
       final snapshot = await _firestore.collection(_collection).get();
-      
+
       final counts = {
         'generated': 0,
         'assigned': 0,
         'executed': 0,
       };
-      
+
       for (final doc in snapshot.docs) {
         final status = doc.data()['status'] as String?;
         if (status != null && counts.containsKey(status)) {
           counts[status] = counts[status]! + 1;
         }
       }
-      
+
       return counts;
     } catch (e) {
       debugPrint('❌ Error obteniendo conteos: $e');
