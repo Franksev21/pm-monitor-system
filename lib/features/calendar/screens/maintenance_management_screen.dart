@@ -25,11 +25,6 @@ class _MaintenanceManagementScreenState
   final TechnicianAvailabilityService _technicianAvailabilityService =
       TechnicianAvailabilityService();
 
-  // Lista de mantenimientos
-  List<MaintenanceSchedule> _allMaintenances = []; // ✅ CORREGIDO
-  List<MaintenanceSchedule> _filteredMaintenances = [];
-  bool _isLoading = true;
-
   // Selección
   final Set<String> _selectedIds = {};
   bool _selectAll = false;
@@ -41,7 +36,7 @@ class _MaintenanceManagementScreenState
   MaintenanceType? _selectedMaintenanceType;
   MaintenanceStatus? _selectedStatus;
   String? _selectedTechnicianId;
-  String _assignmentFilter = 'all'; // all, assigned, unassigned
+  String _assignmentFilter = 'all';
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -62,7 +57,6 @@ class _MaintenanceManagementScreenState
   void initState() {
     super.initState();
     _loadClients();
-    _loadMaintenances();
     _technicianAvailabilityService.getTechniciansAvailability();
   }
 
@@ -77,71 +71,46 @@ class _MaintenanceManagementScreenState
     }
   }
 
-  Future<void> _loadMaintenances() async {
-    setState(() {
-      _isLoading = true;
-    });
+  /// ⭐ Stream configurado con filtros de fecha
+  Stream<List<MaintenanceSchedule>> _getMaintenancesStream() {
+    final now = DateTime.now();
+    final startDate = _startDate ?? now.subtract(const Duration(days: 30));
+    final endDate = _endDate ?? now.add(const Duration(days: 30));
 
-    try {
-      // ✅ CAMBIO: Cargar últimos 30 días + próximos 30 días
-      final now = DateTime.now();
-      final startDate = _startDate ?? now.subtract(const Duration(days: 30));
-      final endDate = _endDate ?? now.add(const Duration(days: 30));
+    debugPrint('🔍 Stream: $startDate → $endDate');
 
-      debugPrint('🔍 Cargando mantenimientos...');
-      debugPrint('   Rango: $startDate → $endDate');
-
-      final maintenances = await _maintenanceService.getFilteredMaintenances(
-        startDate: startDate,
-        endDate: endDate,
-      );
-
-      debugPrint('✅ Mantenimientos encontrados: ${maintenances.length}');
-
-      // Debug: Mostrar estados
-      final statusCounts = <String, int>{};
-      for (var m in maintenances) {
-        final status = m.status.toString().split('.').last;
-        statusCounts[status] = (statusCounts[status] ?? 0) + 1;
-      }
-      debugPrint('📊 Estados: $statusCounts');
-
-      setState(() {
-        _allMaintenances = maintenances;
-        _applyFilters();
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('❌ Error: $e');
-      setState(() {
-        _isLoading = false;
-      });
-      _showErrorSnackBar('Error cargando mantenimientos: $e');
-    }
+    return _maintenanceService.getMaintenancesStream(
+      startDate: startDate,
+      endDate: endDate,
+    );
   }
 
-  void _applyFilters() {
-    var filtered = _allMaintenances;
+  /// ⭐ Aplicar filtros locales a la lista
+  List<MaintenanceSchedule> _applyLocalFilters(
+      List<MaintenanceSchedule> maintenances) {
+    var filtered = maintenances;
 
-    // Filtro por cliente
     if (_selectedClientId != null) {
       filtered =
           filtered.where((m) => m.clientId == _selectedClientId).toList();
     }
 
-    // Filtro por sucursal
     if (_selectedBranchId != null) {
       filtered =
           filtered.where((m) => m.branchId == _selectedBranchId).toList();
     }
 
-    // Filtro por tipo de mantenimiento
+    if (_selectedEquipmentType != null) {
+      filtered = filtered
+          .where((m) => m.equipmentName == _selectedEquipmentType)
+          .toList();
+    }
+
     if (_selectedMaintenanceType != null) {
       filtered =
           filtered.where((m) => m.type == _selectedMaintenanceType).toList();
     }
 
-    // Filtro por estado
     if (_selectedStatus != null) {
       filtered = filtered.where((m) => m.status == _selectedStatus).toList();
     }
@@ -152,19 +121,16 @@ class _MaintenanceManagementScreenState
       filtered = filtered.where((m) => m.technicianId == null).toList();
     }
 
-    // Filtro por técnico específico
     if (_selectedTechnicianId != null) {
       filtered = filtered
           .where((m) => m.technicianId == _selectedTechnicianId)
           .toList();
     }
 
-    setState(() {
-      _filteredMaintenances = filtered;
+    // Limpiar selecciones que ya no están en la lista filtrada
+    _selectedIds.removeWhere((id) => !filtered.any((m) => m.id == id));
 
-      // Limpiar selecciones que ya no están en la lista filtrada
-      _selectedIds.removeWhere((id) => !filtered.any((m) => m.id == id));
-    });
+    return filtered;
   }
 
   void _toggleSelection(String id) {
@@ -174,33 +140,23 @@ class _MaintenanceManagementScreenState
       } else {
         _selectedIds.add(id);
       }
-      _selectAll = _selectedIds.length == _filteredMaintenances.length;
     });
   }
 
-  void _toggleSelectAll() {
+  void _toggleSelectAll(List<MaintenanceSchedule> maintenances) {
     setState(() {
       if (_selectAll) {
         _selectedIds.clear();
         _selectAll = false;
       } else {
-        _selectedIds.addAll(_filteredMaintenances.map((m) => m.id));
+        _selectedIds.addAll(maintenances.map((m) => m.id!));
         _selectAll = true;
       }
     });
   }
 
-  List<MaintenanceSchedule> get _selectedMaintenances {
-    return _filteredMaintenances
-        .where((m) => _selectedIds.contains(m.id))
-        .toList();
-  }
-
   double get _totalSelectedHours {
-    return _selectedMaintenances.fold(
-      0.0,
-      (sum, m) => sum + (m.estimatedHours ?? 2.0).toInt(), // ✅ CORREGIDO
-    );
+    return _selectedIds.length * 2.0;
   }
 
   @override
@@ -226,31 +182,71 @@ class _MaintenanceManagementScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddMaintenanceScreen(),
-                  ));
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddMaintenanceScreen(),
+                ),
+              );
             },
           ),
         ],
       ),
       body: Column(
         children: [
-          // Barra de filtros rápidos
           _buildQuickFiltersBar(activeFiltersCount),
-
-          // Checkbox "Seleccionar todos"
-          if (_filteredMaintenances.isNotEmpty) _buildSelectAllBar(),
-
-          // Lista de mantenimientos
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredMaintenances.isEmpty
-                    ? _buildEmptyState()
-                    : _buildMaintenancesList(),
+            child: StreamBuilder<List<MaintenanceSchedule>>(
+              stream: _getMaintenancesStream(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  debugPrint('❌ Error: ${snapshot.error}');
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        SizedBox(height: 16),
+                        Text('Error al cargar'),
+                        SizedBox(height: 8),
+                        Text('${snapshot.error}', textAlign: TextAlign.center),
+                        SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => setState(() {}),
+                          child: Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                final allMaintenances = snapshot.data!;
+                final filteredMaintenances =
+                    _applyLocalFilters(allMaintenances);
+
+                debugPrint(
+                    '✅ ${filteredMaintenances.length} mantenimientos mostrados');
+
+                return Column(
+                  children: [
+                    if (filteredMaintenances.isNotEmpty)
+                      _buildSelectAllBar(filteredMaintenances),
+                    Expanded(
+                      child: _buildMaintenancesList(filteredMaintenances),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -340,7 +336,7 @@ class _MaintenanceManagementScreenState
     );
   }
 
-  Widget _buildSelectAllBar() {
+  Widget _buildSelectAllBar(List<MaintenanceSchedule> maintenances) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: Colors.white,
@@ -348,14 +344,14 @@ class _MaintenanceManagementScreenState
         children: [
           Checkbox(
             value: _selectAll,
-            onChanged: (_) => _toggleSelectAll(),
+            onChanged: (_) => _toggleSelectAll(maintenances),
             activeColor: const Color(0xFF007AFF),
           ),
           const SizedBox(width: 8),
           Text(
             _selectAll
                 ? 'Deseleccionar todos'
-                : 'Seleccionar todos (${_filteredMaintenances.length})',
+                : 'Seleccionar todos (${maintenances.length})',
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w500,
@@ -383,12 +379,12 @@ class _MaintenanceManagementScreenState
     );
   }
 
-  Widget _buildMaintenancesList() {
+  Widget _buildMaintenancesList(List<MaintenanceSchedule> maintenances) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _filteredMaintenances.length,
+      itemCount: maintenances.length,
       itemBuilder: (context, index) {
-        final maintenance = _filteredMaintenances[index];
+        final maintenance = maintenances[index];
         final isSelected = _selectedIds.contains(maintenance.id);
 
         return _buildMaintenanceCard(maintenance, isSelected);
@@ -400,7 +396,6 @@ class _MaintenanceManagementScreenState
     MaintenanceSchedule maintenance,
     bool isSelected,
   ) {
-    // ✅ CORREGIDO: Usar helpers estáticos del modelo
     final statusColor = MaintenanceSchedule.getStatusColor(maintenance.status);
     final statusIcon = MaintenanceSchedule.getStatusIcon(maintenance.status);
     final statusName =
@@ -432,14 +427,11 @@ class _MaintenanceManagementScreenState
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Checkbox
               Checkbox(
                 value: isSelected,
-                onChanged: (_) => _toggleSelection(maintenance.id),
+                onChanged: (_) => _toggleSelection(maintenance.id!),
                 activeColor: const Color(0xFF007AFF),
               ),
-
-              // Barra de estado
               Container(
                 width: 4,
                 height: 60,
@@ -449,8 +441,6 @@ class _MaintenanceManagementScreenState
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Contenido
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,7 +498,7 @@ class _MaintenanceManagementScreenState
                         Icon(Icons.schedule, size: 12, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
-                          '${maintenance.estimatedHours ?? 0} hrs', // ✅ CORREGIDO
+                          '${maintenance.estimatedHours ?? 0} hrs',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey[600],
@@ -554,8 +544,6 @@ class _MaintenanceManagementScreenState
                   ],
                 ),
               ),
-
-              // Estado badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -564,7 +552,7 @@ class _MaintenanceManagementScreenState
                   border: Border.all(color: statusColor.withOpacity(0.3)),
                 ),
                 child: Text(
-                  statusName, // ✅ CORREGIDO
+                  statusName,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -583,10 +571,9 @@ class _MaintenanceManagementScreenState
                       MaterialPageRoute(
                         builder: (context) => const AddMaintenanceScreen(),
                       ),
-                    ).then((_) =>
-                        _loadMaintenances()); // Recargar después de editar
+                    );
                   } else if (value == 'delete') {
-                    _confirmDeleteMaintenance(maintenance.id);
+                    _confirmDeleteMaintenance(maintenance.id!);
                   }
                 },
                 itemBuilder: (context) => [
@@ -673,8 +660,6 @@ class _MaintenanceManagementScreenState
     );
   }
 
-  // MÉTODOS AUXILIARES
-
   Color _getMaintenanceTypeColor(MaintenanceType type) {
     switch (type) {
       case MaintenanceType.preventive:
@@ -690,16 +675,18 @@ class _MaintenanceManagementScreenState
     }
   }
 
+  // ============================================
+  // FILTROS - BOTTOM SHEET COMPLETO
+  // ============================================
+
   void _showFiltersBottomSheet() {
-    // Variables locales para el bottom sheet
     String? tempClientId = _selectedClientId;
     String? tempBranchId = _selectedBranchId;
     String? tempEquipmentType = _selectedEquipmentType;
-    String? tempCustomEquipmentType; // Para el campo "Otro"
+    String? tempCustomEquipmentType;
     MaintenanceType? tempMaintenanceType = _selectedMaintenanceType;
     MaintenanceStatus? tempStatus = _selectedStatus;
     String tempAssignmentFilter = _assignmentFilter;
-
 
     showModalBottomSheet(
       context: context,
@@ -745,9 +732,7 @@ class _MaintenanceManagementScreenState
                             tempCustomEquipmentType = null;
                             tempMaintenanceType = null;
                             tempStatus = null;
-                            tempAssignmentFilter = '';
-                            tempEquipmentType = null;
-                            tempCustomEquipmentType = null;
+                            tempAssignmentFilter = 'all';
                           });
                         },
                         child: const Text('Limpiar'),
@@ -760,14 +745,14 @@ class _MaintenanceManagementScreenState
                   ),
                 ),
 
-                // Filtros
+                // Contenido
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 🔍 Cliente con buscador emergente
+                        // Cliente
                         const Text(
                           'Cliente',
                           style: TextStyle(
@@ -783,13 +768,10 @@ class _MaintenanceManagementScreenState
                             if (selectedClientId != null) {
                               setModalState(() {
                                 tempClientId = selectedClientId;
-                                // Cargar sucursales del cliente
                                 final client = _clients.firstWhere(
                                   (c) => c.id == selectedClientId,
                                 );
                                 _branches = client.branches;
-
-                                // ✨ Seleccionar "Principal" por defecto
                                 tempBranchId = 'principal';
                               });
                             }
@@ -1077,7 +1059,7 @@ class _MaintenanceManagementScreenState
 
                         const SizedBox(height: 16),
 
-                        // 📝 Tipo de Equipo con opción "Otro"
+                        // Tipo de Equipo
                         const Text(
                           'Tipo de Equipo',
                           style: TextStyle(
@@ -1086,8 +1068,6 @@ class _MaintenanceManagementScreenState
                           ),
                         ),
                         const SizedBox(height: 8),
-
-                        // Lista de tipos de equipo
                         Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey[300]!),
@@ -1095,7 +1075,6 @@ class _MaintenanceManagementScreenState
                           ),
                           child: Column(
                             children: [
-                              // Opción: Todos
                               InkWell(
                                 onTap: () {
                                   setModalState(() {
@@ -1145,8 +1124,6 @@ class _MaintenanceManagementScreenState
                                   ),
                                 ),
                               ),
-
-                              // Tipos predefinidos
                               ..._equipmentTypes.map((type) {
                                 final isSelected = tempEquipmentType == type;
                                 return InkWell(
@@ -1199,8 +1176,6 @@ class _MaintenanceManagementScreenState
                                   ),
                                 );
                               }),
-
-                              // Opción: Otro (Especificar)
                               InkWell(
                                 onTap: () {
                                   setModalState(() {
@@ -1257,7 +1232,6 @@ class _MaintenanceManagementScreenState
                           ),
                         ),
 
-                        // Campo de texto cuando selecciona "Otro"
                         if (tempEquipmentType == 'Otro') ...[
                           const SizedBox(height: 12),
                           TextField(
@@ -1319,7 +1293,6 @@ class _MaintenanceManagementScreenState
                         setState(() {
                           _selectedClientId = tempClientId;
                           _selectedBranchId = tempBranchId;
-                          // Si seleccionó "Otro" y escribió algo, usar el texto personalizado
                           if (tempEquipmentType == 'Otro' &&
                               tempCustomEquipmentType != null &&
                               tempCustomEquipmentType!.isNotEmpty) {
@@ -1330,7 +1303,6 @@ class _MaintenanceManagementScreenState
                           _selectedMaintenanceType = tempMaintenanceType;
                           _selectedStatus = tempStatus;
                           _assignmentFilter = tempAssignmentFilter;
-                          _applyFilters();
                         });
                         Navigator.pop(context);
                       },
@@ -1360,7 +1332,6 @@ class _MaintenanceManagementScreenState
     );
   }
 
-// 🔍 NUEVO: Método para mostrar diálogo de búsqueda de clientes
   Future<String?> _showClientSearchDialog() async {
     return await showDialog<String>(
       context: context,
@@ -1368,113 +1339,6 @@ class _MaintenanceManagementScreenState
         clients: _clients,
         returnFullModel: false,
       ),
-    );
-  }
-
-// 📝 NUEVO: Widget para selector de tipo de equipo con opción "Otro"
-  Widget _buildEquipmentTypeSelector(
-    String? currentValue,
-    Function(String?) onChanged,
-  ) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isOther = currentValue != null &&
-            !_equipmentTypes.contains(currentValue) &&
-            currentValue != 'Todos';
-        String dropdownValue = isOther ? 'Otro' : currentValue ?? 'Todos';
-
-        return Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: dropdownValue,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: 'Todos',
-                      child: Text('Todos los equipos'),
-                    ),
-                    ..._equipmentTypes.map((type) {
-                      return DropdownMenuItem<String>(
-                        value: type,
-                        child: Text(type),
-                      );
-                    }),
-                    const DropdownMenuItem<String>(
-                      value: 'Otro',
-                      child: Text('Otro (Especificar)'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      if (value == 'Todos') {
-                        onChanged(null);
-                      } else if (value == 'Otro') {
-                        // Mantener el valor actual si ya es "otro"
-                        if (!isOther) {
-                          onChanged('Otro');
-                        }
-                      } else {
-                        onChanged(value);
-                      }
-                    });
-                  },
-                ),
-              ),
-            ),
-            // Campo de texto cuando selecciona "Otro"
-            if (dropdownValue == 'Otro') ...[
-              const SizedBox(height: 12),
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Escribir tipo de equipo...',
-                  prefixIcon: const Icon(Icons.edit),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  filled: true,
-                  fillColor: Colors.blue[50],
-                ),
-                controller: TextEditingController(
-                  text: isOther ? currentValue : '',
-                ),
-                onChanged: (value) {
-                  onChanged(value.isEmpty ? null : value);
-                },
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 16, color: Colors.blue[700]),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Escribe el tipo de equipo personalizado',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue[700],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        );
-      },
     );
   }
 
@@ -1493,7 +1357,6 @@ class _MaintenanceManagementScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1518,8 +1381,6 @@ class _MaintenanceManagementScreenState
                 ],
               ),
             ),
-
-            // Opciones predefinidas
             ListTile(
               leading: const Icon(Icons.calendar_today),
               title: const Text('Esta semana'),
@@ -1534,7 +1395,6 @@ class _MaintenanceManagementScreenState
                       startOfWeek.year, startOfWeek.month, startOfWeek.day);
                   _endDate = DateTime(endOfWeek.year, endOfWeek.month,
                       endOfWeek.day, 23, 59, 59);
-                  _loadMaintenances();
                 });
                 Navigator.pop(context);
               },
@@ -1551,7 +1411,6 @@ class _MaintenanceManagementScreenState
                 setState(() {
                   _startDate = startOfMonth;
                   _endDate = endOfMonth;
-                  _loadMaintenances();
                 });
                 Navigator.pop(context);
               },
@@ -1564,7 +1423,6 @@ class _MaintenanceManagementScreenState
                 setState(() {
                   _startDate = DateTime(now.year, now.month, now.day);
                   _endDate = now.add(const Duration(days: 7));
-                  _loadMaintenances();
                 });
                 Navigator.pop(context);
               },
@@ -1577,7 +1435,6 @@ class _MaintenanceManagementScreenState
                 setState(() {
                   _startDate = DateTime(now.year, now.month, now.day);
                   _endDate = now.add(const Duration(days: 30));
-                  _loadMaintenances();
                 });
                 Navigator.pop(context);
               },
@@ -1590,7 +1447,6 @@ class _MaintenanceManagementScreenState
                 setState(() {
                   _startDate = now.subtract(const Duration(days: 30));
                   _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                  _loadMaintenances();
                 });
                 Navigator.pop(context);
               },
@@ -1603,7 +1459,6 @@ class _MaintenanceManagementScreenState
               onTap: () async {
                 Navigator.pop(context);
 
-                // Mostrar selector de rango personalizado
                 final picked = await showDateRangePicker(
                   context: context,
                   firstDate: DateTime(2020),
@@ -1634,7 +1489,6 @@ class _MaintenanceManagementScreenState
                       59,
                       59,
                     );
-                    _loadMaintenances();
                   });
                 }
               },
@@ -1669,21 +1523,24 @@ class _MaintenanceManagementScreenState
 
               try {
                 await _maintenanceService.deleteMaintenance(id);
-                _loadMaintenances();
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Mantenimiento eliminado'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mantenimiento eliminado'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -1697,7 +1554,6 @@ class _MaintenanceManagementScreenState
   }
 
   void _showTechnicianAssignment() async {
-    // Cargar disponibilidad de técnicos
     final availabilityService = TechnicianAvailabilityService();
 
     showModalBottomSheet(
@@ -1717,9 +1573,7 @@ class _MaintenanceManagementScreenState
                   topRight: Radius.circular(20),
                 ),
               ),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: const Center(child: CircularProgressIndicator()),
             );
           }
 
@@ -1749,9 +1603,7 @@ class _MaintenanceManagementScreenState
             );
           }
 
-          final technicians = snapshot.data!;
-
-          return _buildTechnicianAssignmentSheet(technicians);
+          return _buildTechnicianAssignmentSheet(snapshot.data!);
         },
       ),
     );
@@ -1771,7 +1623,6 @@ class _MaintenanceManagementScreenState
       ),
       child: Column(
         children: [
-          // Header
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -1825,7 +1676,7 @@ class _MaintenanceManagementScreenState
                 ),
               ],
             ),
-          ), // Lista de técnicos
+          ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -1875,7 +1726,7 @@ class _MaintenanceManagementScreenState
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      '${tech.name} no tiene suficiente disponibilidad (${tech.availableHours.toStringAsFixed(1)} hrs disponibles)',
+                      '${tech.name} no tiene suficiente disponibilidad',
                     ),
                     backgroundColor: Colors.orange,
                   ),
@@ -1889,7 +1740,6 @@ class _MaintenanceManagementScreenState
             children: [
               Row(
                 children: [
-                  // Avatar
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: utilizationColor.withOpacity(0.2),
@@ -1903,8 +1753,6 @@ class _MaintenanceManagementScreenState
                     ),
                   ),
                   const SizedBox(width: 12),
-
-                  // Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1927,8 +1775,6 @@ class _MaintenanceManagementScreenState
                       ],
                     ),
                   ),
-
-                  // Estado
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -1949,10 +1795,7 @@ class _MaintenanceManagementScreenState
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              // Barra de progreso
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1990,7 +1833,6 @@ class _MaintenanceManagementScreenState
                   ),
                 ],
               ),
-
               if (!canAccept) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -2007,7 +1849,7 @@ class _MaintenanceManagementScreenState
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Insuficiente disponibilidad para esta asignación',
+                          'Insuficiente disponibilidad',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.red[700],
@@ -2075,8 +1917,8 @@ class _MaintenanceManagementScreenState
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context); // Cerrar diálogo
-              Navigator.pop(context); // Cerrar bottom sheet
+              Navigator.pop(context);
+              Navigator.pop(context);
               await _performAssignment(tech);
             },
             style: ElevatedButton.styleFrom(
@@ -2092,7 +1934,6 @@ class _MaintenanceManagementScreenState
 
   Future<void> _performAssignment(TechnicianAvailability tech) async {
     try {
-      // Mostrar loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -2113,44 +1954,41 @@ class _MaintenanceManagementScreenState
         ),
       );
 
-      // Realizar asignación
       await _maintenanceService.assignTechnicianToMaintenances(
         maintenanceIds: _selectedIds.toList(),
         technicianId: tech.id,
         technicianName: tech.name,
       );
 
-      // Cerrar loading
       Navigator.pop(context);
-
 
       setState(() {
         _selectedIds.clear();
         _selectAll = false;
       });
 
-      await _loadMaintenances();
-
-      // Mostrar éxito
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '✅ ${_selectedIds.length} mantenimiento${_selectedIds.length != 1 ? 's asignados' : ' asignado'} a ${tech.name}',
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Mantenimientos asignados a ${tech.name}',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
           ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      // Cerrar loading si está abierto
       Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
