@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pm_monitor/shared/widgets/equipment_selector_field.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
 import 'package:pm_monitor/core/providers/auth_provider.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
+import 'package:pm_monitor/core/services/equipment_type_service.dart';
 
 /// Formatter personalizado para entrada de moneda
 class CurrencyInputFormatter extends TextInputFormatter {
@@ -70,13 +72,15 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final _estimatedHoursController = TextEditingController();
   final _equipmentNumberController = TextEditingController();
   final _rfidController = TextEditingController();
-  final _customEquipmentTypeController = TextEditingController();
 
   Timer? _debounceTimer;
 
-  String _selectedTipo = EquipmentTypes.climatizacion;
-  String _selectedCategory = 'Split Pared';
-  List<String> _availableCategories = EquipmentCategories.climatizacion;
+  // ✨ NUEVAS VARIABLES PARA SISTEMA DINÁMICO
+  String? _selectedEquipmentType; // Nombre del tipo seleccionado
+  String? _selectedCategory;
+  List<String> _availableCategories = [];
+  bool _isLoadingCategories = false;
+
   String _selectedCapacityUnit = 'BTU';
   String _selectedBrand = '';
   String _selectedStatus = 'Operativo';
@@ -118,6 +122,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   // Formatter para moneda
   final NumberFormat _currencyFormatter = NumberFormat('#,##0', 'en_US');
 
+  // ✨ SERVICIO DE TIPOS
+  final EquipmentTypeService _equipmentTypeService = EquipmentTypeService();
+
   @override
   void initState() {
     super.initState();
@@ -134,7 +141,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _equipmentBrands.sort();
   }
 
-  void _loadEquipmentData() {
+  void _loadEquipmentData() async {
     final eq = widget.equipment!;
 
     _equipmentNumberController.text = eq.equipmentNumber;
@@ -161,16 +168,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
     _estimatedHoursController.text = eq.estimatedMaintenanceHours.toString();
 
-    _selectedTipo = eq.tipo;
+    // ✨ CARGAR TIPO Y CATEGORÍAS DINÁMICAMENTE
+    _selectedEquipmentType = eq.tipo;
+    await _loadCategoriesForType(eq.tipo);
 
-    // Verificar si es un tipo personalizado (no está en la lista predefinida)
-    if (!EquipmentTypes.all.contains(eq.tipo)) {
-      _selectedTipo = 'Otros';
-      _customEquipmentTypeController.text = eq.tipo;
-    }
-
-    _availableCategories = EquipmentCategories.all[eq.tipo] ?? [];
-
+    // Seleccionar categoría
     String cleanCategory = eq.category
         .replaceAll('AC - ', '')
         .replaceAll('Panel - ', '')
@@ -205,6 +207,33 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         _selectedBranch = null;
       }
     }
+
+    setState(() {});
+  }
+
+  // ✨ CARGAR CATEGORÍAS DINÁMICAMENTE
+  Future<void> _loadCategoriesForType(String typeName) async {
+    setState(() {
+      _isLoadingCategories = true;
+    });
+
+    try {
+      final categories =
+          await _equipmentTypeService.getCategoriesForType(typeName);
+      setState(() {
+        _availableCategories = categories;
+        if (_availableCategories.isNotEmpty && _selectedCategory == null) {
+          _selectedCategory = _availableCategories.first;
+        }
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      debugPrint('Error cargando categorías: $e');
+      setState(() {
+        _availableCategories = [];
+        _isLoadingCategories = false;
+      });
+    }
   }
 
   void _initializeClientData() {
@@ -229,7 +258,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _estimatedHoursController.dispose();
     _equipmentNumberController.dispose();
     _rfidController.dispose();
-    _customEquipmentTypeController.dispose();
     _scrollController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
@@ -248,25 +276,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     setState(() {
       _equipmentNumberController.text = generatedNumber;
       _isGeneratingNumber = false;
-    });
-  }
-
-  void _onTipoChanged(String? newTipo) {
-    if (newTipo == null) return;
-
-    setState(() {
-      _selectedTipo = newTipo;
-
-      // Limpiar campo personalizado si no es "Otros"
-      if (newTipo != 'Otros') {
-        _customEquipmentTypeController.clear();
-      }
-
-      _availableCategories = EquipmentCategories.all[newTipo] ?? [];
-
-      if (_availableCategories.isNotEmpty) {
-        _selectedCategory = _availableCategories.first;
-      }
     });
   }
 
@@ -450,12 +459,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       return;
     }
 
-    // Validar tipo personalizado si es "Otros"
-    if (_selectedTipo == 'Otros' &&
-        _customEquipmentTypeController.text.trim().isEmpty) {
+    // ✨ VALIDAR QUE SE HAYA SELECCIONADO UN TIPO
+    if (_selectedEquipmentType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Por favor ingresa el tipo de equipo'),
+          content: Text('Por favor selecciona un tipo de equipo'),
           backgroundColor: Colors.red,
         ),
       );
@@ -482,11 +490,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     String costText = _equipmentCostController.text.trim().replaceAll(',', '');
     double equipmentCost = double.tryParse(costText) ?? 0.0;
 
-    // Determinar tipo de equipo final
-    String finalEquipmentType = _selectedTipo == 'Otros'
-        ? _customEquipmentTypeController.text.trim()
-        : _selectedTipo;
-
     Equipment equipment = Equipment(
       id: _isEditing ? widget.equipment!.id : null,
       clientId: widget.client.id,
@@ -500,8 +503,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       description: _descriptionController.text.trim(),
       brand: _brandController.text.trim(),
       model: _modelController.text.trim(),
-      tipo: finalEquipmentType,
-      category: _selectedCategory,
+      tipo: _selectedEquipmentType!, // ✨ USAR TIPO DINÁMICO
+      category: _selectedCategory ?? '',
       capacity: double.tryParse(_capacityController.text.trim()) ?? 0.0,
       capacityUnit: _selectedCapacityUnit,
       serialNumber: _serialNumberController.text.trim(),
@@ -510,7 +513,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       country: country,
       region: region,
       address: fullAddress,
-      condition: calculatedCondition, // Condición calculada
+      condition: calculatedCondition,
       lifeScale: _selectedLifeScale,
       isActive: true,
       status: _selectedStatus,
@@ -832,84 +835,78 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            SizedBox(
-              width: double.infinity,
-              child: DropdownButtonFormField<String>(
-                value: _selectedTipo,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Equipo *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                ),
-                isExpanded: true,
-                items: EquipmentTypes.all.map((tipo) {
-                  return DropdownMenuItem(
-                    value: tipo,
-                    child: Text(
-                      tipo,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  );
-                }).toList(),
-                onChanged: _onTipoChanged,
-              ),
+            // ✨ WIDGET SELECTOR DINÁMICO DE TIPOS
+            EquipmentTypeSelectorField(
+              selectedType: _selectedEquipmentType,
+              onTypeSelected: (typeName) async {
+                setState(() {
+                  _selectedEquipmentType = typeName;
+                  _selectedCategory = null; // Reset categoría
+                });
+                await _loadCategoriesForType(typeName);
+              },
             ),
 
-            // Campo de texto para tipo personalizado
-            if (_selectedTipo == 'Otros') ...[
+            const SizedBox(height: 16),
+
+            // ✨ DROPDOWN DE CATEGORÍAS (carga dinámica)
+            if (_selectedEquipmentType != null) ...[
+              if (_isLoadingCategories)
+                const Center(child: CircularProgressIndicator())
+              else if (_availableCategories.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: Colors.orange[700]),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No hay categorías disponibles para este tipo',
+                          style: TextStyle(color: Colors.orange[700]),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: const InputDecoration(
+                    labelText: 'Categoría *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.devices),
+                  ),
+                  isExpanded: true,
+                  items: _availableCategories.map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(
+                        category,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Selecciona una categoría';
+                    }
+                    return null;
+                  },
+                ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _customEquipmentTypeController,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Equipo Personalizado *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.edit),
-                  hintText: 'Escribir tipo de equipo',
-                ),
-                validator: (value) {
-                  if (_selectedTipo == 'Otros' &&
-                      (value == null || value.trim().isEmpty)) {
-                    return 'El tipo de equipo es requerido';
-                  }
-                  return null;
-                },
-              ),
             ],
-
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Categoría *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.devices),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                ),
-                isExpanded: true,
-                items: _availableCategories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(
-                      category,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value!;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
 
             // Marca con búsqueda
             InkWell(

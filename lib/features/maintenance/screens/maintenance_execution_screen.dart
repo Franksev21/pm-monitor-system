@@ -25,7 +25,6 @@ class _MaintenanceExecutionScreenState
   bool isSaving = false;
   Map<String, dynamic>? equipmentData;
 
-  // Datos del equipo para actualizar
   final TextEditingController _capacityController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _brandController = TextEditingController();
@@ -35,40 +34,89 @@ class _MaintenanceExecutionScreenState
   @override
   void initState() {
     super.initState();
+    debugPrint('🚀 Iniciando MaintenanceExecutionScreen');
+    debugPrint('📦 Datos recibidos: ${widget.maintenance}');
     _loadMaintenanceDetails();
   }
 
   Future<void> _loadMaintenanceDetails() async {
     setState(() => isLoading = true);
-    
+
     try {
-      // Cargar detalles completos del mantenimiento
-      Map<String, dynamic>? details = await _service.getMaintenanceDetails(widget.maintenance['id']);
-      
-      if (details != null) {
-        // Inicializar tareas
-        List<dynamic> tasks = details['tasks'] ?? await _service.getDefaultTasks(
-          details['equipmentData']?['category'] ?? 'AC'
-        );
-        
-        _initializeTaskCompletion(tasks);
-        
-        // Cargar datos del equipo si existen
-        equipmentData = details['equipmentData'];
-        if (equipmentData != null) {
-          _loadEquipmentData();
-        }
-        
-        // Cargar progreso previo si existe
-        if (details['taskCompletion'] != null) {
-          taskCompletion = Map<String, bool>.from(details['taskCompletion']);
-        }
-        
-        if (details['notes'] != null) {
-          _notesController.text = details['notes'];
+      debugPrint(
+          '🔄 Cargando detalles del mantenimiento ID: ${widget.maintenance['id']}');
+
+      // Primero, cargar las tareas desde los datos recibidos
+      List<dynamic> tasks = widget.maintenance['tasks'] ?? [];
+
+      debugPrint(
+          '📋 Tareas recibidas directamente: $tasks (${tasks.length} tareas)');
+
+      // Si no hay tareas en los datos recibidos, intentar cargarlas del servicio
+      if (tasks.isEmpty) {
+        debugPrint(
+            '⚠️ No hay tareas en los datos recibidos, cargando desde Firestore...');
+        Map<String, dynamic>? details =
+            await _service.getMaintenanceDetails(widget.maintenance['id']);
+
+        if (details != null) {
+          tasks = details['tasks'] ?? [];
+          debugPrint(
+              '📋 Tareas cargadas desde Firestore: $tasks (${tasks.length} tareas)');
         }
       }
+
+      // Si aún no hay tareas, cargar tareas por defecto según la categoría del equipo
+      if (tasks.isEmpty) {
+        String category = widget.maintenance['equipmentCategory'] ?? 'AC';
+        debugPrint(
+            '⚠️ Sin tareas específicas, cargando tareas por defecto para categoría: $category');
+        tasks = await _service.getDefaultTasks(category);
+        debugPrint(
+            '📋 Tareas por defecto cargadas: $tasks (${tasks.length} tareas)');
+      }
+
+      // Inicializar el mapa de tareas completadas
+      _initializeTaskCompletion(tasks);
+
+      // Cargar datos del equipo desde los parámetros recibidos
+      if (widget.maintenance['equipmentId'] != null) {
+        debugPrint(
+            '🔧 Cargando datos del equipo ID: ${widget.maintenance['equipmentId']}');
+        equipmentData =
+            await _service.getEquipmentData(widget.maintenance['equipmentId']);
+
+        if (equipmentData != null) {
+          debugPrint('✅ Datos del equipo cargados: $equipmentData');
+          _loadEquipmentData();
+        } else {
+          debugPrint('⚠️ No se encontraron datos del equipo');
+        }
+      }
+
+      // Cargar progreso previo si existe
+      Map<String, dynamic>? savedProgress =
+          await _service.getMaintenanceProgress(widget.maintenance['id']);
+
+      if (savedProgress != null) {
+        debugPrint('💾 Progreso previo encontrado');
+
+        if (savedProgress['taskCompletion'] != null) {
+          taskCompletion =
+              Map<String, bool>.from(savedProgress['taskCompletion']);
+          debugPrint(
+              '✅ Tareas completadas previas cargadas: ${taskCompletion.length}');
+        }
+
+        if (savedProgress['notes'] != null) {
+          _notesController.text = savedProgress['notes'];
+        }
+      }
+
+      debugPrint('✅ Carga de detalles completada');
+      debugPrint('📊 Resumen: ${taskCompletion.length} tareas inicializadas');
     } catch (e) {
+      debugPrint('❌ Error cargando detalles del mantenimiento: $e');
       _showErrorDialog('Error cargando detalles del mantenimiento: $e');
     } finally {
       setState(() => isLoading = false);
@@ -76,11 +124,17 @@ class _MaintenanceExecutionScreenState
   }
 
   void _initializeTaskCompletion(List<dynamic> tasks) {
+    debugPrint('🔧 Inicializando ${tasks.length} tareas...');
+
     for (var task in tasks) {
-      if (!taskCompletion.containsKey(task.toString())) {
-        taskCompletion[task.toString()] = false;
+      String taskKey = task.toString();
+      if (!taskCompletion.containsKey(taskKey)) {
+        taskCompletion[taskKey] = false;
+        debugPrint('  ➕ Tarea agregada: $taskKey');
       }
     }
+
+    debugPrint('✅ ${taskCompletion.length} tareas inicializadas');
   }
 
   void _loadEquipmentData() {
@@ -90,6 +144,8 @@ class _MaintenanceExecutionScreenState
       _brandController.text = equipmentData!['brand']?.toString() ?? '';
       _locationController.text = equipmentData!['location']?.toString() ?? '';
       _selectedCondition = equipmentData!['condition']?.toString() ?? 'Bueno';
+
+      debugPrint('✅ Datos del equipo cargados en controllers');
     }
   }
 
@@ -102,7 +158,16 @@ class _MaintenanceExecutionScreenState
           backgroundColor: const Color(0xFF1976D2),
           foregroundColor: Colors.white,
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Cargando detalles del mantenimiento...'),
+            ],
+          ),
+        ),
       );
     }
 
@@ -114,16 +179,15 @@ class _MaintenanceExecutionScreenState
         actions: [
           TextButton(
             onPressed: isSaving ? null : _saveProgress,
-            child: isSaving 
-              ? const SizedBox(
-                  width: 20, 
-                  height: 20, 
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  )
-                )
-              : const Text('Guardar', style: TextStyle(color: Colors.white)),
+            child: isSaving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ))
+                : const Text('Guardar', style: TextStyle(color: Colors.white)),
           ),
           PopupMenuButton<String>(
             onSelected: _handleMenuSelection,
@@ -170,7 +234,7 @@ class _MaintenanceExecutionScreenState
             _buildProgressIndicator(),
             const SizedBox(height: 20),
             _buildActionButtons(),
-            const SizedBox(height: 50), // Espacio adicional al final
+            const SizedBox(height: 50),
           ],
         ),
       ),
@@ -191,11 +255,13 @@ class _MaintenanceExecutionScreenState
                 Expanded(
                   child: Text(
                     widget.maintenance['equipmentName'] ?? 'Equipo',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -212,12 +278,16 @@ class _MaintenanceExecutionScreenState
               ],
             ),
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.business, 'Cliente:', widget.maintenance['clientName']),
-            _buildInfoRow(Icons.location_on, 'Ubicación:', widget.maintenance['location']),
-            if (equipmentData != null) ...[
-              _buildInfoRow(Icons.tag, 'Equipo ID:', equipmentData!['equipmentNumber']),
-              _buildInfoRow(Icons.category, 'Categoría:', equipmentData!['category']),
-            ],
+            _buildInfoRow(
+                Icons.business, 'Cliente:', widget.maintenance['clientName']),
+            _buildInfoRow(Icons.location_on, 'Ubicación:',
+                widget.maintenance['location']),
+            if (widget.maintenance['equipmentNumber'] != null)
+              _buildInfoRow(Icons.tag, 'Equipo ID:',
+                  widget.maintenance['equipmentNumber']),
+            if (widget.maintenance['equipmentCategory'] != null)
+              _buildInfoRow(Icons.category, 'Categoría:',
+                  widget.maintenance['equipmentCategory']),
           ],
         ),
       ),
@@ -263,7 +333,7 @@ class _MaintenanceExecutionScreenState
                 const Icon(Icons.checklist, color: Color(0xFF1976D2)),
                 const SizedBox(width: 8),
                 const Text(
-                  'Lista de Verificación',
+                  'Actividades a Realizar',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
@@ -278,36 +348,59 @@ class _MaintenanceExecutionScreenState
             ),
             const SizedBox(height: 12),
             if (tasks.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'No hay tareas definidas para este mantenimiento',
-                  style: TextStyle(color: Colors.grey[600]),
-                  textAlign: TextAlign.center,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  border: Border.all(color: Colors.amber[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.amber[700]),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'No hay tareas definidas para este mantenimiento.\nPuedes completarlo agregando fotos y notas.',
+                        style: TextStyle(
+                          color: Colors.amber[900],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               )
             else
               ...tasks.map((task) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: CheckboxListTile(
-                  title: Text(
-                    task,
-                    style: TextStyle(
-                      decoration: taskCompletion[task] == true 
-                        ? TextDecoration.lineThrough 
-                        : null,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    elevation: 1,
+                    child: CheckboxListTile(
+                      title: Text(
+                        task,
+                        style: TextStyle(
+                          fontSize: 14,
+                          decoration: taskCompletion[task] == true
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: taskCompletion[task] == true
+                              ? Colors.grey[600]
+                              : Colors.black87,
+                        ),
+                      ),
+                      value: taskCompletion[task] ?? false,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          taskCompletion[task] = value ?? false;
+                          debugPrint(
+                              '✅ Tarea "${task}" marcada como: ${value == true ? "completada" : "pendiente"}');
+                        });
+                      },
+                      activeColor: const Color(0xFF1976D2),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
                     ),
-                  ),
-                  value: taskCompletion[task] ?? false,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      taskCompletion[task] = value ?? false;
-                    });
-                  },
-                  activeColor: const Color(0xFF1976D2),
-                  controlAffinity: ListTileControlAffinity.leading,
-                ),
-              )),
+                  )),
           ],
         ),
       ),
@@ -346,52 +439,17 @@ class _MaintenanceExecutionScreenState
             const SizedBox(height: 12),
             _buildTextField(_brandController, 'Marca', Icons.business),
             const SizedBox(height: 12),
-            _buildTextField(_locationController, 'Ubicación', Icons.location_on),
+            _buildTextField(
+                _locationController, 'Ubicación', Icons.location_on),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _selectedCondition,
-              decoration: const InputDecoration(
-                labelText: 'Condición',
-                prefixIcon: Icon(Icons.assessment),
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              items: [
-                {'value': 'Excelente', 'color': Colors.green},
-                {'value': 'Bueno', 'color': Colors.lightGreen},
-                {'value': 'Regular', 'color': Colors.orange},
-                {'value': 'Malo', 'color': Colors.red},
-                {'value': 'Crítico', 'color': Colors.deepOrange},
-              ].map((condition) => DropdownMenuItem(
-                    value: condition['value'] as String,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: condition['color'] as Color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(condition['value'] as String),
-                      ],
-                    ),
-                  )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedCondition = value ?? 'Bueno';
-                });
-              },
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon) {
+  Widget _buildTextField(
+      TextEditingController controller, String label, IconData icon) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
@@ -420,7 +478,9 @@ class _MaintenanceExecutionScreenState
                 ),
                 const Spacer(),
                 Text(
-                  selectedImages.isEmpty ? 'Requerido' : '${selectedImages.length} foto(s)',
+                  selectedImages.isEmpty
+                      ? 'Requerido'
+                      : '${selectedImages.length} foto(s)',
                   style: TextStyle(
                     color: selectedImages.isEmpty ? Colors.red : Colors.green,
                     fontSize: 12,
@@ -522,7 +582,8 @@ class _MaintenanceExecutionScreenState
                         bottom: 4,
                         left: 4,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(4),
@@ -577,7 +638,8 @@ class _MaintenanceExecutionScreenState
               controller: _notesController,
               maxLines: 4,
               decoration: const InputDecoration(
-                hintText: 'Observaciones, problemas encontrados, recomendaciones...',
+                hintText:
+                    'Observaciones, problemas encontrados, recomendaciones...',
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.all(12),
               ),
@@ -590,10 +652,11 @@ class _MaintenanceExecutionScreenState
 
   Widget _buildProgressIndicator() {
     int totalTasks = taskCompletion.length;
-    int completedTasks = taskCompletion.values.where((completed) => completed).length;
+    int completedTasks =
+        taskCompletion.values.where((completed) => completed).length;
     double progress = totalTasks > 0 ? completedTasks / totalTasks : 0;
     bool hasPhotos = selectedImages.isNotEmpty;
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -614,7 +677,9 @@ class _MaintenanceExecutionScreenState
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: progress == 1.0 ? Colors.green : const Color(0xFF1976D2),
+                    color: progress == 1.0
+                        ? Colors.green
+                        : const Color(0xFF1976D2),
                   ),
                 ),
               ],
@@ -628,10 +693,16 @@ class _MaintenanceExecutionScreenState
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              '$completedTasks de $totalTasks tareas completadas',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
+            if (totalTasks > 0)
+              Text(
+                '$completedTasks de $totalTasks tareas completadas',
+                style: TextStyle(color: Colors.grey[600]),
+              )
+            else
+              Text(
+                'Sin tareas definidas - Agregar fotos y notas',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -642,9 +713,9 @@ class _MaintenanceExecutionScreenState
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  hasPhotos 
-                    ? '${selectedImages.length} foto(s) adjunta(s)'
-                    : 'Fotos requeridas',
+                  hasPhotos
+                      ? '${selectedImages.length} foto(s) adjunta(s)'
+                      : 'Fotos requeridas',
                   style: TextStyle(
                     color: hasPhotos ? Colors.green : Colors.grey[600],
                     fontSize: 12,
@@ -660,8 +731,14 @@ class _MaintenanceExecutionScreenState
 
   Widget _buildActionButtons() {
     int totalTasks = taskCompletion.length;
-    int completedTasks = taskCompletion.values.where((completed) => completed).length;
-    bool canComplete = completedTasks == totalTasks && selectedImages.isNotEmpty;
+    int completedTasks =
+        taskCompletion.values.where((completed) => completed).length;
+
+    // Permitir completar si:
+    // 1. No hay tareas (totalTasks == 0) Y hay fotos
+    // 2. Todas las tareas están completadas Y hay fotos
+    bool canComplete = selectedImages.isNotEmpty &&
+        (totalTasks == 0 || completedTasks == totalTasks);
 
     return Column(
       children: [
@@ -669,16 +746,13 @@ class _MaintenanceExecutionScreenState
           width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: (isSaving || isLoading) ? null : _saveProgress,
-            icon: isSaving 
-              ? const SizedBox(
-                  width: 16, 
-                  height: 16, 
-                  child: CircularProgressIndicator(
-                    color: Colors.white, 
-                    strokeWidth: 2
-                  )
-                ) 
-              : const Icon(Icons.save),
+            icon: isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.save),
             label: Text(isSaving ? 'Guardando...' : 'Guardar Progreso'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
@@ -691,7 +765,9 @@ class _MaintenanceExecutionScreenState
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: (canComplete && !isLoading && !isSaving) ? _completeMaintenance : null,
+            onPressed: (canComplete && !isLoading && !isSaving)
+                ? _completeMaintenance
+                : null,
             icon: const Icon(Icons.check_circle),
             label: const Text('Completar Mantenimiento'),
             style: ElevatedButton.styleFrom(
@@ -727,15 +803,17 @@ class _MaintenanceExecutionScreenState
                             fontSize: 12,
                           ),
                         ),
-                        if (completedTasks < totalTasks)
+                        if (totalTasks > 0 && completedTasks < totalTasks)
                           Text(
                             '• Completar todas las tareas (${totalTasks - completedTasks} pendientes)',
-                            style: TextStyle(color: Colors.amber[700], fontSize: 11),
+                            style: TextStyle(
+                                color: Colors.amber[700], fontSize: 11),
                           ),
                         if (selectedImages.isEmpty)
                           Text(
                             '• Agregar al menos una foto de evidencia',
-                            style: TextStyle(color: Colors.amber[700], fontSize: 11),
+                            style: TextStyle(
+                                color: Colors.amber[700], fontSize: 11),
                           ),
                       ],
                     ),
@@ -761,7 +839,7 @@ class _MaintenanceExecutionScreenState
 
   void _showPauseDialog() {
     TextEditingController reasonController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -791,10 +869,8 @@ class _MaintenanceExecutionScreenState
               if (reasonController.text.trim().isNotEmpty) {
                 Navigator.pop(context);
                 bool success = await _service.pauseMaintenance(
-                  widget.maintenance['id'], 
-                  reasonController.text.trim()
-                );
-                if (success) {
+                    widget.maintenance['id'], reasonController.text.trim());
+                if (success && mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Mantenimiento pausado')),
@@ -803,7 +879,7 @@ class _MaintenanceExecutionScreenState
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: Text('Pausar'),
+            child: const Text('Pausar'),
           ),
         ],
       ),
@@ -813,7 +889,7 @@ class _MaintenanceExecutionScreenState
   void _showReportIssueDialog() {
     TextEditingController issueController = TextEditingController();
     String selectedSeverity = 'Media';
-    
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -865,15 +941,16 @@ class _MaintenanceExecutionScreenState
                     issueController.text.trim(),
                     selectedSeverity,
                   );
-                  if (success) {
+                  if (success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Problema reportado correctamente')),
+                      const SnackBar(
+                          content: Text('Problema reportado correctamente')),
                     );
                   }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: Text('Reportar'),
+              child: const Text('Reportar'),
             ),
           ],
         ),
@@ -889,13 +966,15 @@ class _MaintenanceExecutionScreenState
         maxHeight: 1080,
         imageQuality: 85,
       );
-      
+
       if (photo != null) {
         setState(() {
           selectedImages.add(File(photo.path));
         });
+        debugPrint('📷 Foto agregada: ${selectedImages.length} fotos totales');
       }
     } catch (e) {
+      debugPrint('❌ Error al capturar foto: $e');
       _showErrorDialog('Error al capturar foto: $e');
     }
   }
@@ -903,11 +982,14 @@ class _MaintenanceExecutionScreenState
   void _removePhoto(int index) {
     setState(() {
       selectedImages.removeAt(index);
+      debugPrint(
+          '🗑️ Foto eliminada: ${selectedImages.length} fotos restantes');
     });
   }
 
   Future<void> _saveProgress() async {
     setState(() => isSaving = true);
+    debugPrint('💾 Guardando progreso...');
 
     try {
       bool success = await _service.updateTaskProgress(
@@ -916,16 +998,20 @@ class _MaintenanceExecutionScreenState
       );
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Progreso guardado correctamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        debugPrint('✅ Progreso guardado correctamente');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Progreso guardado correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
-        _showErrorDialog('Error al guardar progreso');
+        throw Exception('Error al guardar progreso');
       }
     } catch (e) {
+      debugPrint('❌ Error al guardar progreso: $e');
       _showErrorDialog('Error al guardar progreso: $e');
     } finally {
       setState(() => isSaving = false);
@@ -933,12 +1019,12 @@ class _MaintenanceExecutionScreenState
   }
 
   Future<void> _completeMaintenance() async {
-    // Confirmación antes de completar
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Completar Mantenimiento'),
-        content: const Text('¿Estás seguro de que deseas completar este mantenimiento? Esta acción no se puede deshacer.'),
+        content: const Text(
+            '¿Estás seguro de que deseas completar este mantenimiento? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -947,7 +1033,7 @@ class _MaintenanceExecutionScreenState
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: Text('Completar'),
+            child: const Text('Completar'),
           ),
         ],
       ),
@@ -956,6 +1042,7 @@ class _MaintenanceExecutionScreenState
     if (confirm != true) return;
 
     setState(() => isLoading = true);
+    debugPrint('🏁 Completando mantenimiento...');
 
     try {
       Map<String, dynamic> equipmentDataToUpdate = {
@@ -976,17 +1063,21 @@ class _MaintenanceExecutionScreenState
       );
 
       if (success) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mantenimiento completado exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        debugPrint('✅ Mantenimiento completado exitosamente');
+        if (mounted) {
+          Navigator.pop(context, true); // Retornar true para indicar éxito
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Mantenimiento completado exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
-        _showErrorDialog('Error al completar mantenimiento');
+        throw Exception('Error al completar mantenimiento');
       }
     } catch (e) {
+      debugPrint('❌ Error al completar mantenimiento: $e');
       _showErrorDialog('Error al completar mantenimiento: $e');
     } finally {
       setState(() => isLoading = false);
@@ -1017,4 +1108,5 @@ class _MaintenanceExecutionScreenState
     _brandController.dispose();
     _locationController.dispose();
     super.dispose();
-  }}
+  }
+}

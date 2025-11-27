@@ -40,15 +40,13 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // ✅ CAMBIO: Buscar por 'generated' y 'assigned' en lugar de 'scheduled' y 'pending'
         stream: _firestore
             .collection('maintenanceSchedules')
             .where('technicianId', isEqualTo: currentUserId)
-            .where('status', whereIn: ['generated', 'assigned']) // ✅ CORREGIDO
+            .where('status', isEqualTo: 'assigned') // ✅ SOLO ASIGNADOS
             .orderBy('scheduledDate')
             .snapshots(),
         builder: (context, snapshot) {
-          // Error
           if (snapshot.hasError) {
             debugPrint('❌ Error: ${snapshot.error}');
             return Center(
@@ -83,7 +81,6 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
             );
           }
 
-          // Cargando
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: Column(
@@ -97,7 +94,6 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
             );
           }
 
-          // Sin datos
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Column(
@@ -118,7 +114,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'No tienes mantenimientos pendientes',
+                    'No tienes mantenimientos asignados',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
@@ -139,14 +135,11 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
             );
           }
 
-          // Datos disponibles
           final maintenances = snapshot.data!.docs;
-
-          debugPrint('✅ ${maintenances.length} mantenimientos pendientes');
+          debugPrint('✅ ${maintenances.length} mantenimientos asignados');
 
           return RefreshIndicator(
             onRefresh: () async {
-              // El StreamBuilder se actualiza automáticamente
               await Future.delayed(const Duration(milliseconds: 500));
             },
             child: ListView.builder(
@@ -155,7 +148,6 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
               itemBuilder: (context, index) {
                 final doc = maintenances[index];
                 final data = doc.data() as Map<String, dynamic>;
-
                 return _buildMaintenanceCard(doc.id, data);
               },
             ),
@@ -166,16 +158,14 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
   }
 
   Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
-    // Extraer datos con valores por defecto
     final equipmentName = data['equipmentName'] ?? 'Equipo sin nombre';
     final clientName = data['clientName'] ?? 'Cliente no especificado';
     final location = data['location'] ?? data['branchName'] ?? 'Sin ubicación';
     final scheduledDate = data['scheduledDate'] as Timestamp?;
     final estimatedHours = data['estimatedHours'] ?? 2;
-    final status = data['status'] ?? 'generated';
+    final status = data['status'] ?? 'assigned';
     final type = data['type'] ?? 'preventive';
 
-    // Formatear fecha
     String dateStr = 'Sin fecha';
     String timeStr = '';
     if (scheduledDate != null) {
@@ -184,16 +174,12 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
       timeStr = DateFormat('HH:mm').format(date);
     }
 
-    // Determinar color según estado y tipo
+    // ✅ Ajustes de colores y textos según el tipo
     Color statusColor = Colors.blue;
     IconData statusIcon = Icons.schedule;
     String statusText = 'Asignado';
 
-    if (status == 'generated') {
-      statusColor = Colors.orange;
-      statusIcon = Icons.new_releases;
-      statusText = 'Generado';
-    } else if (type == 'emergency') {
+    if (type == 'emergency') {
       statusColor = Colors.red;
       statusIcon = Icons.warning;
       statusText = 'Urgente';
@@ -201,6 +187,10 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
       statusColor = Colors.orange;
       statusIcon = Icons.build;
       statusText = 'Correctivo';
+    } else {
+      statusColor = Colors.blue;
+      statusIcon = Icons.schedule;
+      statusText = 'Preventivo';
     }
 
     return Card(
@@ -221,7 +211,6 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
               Row(
                 children: [
                   Icon(statusIcon, color: statusColor, size: 20),
@@ -258,10 +247,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              // Cliente
               Row(
                 children: [
                   Icon(Icons.business, size: 16, color: Colors.grey[600]),
@@ -276,10 +262,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 6),
-
-              // Ubicación
               Row(
                 children: [
                   Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
@@ -294,10 +277,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 6),
-
-              // Fecha y Duración
               Row(
                 children: [
                   Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
@@ -326,10 +306,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
-
-              // Botones
               Row(
                 children: [
                   Expanded(
@@ -381,7 +358,6 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
     final description = data['description'] ?? '';
     final tasks = data['tasks'] as List<dynamic>?;
 
-    // Traducir tipo
     String typeText = 'Preventivo';
     if (type == 'corrective') {
       typeText = 'Correctivo';
@@ -497,19 +473,76 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
     );
   }
 
-  void _startMaintenance(String id, Map<String, dynamic> data) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Iniciando mantenimiento: ${data['equipmentName']}'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const MaintenanceExecutionScreen( maintenance: {},
-        ),
-      ),
-    );
+  Future<void> _startMaintenance(String id, Map<String, dynamic> data) async {
+    try {
+      // Actualizar estado a 'inProgress' antes de navegar
+      await _firestore.collection('maintenanceSchedules').doc(id).update({
+        'status': 'inProgress',
+        'startedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Preparar datos completos del mantenimiento
+      final maintenanceData = {
+        'id': id,
+        'equipmentName': data['equipmentName'] ?? 'Equipo sin nombre',
+        'clientName': data['clientName'] ?? 'Cliente no especificado',
+        'location': data['location'] ?? data['branchName'] ?? 'Sin ubicación',
+        'equipmentId': data['equipmentId'],
+        'clientId': data['clientId'],
+        'branchId': data['branchId'],
+        'scheduledDate': data['scheduledDate'],
+        'estimatedHours': data['estimatedHours'] ?? 2,
+        'type': data['type'] ?? 'preventive',
+        'frequency': data['frequency'] ?? 'monthly',
+        'tasks': data['tasks'] ?? [],
+        'description': data['description'] ?? '',
+        'notes': data['notes'] ?? '',
+        'equipmentNumber': data['equipmentNumber'] ?? '',
+        'equipmentCategory': data['equipmentCategory'] ?? '',
+      };
+
+      debugPrint('✅ Iniciando mantenimiento con datos: $maintenanceData');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Iniciando: ${data['equipmentName']}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+
+        // Navegar a la pantalla de ejecución
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MaintenanceExecutionScreen(
+              maintenance: maintenanceData,
+            ),
+          ),
+        );
+
+        // Si el mantenimiento fue completado
+        if (result == true && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Mantenimiento completado exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error al iniciar mantenimiento: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al iniciar mantenimiento: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

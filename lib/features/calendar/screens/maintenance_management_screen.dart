@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pm_monitor/core/services/equipment_type_service.dart';
 import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/services/client_service.dart';
 import 'package:pm_monitor/core/services/technician_availability_service.dart';
 import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
+import 'package:pm_monitor/features/equipment/screens/equipment_type_management_dialog.dart';
 import 'package:pm_monitor/features/maintenance/screens/add_maintenance_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_availability_model.dart';
 import 'package:pm_monitor/shared/widgets/client_search_dialog_widget.dart';
@@ -43,20 +45,15 @@ class _MaintenanceManagementScreenState
   // Datos para filtros
   List<ClientModel> _clients = [];
   List<BranchModel> _branches = [];
-  final List<String> _equipmentTypes = [
-    'Climatización',
-    'Equipos Eléctricos',
-    'Paneles Eléctricos',
-    'Generadores',
-    'UPS',
-    'Equipos de Cocina',
-    'Facilidades',
-  ];
+// ✨ TIPOS DINÁMICOS DESDE FIREBASE
+  List<String> _equipmentTypes = [];
+  final EquipmentTypeService _equipmentTypeService = EquipmentTypeService();
 
   @override
   void initState() {
     super.initState();
     _loadClients();
+    _loadEquipmentTypes(); 
     _technicianAvailabilityService.getTechniciansAvailability();
   }
 
@@ -68,6 +65,17 @@ class _MaintenanceManagementScreenState
       });
     } catch (e) {
       debugPrint('Error cargando clientes: $e');
+    }
+  }
+
+  Future<void> _loadEquipmentTypes() async {
+    try {
+      final types = await _equipmentTypeService.getEquipmentTypes();
+      setState(() {
+        _equipmentTypes = types.map((t) => t.name).toList();
+      });
+    } catch (e) {
+      debugPrint('Error cargando tipos de equipos: $e');
     }
   }
 
@@ -149,7 +157,7 @@ class _MaintenanceManagementScreenState
         _selectedIds.clear();
         _selectAll = false;
       } else {
-        _selectedIds.addAll(maintenances.map((m) => m.id!));
+        _selectedIds.addAll(maintenances.map((m) => m.id));
         _selectAll = true;
       }
     });
@@ -675,18 +683,16 @@ class _MaintenanceManagementScreenState
     }
   }
 
-  // ============================================
-  // FILTROS - BOTTOM SHEET COMPLETO
-  // ============================================
-
-  void _showFiltersBottomSheet() {
+void _showFiltersBottomSheet() {
     String? tempClientId = _selectedClientId;
     String? tempBranchId = _selectedBranchId;
     String? tempEquipmentType = _selectedEquipmentType;
     String? tempCustomEquipmentType;
     MaintenanceType? tempMaintenanceType = _selectedMaintenanceType;
-    MaintenanceStatus? tempStatus = _selectedStatus;
+    MaintenanceStatus? tempStatus =
+        _selectedStatus; // ✨ Mantenemos pero no se muestra
     String tempAssignmentFilter = _assignmentFilter;
+    String? tempTechnicianId = _selectedTechnicianId;
 
     showModalBottomSheet(
       context: context,
@@ -694,6 +700,16 @@ class _MaintenanceManagementScreenState
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
+          // ✨ Auto-calcular estado basado en asignación
+          MaintenanceStatus? calculatedStatus;
+          if (tempAssignmentFilter == 'generated') {
+            calculatedStatus = MaintenanceStatus.generated;
+          } else if (tempAssignmentFilter == 'assigned') {
+            calculatedStatus = MaintenanceStatus.assigned;
+          } else if (tempAssignmentFilter == 'executed') {
+            calculatedStatus = MaintenanceStatus.executed;
+          }
+
           return Container(
             height: MediaQuery.of(context).size.height * 0.85,
             decoration: const BoxDecoration(
@@ -705,7 +721,7 @@ class _MaintenanceManagementScreenState
             ),
             child: Column(
               children: [
-                // Header
+                // ==================== HEADER ====================
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -733,6 +749,7 @@ class _MaintenanceManagementScreenState
                             tempMaintenanceType = null;
                             tempStatus = null;
                             tempAssignmentFilter = 'all';
+                            tempTechnicianId = null;
                           });
                         },
                         child: const Text('Limpiar'),
@@ -745,14 +762,14 @@ class _MaintenanceManagementScreenState
                   ),
                 ),
 
-                // Contenido
+                // ==================== CONTENIDO ====================
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Cliente
+                        // ==================== CLIENTE ====================
                         const Text(
                           'Cliente',
                           style: TextStyle(
@@ -837,7 +854,7 @@ class _MaintenanceManagementScreenState
 
                         const SizedBox(height: 16),
 
-                        // Sucursal
+                        // ==================== SUCURSAL ====================
                         if (tempClientId != null) ...[
                           const Text(
                             'Sucursal',
@@ -909,7 +926,7 @@ class _MaintenanceManagementScreenState
                           const SizedBox(height: 16),
                         ],
 
-                        // Tipo de Mantenimiento
+                        // ==================== TIPO DE MANTENIMIENTO ====================
                         const Text(
                           'Tipo de Mantenimiento',
                           style: TextStyle(
@@ -959,57 +976,7 @@ class _MaintenanceManagementScreenState
 
                         const SizedBox(height: 16),
 
-                        // Estado
-                        const Text(
-                          'Estado',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<MaintenanceStatus?>(
-                              isExpanded: true,
-                              value: tempStatus,
-                              hint: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('Todos los estados'),
-                              ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              items: [
-                                const DropdownMenuItem<MaintenanceStatus?>(
-                                  value: null,
-                                  child: Text('Todos los estados'),
-                                ),
-                                ...MaintenanceStatus.values.map((status) {
-                                  return DropdownMenuItem<MaintenanceStatus>(
-                                    value: status,
-                                    child: Text(
-                                      MaintenanceSchedule.getStatusDisplayName(
-                                          status),
-                                    ),
-                                  );
-                                }),
-                              ],
-                              onChanged: (value) {
-                                setModalState(() {
-                                  tempStatus = value;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Asignación
+                        // ==================== ASIGNACIÓN (ANTES ESTABA ESTADO) ====================
                         const Text(
                           'Asignación',
                           style: TextStyle(
@@ -1020,6 +987,7 @@ class _MaintenanceManagementScreenState
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
+                          runSpacing: 8,
                           children: [
                             ChoiceChip(
                               label: const Text('Todos'),
@@ -1028,6 +996,19 @@ class _MaintenanceManagementScreenState
                                 if (selected) {
                                   setModalState(() {
                                     tempAssignmentFilter = 'all';
+                                    tempTechnicianId = null; // Limpiar técnico
+                                  });
+                                }
+                              },
+                            ),
+                            ChoiceChip(
+                              label: const Text('Generados'),
+                              selected: tempAssignmentFilter == 'generated',
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setModalState(() {
+                                    tempAssignmentFilter = 'generated';
+                                    tempTechnicianId = null; // Limpiar técnico
                                   });
                                 }
                               },
@@ -1044,12 +1025,12 @@ class _MaintenanceManagementScreenState
                               },
                             ),
                             ChoiceChip(
-                              label: const Text('Sin asignar'),
-                              selected: tempAssignmentFilter == 'unassigned',
+                              label: const Text('Ejecutados'),
+                              selected: tempAssignmentFilter == 'executed',
                               onSelected: (selected) {
                                 if (selected) {
                                   setModalState(() {
-                                    tempAssignmentFilter = 'unassigned';
+                                    tempAssignmentFilter = 'executed';
                                   });
                                 }
                               },
@@ -1057,15 +1038,136 @@ class _MaintenanceManagementScreenState
                           ],
                         ),
 
+                        // ✨ FILTRO DE TÉCNICO (SOLO SI ESTÁ ASIGNADO O EJECUTADO)
+                        if (tempAssignmentFilter == 'assigned' ||
+                            tempAssignmentFilter == 'executed') ...[
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Técnico',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          FutureBuilder<List<TechnicianAvailability>>(
+                            future: _technicianAvailabilityService
+                                .getTechniciansAvailability(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border:
+                                        Border.all(color: Colors.grey[300]!),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+
+                              final technicians = snapshot.data!;
+
+                              return Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String?>(
+                                    isExpanded: true,
+                                    value: tempTechnicianId,
+                                    hint: const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 12),
+                                      child: Text('Todos los técnicos'),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12),
+                                    items: [
+                                      const DropdownMenuItem<String?>(
+                                        value: null,
+                                        child: Text('Todos los técnicos'),
+                                      ),
+                                      ...technicians.map((tech) {
+                                        return DropdownMenuItem<String>(
+                                          value: tech.id,
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.person,
+                                                  size: 16,
+                                                  color: Colors.blue[700]),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  tech.name,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                    onChanged: (value) {
+                                      setModalState(() {
+                                        tempTechnicianId = value;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+
                         const SizedBox(height: 16),
 
-                        // Tipo de Equipo
-                        const Text(
-                          'Tipo de Equipo',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        // ==================== TIPO DE EQUIPO CON GESTIONAR ====================
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Tipo de Equipo',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () async {
+                                // Cerrar modal de filtros
+                                Navigator.pop(context);
+
+                                // Abrir diálogo de gestión
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) =>
+                                      const EquipmentTypeManagementDialog(),
+                                );
+
+                                // Recargar tipos
+                                await _loadEquipmentTypes();
+
+                                // Reabrir modal de filtros
+                                _showFiltersBottomSheet();
+                              },
+                              icon: const Icon(Icons.settings, size: 16),
+                              label: const Text(
+                                'Gestionar',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                minimumSize: const Size(0, 0),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Container(
@@ -1248,37 +1350,13 @@ class _MaintenanceManagementScreenState
                               tempCustomEquipmentType = value;
                             },
                           ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.info_outline,
-                                    size: 16, color: Colors.blue[700]),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Escribe el tipo de equipo personalizado',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.blue[700],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ],
                       ],
                     ),
                   ),
                 ),
 
-                // Botón Aplicar
+                // ==================== BOTÓN APLICAR ====================
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -1301,8 +1379,10 @@ class _MaintenanceManagementScreenState
                             _selectedEquipmentType = tempEquipmentType;
                           }
                           _selectedMaintenanceType = tempMaintenanceType;
-                          _selectedStatus = tempStatus;
+                          _selectedStatus =
+                              calculatedStatus; // ✨ Auto-calculado
                           _assignmentFilter = tempAssignmentFilter;
+                          _selectedTechnicianId = tempTechnicianId;
                         });
                         Navigator.pop(context);
                       },

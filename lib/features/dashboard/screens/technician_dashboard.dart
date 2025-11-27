@@ -66,27 +66,29 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
   }
 
   Future<void> _loadMaintenanceCounts() async {
-    print('Iniciando carga de conteos...');
+    print('🔄 Iniciando carga de conteos...');
     final currentUserId = _auth.currentUser?.uid;
 
     if (currentUserId == null) {
-      print('No hay usuario autenticado');
+      print('❌ No hay usuario autenticado');
       return;
     }
 
-    print('Usuario ID: $currentUserId');
+    print('👤 Usuario ID: $currentUserId');
 
     try {
       final today = DateTime.now();
       final startOfDay = DateTime(today.year, today.month, today.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
+      // ✅ CONSULTA ACTUALIZADA - Buscar mantenimientos asignados al técnico
       final allMaintenances = await _firestore
           .collection('maintenanceSchedules')
           .where('technicianId', isEqualTo: currentUserId)
           .get();
 
-      print('Total mantenimientos encontrados: ${allMaintenances.docs.length}');
+      print(
+          '📊 Total mantenimientos encontrados: ${allMaintenances.docs.length}');
 
       int pending = 0;
       int completed = 0;
@@ -100,11 +102,11 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         final status = data['status'] ?? '';
         final type = data['type'] ?? '';
 
-        print('Doc: ${doc.id}, Status: $status, Type: $type');
+        print('📄 Doc: ${doc.id}, Status: $status, Type: $type');
 
+        // ✅ ESTADOS ACTUALIZADOS
         switch (status) {
-          case 'scheduled':
-          case 'pending':
+          case 'assigned': // ✅ Mantenimientos asignados = pendientes
             pending++;
             if (data['scheduledDate'] != null) {
               final scheduledDate =
@@ -115,13 +117,14 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               }
             }
             break;
-          case 'completed':
+
+          case 'completed': // ✅ Mantenimientos completados
             completed++;
             DateTime? completedDate;
             if (data['completedAt'] != null) {
               completedDate = (data['completedAt'] as Timestamp).toDate();
-            } else if (data['startedAt'] != null) {
-              completedDate = (data['startedAt'] as Timestamp).toDate();
+            } else if (data['updatedAt'] != null) {
+              completedDate = (data['updatedAt'] as Timestamp).toDate();
             }
 
             if (completedDate != null &&
@@ -130,22 +133,26 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               completedToday++;
             }
             break;
-          case 'in_progress':
+
+          case 'inProgress': // ✅ Mantenimientos en progreso
             inProgress++;
             break;
         }
 
+        // ✅ Contar emergencias activas (asignadas o en progreso)
         if (type == 'emergency' &&
-            (status == 'scheduled' || status == 'in_progress')) {
+            (status == 'assigned' || status == 'inProgress')) {
           emergencies++;
         }
       }
 
-      print('RESULTADOS:');
-      print('- Pendientes: $pending (Hoy: $pendingToday)');
-      print('- Completados: $completed (Hoy: $completedToday)');
-      print('- En progreso: $inProgress');
-      print('- Emergencias: $emergencies');
+      print('✅ RESULTADOS:');
+      print('  📋 Pendientes (assigned): $pending');
+      print('  📅 Pendientes hoy: $pendingToday');
+      print('  ✅ Completados: $completed');
+      print('  📅 Completados hoy: $completedToday');
+      print('  🔧 En progreso: $inProgress');
+      print('  🚨 Emergencias: $emergencies');
 
       if (mounted) {
         setState(() {
@@ -159,11 +166,17 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         });
       }
     } catch (e) {
-      print('Error cargando conteos: $e');
+      print('❌ Error cargando conteos: $e');
       if (mounted) {
         setState(() {
           isLoadingCounts = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar datos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -173,11 +186,15 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     if (currentUserId == null) return;
 
     try {
-      // Buscar por assignedTechnicianId en lugar de assignedTechnician
+      print('🔍 Buscando equipos asignados...');
+
+      // Buscar por assignedTechnicianId
       final equipments = await _firestore
           .collection('equipments')
           .where('assignedTechnicianId', isEqualTo: currentUserId)
           .get();
+
+      print('✅ Equipos encontrados: ${equipments.docs.length}');
 
       if (mounted) {
         setState(() {
@@ -185,16 +202,29 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         });
       }
     } catch (e) {
-      print('Error cargando equipos: $e');
+      print('❌ Error cargando equipos: $e');
     }
   }
 
   Future<void> _loadNotifications() async {
-    // Simulación de notificaciones pendientes
-    if (mounted) {
-      setState(() {
-        notificationCount = 3;
-      });
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    try {
+      // Cargar notificaciones no leídas
+      final notifications = await _firestore
+          .collection('pendingNotifications')
+          .where('userId', isEqualTo: currentUserId)
+          .where('status', isEqualTo: 'pending')
+          .get();
+
+      if (mounted) {
+        setState(() {
+          notificationCount = notifications.docs.length;
+        });
+      }
+    } catch (e) {
+      print('❌ Error cargando notificaciones: $e');
     }
   }
 
@@ -210,6 +240,15 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             await _loadMaintenanceCounts();
             await _loadEquipmentCount();
             await _loadNotifications();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Datos actualizados'),
+                  duration: Duration(seconds: 1),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -278,8 +317,10 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         IconButton(
           icon: const Icon(Icons.refresh),
           onPressed: () async {
+            setState(() => isLoadingCounts = true);
             await _loadMaintenanceCounts();
             await _loadEquipmentCount();
+            await _loadNotifications();
           },
         ),
         PopupMenuButton<String>(
@@ -331,9 +372,9 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
           );
         }
 
-        final efficiency = completedCount > 0
+        final efficiency = (completedCount + pendingCount) > 0
             ? ((completedCount / (completedCount + pendingCount)) * 100).toInt()
-            : 0;
+            : 100;
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -499,7 +540,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             const SizedBox(height: 16),
             Row(
               children: [
-                // Mi Calendario
                 Expanded(
                   child: Card(
                     child: InkWell(
@@ -554,7 +594,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Mis Equipos
                 Expanded(
                   child: Card(
                     child: InkWell(
@@ -689,8 +728,8 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 Icons.warning,
                 isLoadingCounts ? '-' : '$emergenciesCount',
                 Colors.red,
-                subtitle: 'Reportes de clientes',
-                onTap:  () => _navigateToTheFaultsReportScreen(context)
+                subtitle: 'Reportes activos',
+                onTap: () => _navigateToTheFaultsReportScreen(context),
               ),
             ),
           ],
@@ -753,9 +792,8 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
   }
 
   Widget _buildProgressCard() {
-    final progress = (pendingTodayCount + completedTodayCount) > 0
-        ? completedTodayCount / (pendingTodayCount + completedTodayCount)
-        : 0.0;
+    final totalToday = pendingTodayCount + completedTodayCount;
+    final progress = totalToday > 0 ? completedTodayCount / totalToday : 0.0;
 
     return Card(
       elevation: 2,
@@ -774,10 +812,14 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 ),
                 Text(
                   '${(progress * 100).toInt()}%',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF4CAF50),
+                    color: progress > 0.7
+                        ? Colors.green
+                        : progress > 0.4
+                            ? Colors.orange
+                            : Colors.red,
                   ),
                 ),
               ],
@@ -805,7 +847,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 Text(
                   isLoadingCounts
                       ? 'Cargando mantenimientos...'
-                      : '$completedTodayCount de ${pendingTodayCount + completedTodayCount} mantenimientos',
+                      : '$completedTodayCount de $totalToday mantenimientos',
                   style: const TextStyle(fontSize: 12),
                 ),
                 Text(
@@ -992,6 +1034,15 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.calendar_today, color: Colors.blue),
               title: const Text('Ver Mi Calendario'),
@@ -1023,7 +1074,15 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               title: const Text('Reportar Falla'),
               onTap: () {
                 Navigator.pop(context);
-                _showComingSoon(context, 'Reportar Falla');
+                _navigateToTheFaultsReportScreen(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: const Text('Ver Completados'),
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToCompleted(context);
               },
             ),
           ],
@@ -1049,7 +1108,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CompletedMaintenancesScreen(),
+        builder: (context) => const CompletedMaintenancesScreen(),
       ),
     );
   }

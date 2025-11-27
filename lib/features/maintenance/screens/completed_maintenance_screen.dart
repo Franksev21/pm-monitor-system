@@ -48,55 +48,85 @@ class _CompletedMaintenancesScreenState
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
         userRole = userData['role'] ?? 'technician';
+        print('✅ Rol del usuario: $userRole');
       } else {
         userRole = 'technician';
       }
     } catch (e) {
-      print('Error getting user role: $e');
+      print('❌ Error obteniendo rol: $e');
       userRole = 'technician';
     }
   }
 
   Future<void> _loadCompletedMaintenances() async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      print('❌ No hay usuario autenticado');
+      return;
+    }
 
     setState(() => isLoading = true);
 
     try {
+      print('🔍 Buscando mantenimientos completados...');
+      print('Usuario ID: $currentUserId');
+      print('Rol: $userRole');
+
+      // ✅ QUERY CORREGIDA - Buscar por technicianId si es técnico
       Query query = _firestore
           .collection('maintenanceSchedules')
-          .where('status', isEqualTo: 'completed')
-          .orderBy('completedAt', descending: true);
+          .where('status', isEqualTo: 'completed');
 
       // Solo técnicos ven sus propios mantenimientos
       if (userRole == 'technician') {
         query = query.where('technicianId', isEqualTo: currentUserId);
+        print('🔍 Filtrando por technicianId: $currentUserId');
       }
 
-      // Aplicar filtros de fecha
+      // Aplicar filtros de fecha si existen
       if (startDate != null) {
         query = query.where('completedAt',
             isGreaterThanOrEqualTo: Timestamp.fromDate(startDate!));
+        print('📅 Filtro desde: $startDate');
       }
       if (endDate != null) {
+        // Agregar 1 día al endDate para incluir todo el día seleccionado
+        final endDateTime = DateTime(
+          endDate!.year,
+          endDate!.month,
+          endDate!.day,
+          23,
+          59,
+          59,
+        );
         query = query.where('completedAt',
-            isLessThanOrEqualTo: Timestamp.fromDate(endDate!));
+            isLessThanOrEqualTo: Timestamp.fromDate(endDateTime));
+        print('📅 Filtro hasta: $endDateTime');
       }
+
+      // Ordenar por fecha de completado
+      query = query.orderBy('completedAt', descending: true);
 
       QuerySnapshot querySnapshot = await query.get();
 
+      print('✅ Mantenimientos encontrados: ${querySnapshot.docs.length}');
+
       completedMaintenances = querySnapshot.docs.map((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        print('📄 Doc ID: ${doc.id}, Equipment: ${data['equipmentName']}');
         return {
           'id': doc.id,
           ...data,
         };
       }).toList();
+
+      print('✅ Total cargado: ${completedMaintenances.length}');
     } catch (e) {
-      print('Error loading completed maintenances: $e');
-      _showErrorMessage('Error al cargar mantenimientos completados');
+      print('❌ Error loading completed maintenances: $e');
+      _showErrorMessage('Error al cargar mantenimientos completados: $e');
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -112,6 +142,20 @@ class _CompletedMaintenancesScreenState
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
           ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              await _loadCompletedMaintenances();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Lista actualizada'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              }
+            },
+          ),
           if (userRole == 'admin')
             IconButton(
               icon: const Icon(Icons.picture_as_pdf),
@@ -124,10 +168,22 @@ class _CompletedMaintenancesScreenState
           _buildFiltersBar(),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Cargando mantenimientos completados...'),
+                      ],
+                    ),
+                  )
                 : completedMaintenances.isEmpty
                     ? _buildEmptyState()
-                    : _buildMaintenancesList(),
+                    : RefreshIndicator(
+                        onRefresh: _loadCompletedMaintenances,
+                        child: _buildMaintenancesList(),
+                      ),
           ),
         ],
       ),
@@ -165,11 +221,19 @@ class _CompletedMaintenancesScreenState
               ],
             ),
           ),
-          Text(
-            '${completedMaintenances.length} resultado${completedMaintenances.length != 1 ? 's' : ''}',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4CAF50).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '${completedMaintenances.length} resultado${completedMaintenances.length != 1 ? 's' : ''}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF4CAF50),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -195,51 +259,61 @@ class _CompletedMaintenancesScreenState
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No hay mantenimientos completados',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 80,
+              color: Colors.grey[400],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            selectedPeriod == 'all'
-                ? 'Los mantenimientos completados aparecerán aquí'
-                : 'No hay mantenimientos en el período seleccionado',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
+            const SizedBox(height: 16),
+            Text(
+              'No hay mantenimientos completados',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                selectedPeriod = 'all';
-                startDate = null;
-                endDate = null;
-              });
-              _loadCompletedMaintenances();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
-              foregroundColor: Colors.white,
+            const SizedBox(height: 8),
+            Text(
+              selectedPeriod == 'all'
+                  ? 'Los mantenimientos completados aparecerán aquí'
+                  : 'No hay mantenimientos en el período seleccionado',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+              textAlign: TextAlign.center,
             ),
-            child: const Text('Mostrar todos'),
-          ),
-        ],
+            const SizedBox(height: 24),
+            if (selectedPeriod != 'all')
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    selectedPeriod = 'all';
+                    startDate = null;
+                    endDate = null;
+                  });
+                  _loadCompletedMaintenances();
+                },
+                icon: const Icon(Icons.clear_all),
+                label: const Text('Mostrar todos'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -259,6 +333,8 @@ class _CompletedMaintenancesScreenState
     DateTime? completedDate;
     if (maintenance['completedAt'] != null) {
       completedDate = (maintenance['completedAt'] as Timestamp).toDate();
+    } else if (maintenance['updatedAt'] != null) {
+      completedDate = (maintenance['updatedAt'] as Timestamp).toDate();
     } else if (maintenance['startedAt'] != null) {
       completedDate = (maintenance['startedAt'] as Timestamp).toDate();
     }
@@ -268,10 +344,10 @@ class _CompletedMaintenancesScreenState
         : null;
 
     // Calcular progreso dinámicamente
-    num completionPercentage = maintenance['completionPercentage'] ?? 0;
+    num completionPercentage = maintenance['completionPercentage'] ?? 100;
 
-    // Si no hay percentage o es 0, intentar calcularlo de las tareas
-    if (completionPercentage == 0) {
+    // Si no hay percentage, intentar calcularlo de las tareas
+    if (completionPercentage == 0 || completionPercentage == null) {
       final tasks = maintenance['tasks'] as List? ?? [];
       final taskCompletion = maintenance['taskCompletion'] as Map? ?? {};
 
@@ -290,11 +366,18 @@ class _CompletedMaintenancesScreenState
     }
 
     final photoCount = (maintenance['photoUrls'] as List?)?.length ?? 0;
+    final notes = maintenance['notes'] as String? ?? '';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: const Color(0xFF4CAF50).withOpacity(0.3),
+          width: 2,
+        ),
+      ),
       child: InkWell(
         onTap: () => _showMaintenanceDetails(maintenance),
         borderRadius: BorderRadius.circular(12),
@@ -305,51 +388,47 @@ class _CompletedMaintenancesScreenState
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 4,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                  const Icon(
+                    Icons.check_circle,
+                    color: Color(0xFF4CAF50),
+                    size: 20,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          maintenance['equipmentName'] ?? 'Equipo',
+                          maintenance['equipmentName'] ?? 'Equipo sin nombre',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           maintenance['clientName'] ?? 'Cliente',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             color: Colors.grey[600],
                           ),
                         ),
-                        if (userRole == 'admin' &&
-                            maintenance['technicianName'] != null)
-                          Text(
-                            'Técnico: ${maintenance['technicianName']}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
-                            ),
-                          ),
                       ],
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4CAF50).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF4CAF50).withOpacity(0.3),
+                      ),
                     ),
                     child: const Text(
                       'COMPLETADO',
@@ -363,17 +442,50 @@ class _CompletedMaintenancesScreenState
                 ],
               ),
               const SizedBox(height: 12),
-              if (scheduledDate != null)
-                _buildInfoChip(
-                  Icons.schedule,
-                  'Programado: ${DateFormat('dd/MM/yy HH:mm').format(scheduledDate)}',
+              Row(
+                children: [
+                  Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      maintenance['location'] ?? 'Sin ubicación',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              if (scheduledDate != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Programado: ${DateFormat('dd/MM/yy HH:mm').format(scheduledDate)}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
-              const SizedBox(height: 4),
-              if (completedDate != null)
-                _buildInfoChip(
-                  Icons.check_circle,
-                  'Completado: ${DateFormat('dd/MM/yy HH:mm').format(completedDate)}',
+              ],
+              if (completedDate != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Completado: ${DateFormat('dd/MM/yy HH:mm').format(completedDate)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
+              ],
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -381,11 +493,13 @@ class _CompletedMaintenancesScreenState
                     child:
                         _buildProgressIndicator(completionPercentage.toInt()),
                   ),
-                  const SizedBox(width: 12),
-                  if (photoCount > 0)
+                  if (photoCount > 0) ...[
+                    const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.blue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(6),
@@ -407,13 +521,51 @@ class _CompletedMaintenancesScreenState
                         ],
                       ),
                     ),
+                  ],
                 ],
               ),
-              if (userRole == 'admin') ...[
+              if (notes.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.note, size: 14, color: Colors.grey[600]),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          notes,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[700],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => _showMaintenanceDetails(maintenance),
+                    icon: const Icon(Icons.visibility, size: 16),
+                    label: const Text('Ver detalles'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF4285F4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
+                  if (userRole == 'admin')
                     TextButton.icon(
                       onPressed: () => _generateMaintenancePDF(maintenance),
                       icon: const Icon(Icons.picture_as_pdf, size: 16),
@@ -423,39 +575,12 @@ class _CompletedMaintenancesScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
                     ),
-                    TextButton.icon(
-                      onPressed: () => _showMaintenanceDetails(maintenance),
-                      icon: const Icon(Icons.visibility, size: 16),
-                      label: const Text('Ver detalles'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF4285F4),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: Colors.grey[600]),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
     );
   }
 
@@ -482,11 +607,15 @@ class _CompletedMaintenancesScreenState
           ],
         ),
         const SizedBox(height: 4),
-        LinearProgressIndicator(
-          value: percentage / 100,
-          backgroundColor: Colors.grey[300],
-          valueColor: AlwaysStoppedAnimation<Color>(
-            percentage == 100 ? const Color(0xFF4CAF50) : Colors.orange,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: percentage / 100,
+            minHeight: 6,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation<Color>(
+              percentage == 100 ? const Color(0xFF4CAF50) : Colors.orange,
+            ),
           ),
         ),
       ],
@@ -587,6 +716,10 @@ class _CompletedMaintenancesScreenState
               Navigator.pop(context);
               _applyFilters();
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Aplicar'),
           ),
         ],
@@ -679,19 +812,35 @@ class _CompletedMaintenancesScreenState
         _buildDetailSection('Información General', [
           _buildDetailRow('Cliente', maintenance['clientName']),
           _buildDetailRow('Ubicación', maintenance['location']),
-          _buildDetailRow('Técnico', maintenance['technicianName']),
-          _buildDetailRow('Duración estimada',
-              '${maintenance['estimatedDurationMinutes'] ?? 0} min'),
-          if (maintenance['notes'] != null)
-            _buildDetailRow('Notas', maintenance['notes']),
+          _buildDetailRow('Equipo', maintenance['equipmentName']),
+          _buildDetailRow('Categoría', maintenance['equipmentCategory']),
+          if (maintenance['technicianName'] != null)
+            _buildDetailRow('Técnico', maintenance['technicianName']),
+          _buildDetailRow(
+            'Duración',
+            '${maintenance['estimatedHours'] ?? maintenance['estimatedDurationMinutes'] ?? 0} ${maintenance['estimatedHours'] != null ? 'h' : 'min'}',
+          ),
         ]),
         const SizedBox(height: 20),
         _buildDetailSection('Fechas', [
           _buildDetailRow(
               'Programado', _formatDateTime(maintenance['scheduledDate'])),
+          if (maintenance['startedAt'] != null)
+            _buildDetailRow(
+                'Iniciado', _formatDateTime(maintenance['startedAt'])),
           _buildDetailRow(
               'Completado', _formatDateTime(maintenance['completedAt'])),
         ]),
+        if (maintenance['notes'] != null &&
+            maintenance['notes'].toString().isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _buildDetailSection('Notas', [
+            Text(
+              maintenance['notes'].toString(),
+              style: const TextStyle(fontSize: 14),
+            ),
+          ]),
+        ],
         const SizedBox(height: 20),
         if (tasks.isNotEmpty) ...[
           _buildDetailSection('Tareas Realizadas', [
@@ -704,6 +853,7 @@ class _CompletedMaintenancesScreenState
         ],
         if (photoUrls.isNotEmpty) ...[
           _buildDetailSection('Evidencias Fotográficas', [
+            const SizedBox(height: 8),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -759,6 +909,7 @@ class _CompletedMaintenancesScreenState
             color: Color(0xFF4CAF50),
           ),
         ),
+        const Divider(),
         const SizedBox(height: 8),
         ...children,
       ],
@@ -772,14 +923,20 @@ class _CompletedMaintenancesScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 110,
             child: Text(
               '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
           Expanded(
-            child: Text(value ?? 'No especificado'),
+            child: Text(
+              value ?? 'No especificado',
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
         ],
       ),
@@ -788,12 +945,13 @@ class _CompletedMaintenancesScreenState
 
   Widget _buildTaskRow(String task, bool completed) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             completed ? Icons.check_circle : Icons.radio_button_unchecked,
-            size: 16,
+            size: 18,
             color: completed ? const Color(0xFF4CAF50) : Colors.grey,
           ),
           const SizedBox(width: 8),
@@ -801,8 +959,9 @@ class _CompletedMaintenancesScreenState
             child: Text(
               task,
               style: TextStyle(
+                fontSize: 13,
                 decoration: completed ? TextDecoration.lineThrough : null,
-                color: completed ? Colors.grey : null,
+                color: completed ? Colors.grey[600] : Colors.black87,
               ),
             ),
           ),
@@ -813,10 +972,14 @@ class _CompletedMaintenancesScreenState
 
   String _formatDateTime(dynamic timestamp) {
     if (timestamp == null) return 'No disponible';
-    final dateTime = timestamp is Timestamp
-        ? timestamp.toDate()
-        : DateTime.parse(timestamp.toString());
-    return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
+    try {
+      final dateTime = timestamp is Timestamp
+          ? timestamp.toDate()
+          : DateTime.parse(timestamp.toString());
+      return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
+    } catch (e) {
+      return 'Fecha inválida';
+    }
   }
 
   void _generatePDFReport() {
@@ -837,12 +1000,15 @@ class _CompletedMaintenancesScreenState
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _showFullScreenImage(BuildContext context, String imageUrl) {
@@ -850,16 +1016,42 @@ class _CompletedMaintenancesScreenState
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
         child: Stack(
           children: [
             Center(
-              child: Image.network(imageUrl),
+              child: InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error, color: Colors.white, size: 48),
+                          SizedBox(height: 8),
+                          Text(
+                            'Error al cargar imagen',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
             Positioned(
-              top: 10,
-              right: 10,
+              top: 40,
+              right: 16,
               child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
                 onPressed: () => Navigator.pop(context),
               ),
             ),

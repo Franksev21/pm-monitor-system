@@ -3,6 +3,7 @@ import 'package:pm_monitor/config/firebase_config.dart';
 import 'package:pm_monitor/core/providers/client_provider.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
 import 'package:pm_monitor/core/providers/technician_provider.dart';
+import 'package:pm_monitor/core/services/equipment_type_service.dart';
 import 'package:provider/provider.dart';
 import 'core/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -18,6 +19,9 @@ void main() async {
     await FirebaseConfig.initialize();
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
+
+
+        
         options: DefaultFirebaseOptions.currentPlatform,
       );
     }
@@ -36,6 +40,16 @@ void main() async {
     notificationService.setupMessageListeners();
   } catch (e) {
     print('Error al enviar  notificaciones: $e');
+  }
+
+   
+  // 🔥 INICIALIZAR TIPOS (solo se ejecuta una vez)
+  try {
+    final typeService = EquipmentTypeService();
+    await typeService.initializeDefaultTypes();
+    print('✅ Sistema de tipos inicializado');
+  } catch (e) {
+    print('❌ Error inicializando tipos: $e');
   }
 
   runApp(

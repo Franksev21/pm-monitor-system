@@ -101,6 +101,65 @@ class MaintenanceExecutionService {
     }
   }
 
+  // ✅ NUEVO - Obtener datos del equipo
+  Future<Map<String, dynamic>?> getEquipmentData(String equipmentId) async {
+    try {
+      print('🔍 Buscando equipo con ID: $equipmentId');
+
+      DocumentSnapshot equipmentDoc =
+          await _firestore.collection('equipments').doc(equipmentId).get();
+
+      if (equipmentDoc.exists) {
+        Map<String, dynamic> data = equipmentDoc.data() as Map<String, dynamic>;
+        print('✅ Equipo encontrado: ${data['name'] ?? 'Sin nombre'}');
+        return data;
+      } else {
+        print('⚠️ Equipo no encontrado con ID: $equipmentId');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error obteniendo datos del equipo: $e');
+      return null;
+    }
+  }
+
+  // ✅ NUEVO - Obtener progreso guardado previamente de un mantenimiento
+  Future<Map<String, dynamic>?> getMaintenanceProgress(
+      String maintenanceId) async {
+    try {
+      print('🔍 Buscando progreso guardado para mantenimiento: $maintenanceId');
+
+      DocumentSnapshot maintenanceDoc = await _firestore
+          .collection('maintenanceSchedules')
+          .doc(maintenanceId)
+          .get();
+
+      if (maintenanceDoc.exists) {
+        Map<String, dynamic> data =
+            maintenanceDoc.data() as Map<String, dynamic>;
+
+        // Verificar si hay progreso guardado
+        if (data.containsKey('taskCompletion') || data.containsKey('notes')) {
+          print('✅ Progreso previo encontrado');
+          return {
+            'taskCompletion': data['taskCompletion'],
+            'notes': data['notes'],
+            'completionPercentage': data['completionPercentage'],
+          };
+        } else {
+          print('ℹ️ No hay progreso previo guardado');
+          return null;
+        }
+      } else {
+        print('⚠️ Mantenimiento no encontrado');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error obteniendo progreso: $e');
+      return null;
+    }
+  }
+
   // Iniciar mantenimiento
   Future<bool> startMaintenance(String maintenanceId) async {
     try {
@@ -154,7 +213,8 @@ class MaintenanceExecutionService {
 
     try {
       for (int i = 0; i < photos.length; i++) {
-        String fileName ='maintenance_$maintenanceId/photo_${i}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        String fileName =
+            'maintenance_$maintenanceId/photo_${i}_${DateTime.now().millisecondsSinceEpoch}.jpg';
         Reference ref = _storage.ref().child(fileName);
 
         UploadTask uploadTask = ref.putFile(photos[i]);
@@ -170,7 +230,6 @@ class MaintenanceExecutionService {
     return photoUrls;
   }
 
-  // Completar mantenimiento
   // Completar mantenimiento - CON DEBUGGING
   Future<bool> completeMaintenance(
     String maintenanceId, {
@@ -308,6 +367,8 @@ class MaintenanceExecutionService {
   // Obtener tareas predeterminadas para un tipo de equipo
   Future<List<String>> getDefaultTasks(String equipmentType) async {
     try {
+      print('🔍 Buscando tareas predeterminadas para tipo: $equipmentType');
+
       DocumentSnapshot doc = await _firestore
           .collection('maintenanceTemplates')
           .doc(equipmentType)
@@ -315,19 +376,24 @@ class MaintenanceExecutionService {
 
       if (doc.exists) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        return List<String>.from(data['defaultTasks'] ?? []);
+        List<String> tasks = List<String>.from(data['defaultTasks'] ?? []);
+        print('✅ Tareas predeterminadas encontradas: ${tasks.length}');
+        return tasks;
+      } else {
+        print('⚠️ No se encontró template para: $equipmentType');
       }
     } catch (e) {
-      print('Error obteniendo tareas predeterminadas: $e');
+      print('❌ Error obteniendo tareas predeterminadas: $e');
     }
 
-    // Tareas predeterminadas si no hay template
+    // Tareas predeterminadas genéricas si no hay template
+    print('ℹ️ Usando tareas predeterminadas genéricas');
     return [
       'Verificar estado general del equipo',
-      'Limpiar filtros',
+      'Limpiar filtros y componentes',
       'Revisar conexiones eléctricas',
-      'Verificar refrigerante',
-      'Comprobar funcionamiento',
+      'Verificar niveles de refrigerante',
+      'Comprobar funcionamiento correcto',
       'Documentar observaciones',
     ];
   }
