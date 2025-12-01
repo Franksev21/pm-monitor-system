@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import 'package:pm_monitor/features/maintenance/screens/maintenance_execution_screen.dart';
 
 class PendingMaintenancesScreen extends StatefulWidget {
@@ -160,37 +159,18 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
   Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
     final equipmentName = data['equipmentName'] ?? 'Equipo sin nombre';
     final clientName = data['clientName'] ?? 'Cliente no especificado';
-    final location = data['location'] ?? data['branchName'] ?? 'Sin ubicación';
-    final scheduledDate = data['scheduledDate'] as Timestamp?;
-    final estimatedHours = data['estimatedHours'] ?? 2;
-    final status = data['status'] ?? 'assigned';
     final type = data['type'] ?? 'preventive';
 
-    String dateStr = 'Sin fecha';
-    String timeStr = '';
-    if (scheduledDate != null) {
-      final date = scheduledDate.toDate();
-      dateStr = DateFormat('dd/MM/yyyy').format(date);
-      timeStr = DateFormat('HH:mm').format(date);
-    }
-
-    // ✅ Ajustes de colores y textos según el tipo
+    // Colores según tipo
     Color statusColor = Colors.blue;
-    IconData statusIcon = Icons.schedule;
-    String statusText = 'Asignado';
+    String statusText = 'Preventivo';
 
     if (type == 'emergency') {
       statusColor = Colors.red;
-      statusIcon = Icons.warning;
       statusText = 'Urgente';
     } else if (type == 'corrective') {
       statusColor = Colors.orange;
-      statusIcon = Icons.build;
       statusText = 'Correctivo';
-    } else {
-      statusColor = Colors.blue;
-      statusIcon = Icons.schedule;
-      statusText = 'Preventivo';
     }
 
     return Card(
@@ -198,37 +178,60 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: statusColor.withOpacity(0.3),
-          width: 2,
-        ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => _showMaintenanceDetails(id, data),
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.all(12),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Icon(statusIcon, color: statusColor, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
+              // IZQUIERDA: Nombre equipo + cliente
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       equipmentName,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.business, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            clientName,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // DERECHA: Tipo + Botones
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
+                      horizontal: 10,
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
@@ -245,100 +248,50 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
                       ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.business, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      clientName,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      location,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(
-                    dateStr,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                  ),
-                  if (timeStr.isNotEmpty) ...[
-                    const SizedBox(width: 4),
-                    Text(
-                      timeStr,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(width: 16),
-                  Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${estimatedHours}h',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _startMaintenance(id, data),
-                      icon: const Icon(Icons.play_arrow, size: 18),
-                      label: const Text('Iniciar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: statusColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Botón Detalles
+                      SizedBox(
+                        height: 32,
+                        child: OutlinedButton(
+                          onPressed: () => _showMaintenanceDetails(id, data),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: statusColor,
+                            side: BorderSide(color: statusColor, width: 1),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Detalles',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showMaintenanceDetails(id, data),
-                      icon: const Icon(Icons.info_outline, size: 18),
-                      label: const Text('Detalles'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: statusColor,
-                        side: BorderSide(color: statusColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      const SizedBox(width: 6),
+                      // Botón Iniciar
+                      SizedBox(
+                        height: 32,
+                        child: ElevatedButton(
+                          onPressed: () => _startMaintenance(id, data),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: statusColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Iniciar',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -496,6 +449,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
         'type': data['type'] ?? 'preventive',
         'frequency': data['frequency'] ?? 'monthly',
         'tasks': data['tasks'] ?? [],
+        'photoUrls': data['photoUrls'] ?? [],
         'description': data['description'] ?? '',
         'notes': data['notes'] ?? '',
         'equipmentNumber': data['equipmentNumber'] ?? '',

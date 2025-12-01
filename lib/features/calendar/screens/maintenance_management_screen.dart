@@ -12,7 +12,7 @@ import 'package:pm_monitor/features/technician/screens/technician_availability_m
 import 'package:pm_monitor/shared/widgets/client_search_dialog_widget.dart';
 
 class MaintenanceManagementScreen extends StatefulWidget {
-  const MaintenanceManagementScreen({Key? key}) : super(key: key);
+  const MaintenanceManagementScreen({super.key});
 
   @override
   State<MaintenanceManagementScreen> createState() =>
@@ -214,15 +214,15 @@ class _MaintenanceManagementScreenState
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.error_outline, size: 64, color: Colors.red),
-                        SizedBox(height: 16),
-                        Text('Error al cargar'),
-                        SizedBox(height: 8),
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        const Text('Error al cargar'),
+                        const SizedBox(height: 8),
                         Text('${snapshot.error}', textAlign: TextAlign.center),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => setState(() {}),
-                          child: Text('Reintentar'),
+                          child: const Text('Reintentar'),
                         ),
                       ],
                     ),
@@ -437,7 +437,7 @@ class _MaintenanceManagementScreenState
             children: [
               Checkbox(
                 value: isSelected,
-                onChanged: (_) => _toggleSelection(maintenance.id!),
+                onChanged: (_) => _toggleSelection(maintenance.id),
                 activeColor: const Color(0xFF007AFF),
               ),
               Container(
@@ -581,7 +581,7 @@ class _MaintenanceManagementScreenState
                       ),
                     );
                   } else if (value == 'delete') {
-                    _confirmDeleteMaintenance(maintenance.id!);
+                    _confirmDeleteMaintenance(maintenance.id);
                   }
                 },
                 itemBuilder: (context) => [

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:pm_monitor/core/services/maintenance_execution_service.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MaintenanceExecutionScreen extends StatefulWidget {
   final Map<String, dynamic> maintenance;
@@ -18,6 +20,7 @@ class _MaintenanceExecutionScreenState
   final MaintenanceExecutionService _service = MaintenanceExecutionService();
   final TextEditingController _notesController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  Map<String, String> taskSkipReasons = {};
 
   Map<String, bool> taskCompletion = {};
   List<File> selectedImages = [];
@@ -36,6 +39,7 @@ class _MaintenanceExecutionScreenState
     super.initState();
     debugPrint('🚀 Iniciando MaintenanceExecutionScreen');
     debugPrint('📦 Datos recibidos: ${widget.maintenance}');
+    debugPrint('📎 photoUrls: ${widget.maintenance['photoUrls']}');
     _loadMaintenanceDetails();
   }
 
@@ -46,13 +50,11 @@ class _MaintenanceExecutionScreenState
       debugPrint(
           '🔄 Cargando detalles del mantenimiento ID: ${widget.maintenance['id']}');
 
-      // Primero, cargar las tareas desde los datos recibidos
       List<dynamic> tasks = widget.maintenance['tasks'] ?? [];
 
       debugPrint(
           '📋 Tareas recibidas directamente: $tasks (${tasks.length} tareas)');
 
-      // Si no hay tareas en los datos recibidos, intentar cargarlas del servicio
       if (tasks.isEmpty) {
         debugPrint(
             '⚠️ No hay tareas en los datos recibidos, cargando desde Firestore...');
@@ -66,7 +68,6 @@ class _MaintenanceExecutionScreenState
         }
       }
 
-      // Si aún no hay tareas, cargar tareas por defecto según la categoría del equipo
       if (tasks.isEmpty) {
         String category = widget.maintenance['equipmentCategory'] ?? 'AC';
         debugPrint(
@@ -76,10 +77,8 @@ class _MaintenanceExecutionScreenState
             '📋 Tareas por defecto cargadas: $tasks (${tasks.length} tareas)');
       }
 
-      // Inicializar el mapa de tareas completadas
       _initializeTaskCompletion(tasks);
 
-      // Cargar datos del equipo desde los parámetros recibidos
       if (widget.maintenance['equipmentId'] != null) {
         debugPrint(
             '🔧 Cargando datos del equipo ID: ${widget.maintenance['equipmentId']}');
@@ -94,7 +93,6 @@ class _MaintenanceExecutionScreenState
         }
       }
 
-      // Cargar progreso previo si existe
       Map<String, dynamic>? savedProgress =
           await _service.getMaintenanceProgress(widget.maintenance['id']);
 
@@ -225,6 +223,8 @@ class _MaintenanceExecutionScreenState
             const SizedBox(height: 20),
             _buildTaskChecklist(),
             const SizedBox(height: 20),
+            _buildAttachedFiles(),
+            const SizedBox(height: 20),
             _buildEquipmentDataSection(),
             const SizedBox(height: 20),
             _buildPhotosSection(),
@@ -321,6 +321,8 @@ class _MaintenanceExecutionScreenState
 
   Widget _buildTaskChecklist() {
     List<String> tasks = taskCompletion.keys.toList();
+    int completedCount = taskCompletion.values.where((v) => v).length;
+    bool allSelected = tasks.isNotEmpty && completedCount == tasks.length;
 
     return Card(
       child: Padding(
@@ -338,7 +340,7 @@ class _MaintenanceExecutionScreenState
                 ),
                 const Spacer(),
                 Text(
-                  '${taskCompletion.values.where((v) => v).length}/${tasks.length}',
+                  '$completedCount/${tasks.length}',
                   style: const TextStyle(
                     color: Color(0xFF1976D2),
                     fontWeight: FontWeight.bold,
@@ -346,6 +348,37 @@ class _MaintenanceExecutionScreenState
                 ),
               ],
             ),
+            if (tasks.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      final newValue = !allSelected;
+                      for (var task in tasks) {
+                        if (!taskSkipReasons.containsKey(task)) {
+                          taskCompletion[task] = newValue;
+                        }
+                      }
+                    });
+                  },
+                  icon: Icon(
+                    allSelected
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    size: 20,
+                  ),
+                  label: Text(allSelected
+                      ? 'Deseleccionar Todas'
+                      : 'Seleccionar Todas'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1976D2),
+                    side: const BorderSide(color: Color(0xFF1976D2)),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             if (tasks.isEmpty)
               Container(
@@ -372,39 +405,528 @@ class _MaintenanceExecutionScreenState
                 ),
               )
             else
-              ...tasks.map((task) => Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    elevation: 1,
-                    child: CheckboxListTile(
-                      title: Text(
-                        task,
-                        style: TextStyle(
-                          fontSize: 14,
-                          decoration: taskCompletion[task] == true
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: taskCompletion[task] == true
-                              ? Colors.grey[600]
-                              : Colors.black87,
-                        ),
-                      ),
-                      value: taskCompletion[task] ?? false,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          taskCompletion[task] = value ?? false;
-                          debugPrint(
-                              '✅ Tarea "${task}" marcada como: ${value == true ? "completada" : "pendiente"}');
-                        });
-                      },
-                      activeColor: const Color(0xFF1976D2),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
-                    ),
-                  )),
+              ...tasks.map((task) => _buildTaskItem(task)),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildTaskItem(String task) {
+    final isCompleted = taskCompletion[task] ?? false;
+    final isSkipped = taskSkipReasons.containsKey(task);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 1,
+      color: isSkipped ? Colors.red[50] : null,
+      child: Column(
+        children: [
+          ListTile(
+            leading: Checkbox(
+              value: isCompleted,
+              onChanged: isSkipped
+                  ? null
+                  : (bool? value) {
+                      setState(() {
+                        taskCompletion[task] = value ?? false;
+                      });
+                    },
+              activeColor: const Color(0xFF1976D2),
+            ),
+            title: Text(
+              task,
+              style: TextStyle(
+                fontSize: 14,
+                decoration: isCompleted ? TextDecoration.lineThrough : null,
+                color: isSkipped
+                    ? Colors.red[700]
+                    : (isCompleted ? Colors.grey[600] : Colors.black87),
+              ),
+            ),
+            trailing: isSkipped
+                ? IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red),
+                    onPressed: () {
+                      setState(() {
+                        taskSkipReasons.remove(task);
+                        taskCompletion[task] = false;
+                      });
+                    },
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.block, color: Colors.red),
+                    onPressed: () => _showSkipReasonDialog(task),
+                    tooltip: 'No se pudo realizar',
+                  ),
+            dense: true,
+          ),
+          if (isSkipped) ...[
+            const Divider(height: 1),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              color: Colors.red[50],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 16, color: Colors.red[700]),
+                      const SizedBox(width: 6),
+                      Text(
+                        'No se pudo realizar:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    taskSkipReasons[task] ?? '',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.red[800],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showSkipReasonDialog(String task) {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Por qué no se pudo realizar?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              task,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Ej: Falta material, equipo inaccesible...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                setState(() {
+                  taskSkipReasons[task] = controller.text.trim();
+                  taskCompletion[task] = false;
+                });
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachedFiles() {
+    final photoUrls = widget.maintenance['photoUrls'] as List<dynamic>? ?? [];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.description, color: Color(0xFF2196F3)),
+              const SizedBox(width: 8),
+              const Text(
+                'Instrucciones Adjuntas',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (photoUrls.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${photoUrls.length}',
+                    style: TextStyle(
+                      color: Colors.blue[700],
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Documentos adjuntados por el administrador',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (photoUrls.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.grey[600]),
+                  const SizedBox(width: 12),
+                  Text(
+                    'No hay archivos adjuntos',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1,
+              ),
+              itemCount: photoUrls.length,
+              itemBuilder: (context, index) {
+                final url = photoUrls[index] as String;
+                final fileName = url.split('/').last.split('?').first;
+                final isPdf = fileName.toLowerCase().endsWith('.pdf');
+
+                return GestureDetector(
+                  onTap: () => _showFilePreview(url, index),
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isPdf ? Colors.red[50] : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isPdf ? Colors.red[200]! : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: isPdf
+                            ? Center(
+                                child: Icon(
+                                  Icons.picture_as_pdf,
+                                  size: 48,
+                                  color: Colors.red[700],
+                                ),
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  url,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      Icons.error,
+                                      color: Colors.red[300],
+                                    );
+                                  },
+                                ),
+                              ),
+                      ),
+                      Positioned(
+                        bottom: 4,
+                        left: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.visibility,
+                            size: 16,
+                            color: Color(0xFF2196F3),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ ÚNICO MÉTODO DE VISTA PREVIA
+  void _showFilePreview(String url, int index) async {
+    final fileName = url.split('/').last.split('?').first;
+    final isPdf = fileName.toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+      // Vista previa de PDF con Syncfusion
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Header
+                Row(
+                  children: [
+                    const Icon(Icons.picture_as_pdf, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        fileName.replaceAll('.pdf.pdf', '.pdf'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                const SizedBox(height: 8),
+
+                // Vista previa PDF directamente desde URL
+                Expanded(
+                  child: SfPdfViewer.network(
+                    url,
+                    onDocumentLoadFailed: (details) {
+                      debugPrint('❌ Error cargando PDF: ${details.error}');
+                      debugPrint('❌ Descripción: ${details.description}');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Error cargando PDF: ${details.description}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Botón para abrir en navegador
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      if (await canLaunchUrl(Uri.parse(url))) {
+                        await launchUrl(
+                          Uri.parse(url),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.open_in_browser),
+                    label: const Text('Abrir en navegador'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Vista previa de imagen
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.image),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        fileName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Image.network(
+                    url,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.error,
+                                size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            const Text('Error cargando imagen'),
+                            const SizedBox(height: 8),
+                            Text(
+                              error.toString(),
+                              style: const TextStyle(fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(Icons.link, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        url,
+                        style: const TextStyle(fontSize: 10),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildEquipmentDataSection() {
@@ -478,11 +1000,12 @@ class _MaintenanceExecutionScreenState
                 ),
                 const Spacer(),
                 Text(
-                  selectedImages.isEmpty
-                      ? 'Requerido'
+                  selectedImages.length < 3
+                      ? 'Requerido (${selectedImages.length}/3)'
                       : '${selectedImages.length} foto(s)',
                   style: TextStyle(
-                    color: selectedImages.isEmpty ? Colors.red : Colors.green,
+                    color:
+                        selectedImages.length < 3 ? Colors.red : Colors.green,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -533,7 +1056,7 @@ class _MaintenanceExecutionScreenState
                     Icon(Icons.camera_alt, color: Colors.red[400], size: 32),
                     const SizedBox(height: 8),
                     Text(
-                      'Se requiere al menos una foto\npara completar el mantenimiento',
+                      'Se requieren al menos 3 fotos\npara completar el mantenimiento',
                       style: TextStyle(color: Colors.red[600], fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
@@ -733,12 +1256,14 @@ class _MaintenanceExecutionScreenState
     int totalTasks = taskCompletion.length;
     int completedTasks =
         taskCompletion.values.where((completed) => completed).length;
+    int skippedTasks = taskSkipReasons.length;
 
-    // Permitir completar si:
-    // 1. No hay tareas (totalTasks == 0) Y hay fotos
-    // 2. Todas las tareas están completadas Y hay fotos
-    bool canComplete = selectedImages.isNotEmpty &&
-        (totalTasks == 0 || completedTasks == totalTasks);
+    bool hasEnoughPhotos = selectedImages.length >= 3;
+    bool tasksRequirementMet = totalTasks == 0 ||
+        completedTasks > 0 ||
+        (completedTasks + skippedTasks) == totalTasks;
+
+    bool canComplete = hasEnoughPhotos && tasksRequirementMet;
 
     return Column(
       children: [
@@ -768,8 +1293,10 @@ class _MaintenanceExecutionScreenState
             onPressed: (canComplete && !isLoading && !isSaving)
                 ? _completeMaintenance
                 : null,
-            icon: const Icon(Icons.check_circle),
-            label: const Text('Completar Mantenimiento'),
+            icon: Icon(canComplete ? Icons.check_circle : Icons.lock),
+            label: Text(canComplete
+                ? 'Completar Mantenimiento'
+                : 'Completa los requisitos'),
             style: ElevatedButton.styleFrom(
               backgroundColor: canComplete ? Colors.green : Colors.grey,
               foregroundColor: Colors.white,
@@ -803,15 +1330,17 @@ class _MaintenanceExecutionScreenState
                             fontSize: 12,
                           ),
                         ),
-                        if (totalTasks > 0 && completedTasks < totalTasks)
+                        if (totalTasks > 0 &&
+                            completedTasks == 0 &&
+                            skippedTasks < totalTasks)
                           Text(
-                            '• Completar todas las tareas (${totalTasks - completedTasks} pendientes)',
+                            '• Completar al menos una tarea',
                             style: TextStyle(
                                 color: Colors.amber[700], fontSize: 11),
                           ),
-                        if (selectedImages.isEmpty)
+                        if (selectedImages.length < 3)
                           Text(
-                            '• Agregar al menos una foto de evidencia',
+                            '• Agregar al menos 3 fotos de evidencia (${selectedImages.length}/3)',
                             style: TextStyle(
                                 color: Colors.amber[700], fontSize: 11),
                           ),
@@ -1065,7 +1594,7 @@ class _MaintenanceExecutionScreenState
       if (success) {
         debugPrint('✅ Mantenimiento completado exitosamente');
         if (mounted) {
-          Navigator.pop(context, true); // Retornar true para indicar éxito
+          Navigator.pop(context, true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Mantenimiento completado exitosamente'),

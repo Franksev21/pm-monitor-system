@@ -138,7 +138,7 @@ class AdminDashboard extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => KPIIndicatorsScreen(),
+                              builder: (context) => const KPIIndicatorsScreen(),
                             ),
                           );
                         },

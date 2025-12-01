@@ -3,7 +3,6 @@ import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/services/user_management_service.dart';
 import 'package:pm_monitor/features/equipment/assign_equipment_screen.dart';
-import 'package:pm_monitor/features/technician/screens/assign_technician_screen.dart' hide UserManagementService;
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 
 class UserManagementScreen extends StatefulWidget {

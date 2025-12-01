@@ -42,8 +42,7 @@ void main() async {
     print('Error al enviar  notificaciones: $e');
   }
 
-   
-  // 🔥 INICIALIZAR TIPOS (solo se ejecuta una vez)
+
   try {
     final typeService = EquipmentTypeService();
     await typeService.initializeDefaultTypes();

@@ -19,8 +19,7 @@ dependencies:
   share_plus: ^7.2.1
   qr_code_scanner: ^1.0.1
 
-  # Networking
-  http: ^1.1.0
+
 
   # Time
   timeago: ^3.6.1
@@ -28,6 +27,11 @@ dependencies:
   #pdf
   pdf: ^3.10.4
   printing: ^5.11.1
+  syncfusion_flutter_pdfviewer: ^31.1.19
+  url_launcher: ^6.2.1
+
+  # Networking
+  http: ^1.1.0
 
   # Image Picker
   image_picker: ^1.0.4

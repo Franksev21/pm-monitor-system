@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/equipment_model.dart';
 import 'qr_generator_service.dart';

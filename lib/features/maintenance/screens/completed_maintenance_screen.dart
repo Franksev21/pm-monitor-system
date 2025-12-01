@@ -58,6 +58,7 @@ class _CompletedMaintenancesScreenState
     }
   }
 
+  // ✅ MÉTODO CORREGIDO - Query sin orderBy, ordenamiento local
   Future<void> _loadCompletedMaintenances() async {
     if (currentUserId == null) {
       print('❌ No hay usuario autenticado');
@@ -71,25 +72,64 @@ class _CompletedMaintenancesScreenState
       print('Usuario ID: $currentUserId');
       print('Rol: $userRole');
 
-      // ✅ QUERY CORREGIDA - Buscar por technicianId si es técnico
-      Query query = _firestore
-          .collection('maintenanceSchedules')
-          .where('status', isEqualTo: 'completed');
+      // ✅ QUERY CORREGIDA - Sin orderBy
+      Query query = _firestore.collection('maintenanceSchedules');
 
-      // Solo técnicos ven sus propios mantenimientos
+      // ✅ Filtrar por técnico si es técnico
       if (userRole == 'technician') {
         query = query.where('technicianId', isEqualTo: currentUserId);
         print('🔍 Filtrando por technicianId: $currentUserId');
       }
 
-      // Aplicar filtros de fecha si existen
+      // ✅ Filtrar por status ejecutado O completed (compatibilidad)
+      query = query.where('status', whereIn: ['executed', 'completed']);
+
+      // ✅ Obtener documentos SIN orderBy
+      QuerySnapshot querySnapshot = await query.get();
+
+      print('✅ Documentos encontrados: ${querySnapshot.docs.length}');
+
+      // ✅ Procesar y ordenar localmente
+      List<Map<String, dynamic>> allDocs = querySnapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+        // ✅ Extraer fecha de completado flexible
+        DateTime? completedDate;
+        if (data['completedAt'] != null) {
+          completedDate = (data['completedAt'] as Timestamp).toDate();
+        } else if (data['completedDate'] != null) {
+          completedDate = (data['completedDate'] as Timestamp).toDate();
+        } else if (data['updatedAt'] != null) {
+          completedDate = (data['updatedAt'] as Timestamp).toDate();
+        } else if (data['startedAt'] != null) {
+          completedDate = (data['startedAt'] as Timestamp).toDate();
+        } else if (data['scheduledDate'] != null) {
+          completedDate = (data['scheduledDate'] as Timestamp).toDate();
+        }
+
+        print('📄 Doc ID: ${doc.id}');
+        print('   - Equipment: ${data['equipmentName']}');
+        print('   - Status: ${data['status']}');
+        print('   - CompletedDate: $completedDate');
+
+        return {
+          'id': doc.id,
+          ...data,
+          '_sortDate': completedDate ?? DateTime(2020), // Fecha de fallback
+        };
+      }).toList();
+
+      // ✅ Aplicar filtros de fecha localmente
       if (startDate != null) {
-        query = query.where('completedAt',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate!));
-        print('📅 Filtro desde: $startDate');
+        allDocs = allDocs.where((doc) {
+          final sortDate = doc['_sortDate'] as DateTime;
+          return sortDate.isAfter(startDate!) ||
+              sortDate.isAtSameMomentAs(startDate!);
+        }).toList();
+        print('📅 Filtro desde: $startDate - Resultados: ${allDocs.length}');
       }
+
       if (endDate != null) {
-        // Agregar 1 día al endDate para incluir todo el día seleccionado
         final endDateTime = DateTime(
           endDate!.year,
           endDate!.month,
@@ -98,30 +138,31 @@ class _CompletedMaintenancesScreenState
           59,
           59,
         );
-        query = query.where('completedAt',
-            isLessThanOrEqualTo: Timestamp.fromDate(endDateTime));
-        print('📅 Filtro hasta: $endDateTime');
+        allDocs = allDocs.where((doc) {
+          final sortDate = doc['_sortDate'] as DateTime;
+          return sortDate.isBefore(endDateTime) ||
+              sortDate.isAtSameMomentAs(endDateTime);
+        }).toList();
+        print('📅 Filtro hasta: $endDateTime - Resultados: ${allDocs.length}');
       }
 
-      // Ordenar por fecha de completado
-      query = query.orderBy('completedAt', descending: true);
+      // ✅ Ordenar por fecha descendente (más reciente primero)
+      allDocs.sort((a, b) {
+        final dateA = a['_sortDate'] as DateTime;
+        final dateB = b['_sortDate'] as DateTime;
+        return dateB.compareTo(dateA);
+      });
 
-      QuerySnapshot querySnapshot = await query.get();
-
-      print('✅ Mantenimientos encontrados: ${querySnapshot.docs.length}');
-
-      completedMaintenances = querySnapshot.docs.map((doc) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        print('📄 Doc ID: ${doc.id}, Equipment: ${data['equipmentName']}');
-        return {
-          'id': doc.id,
-          ...data,
-        };
+      // ✅ Remover campo temporal de ordenamiento
+      completedMaintenances = allDocs.map((doc) {
+        doc.remove('_sortDate');
+        return doc;
       }).toList();
 
-      print('✅ Total cargado: ${completedMaintenances.length}');
+      print('✅ Total cargado y ordenado: ${completedMaintenances.length}');
     } catch (e) {
       print('❌ Error loading completed maintenances: $e');
+      print('Stack trace: ${StackTrace.current}');
       _showErrorMessage('Error al cargar mantenimientos completados: $e');
     } finally {
       if (mounted) {
@@ -333,6 +374,8 @@ class _CompletedMaintenancesScreenState
     DateTime? completedDate;
     if (maintenance['completedAt'] != null) {
       completedDate = (maintenance['completedAt'] as Timestamp).toDate();
+    } else if (maintenance['completedDate'] != null) {
+      completedDate = (maintenance['completedDate'] as Timestamp).toDate();
     } else if (maintenance['updatedAt'] != null) {
       completedDate = (maintenance['updatedAt'] as Timestamp).toDate();
     } else if (maintenance['startedAt'] != null) {
@@ -347,7 +390,7 @@ class _CompletedMaintenancesScreenState
     num completionPercentage = maintenance['completionPercentage'] ?? 100;
 
     // Si no hay percentage, intentar calcularlo de las tareas
-    if (completionPercentage == 0 || completionPercentage == null) {
+    if (completionPercentage == 0) {
       final tasks = maintenance['tasks'] as List? ?? [];
       final taskCompletion = maintenance['taskCompletion'] as Map? ?? {};
 
@@ -359,7 +402,8 @@ class _CompletedMaintenancesScreenState
           }
         }
         completionPercentage = ((completedTasks / tasks.length) * 100).round();
-      } else if (maintenance['status'] == 'completed') {
+      } else if (maintenance['status'] == 'completed' ||
+          maintenance['status'] == 'executed') {
         // Si está marcado como completado pero no hay datos de tareas, asumir 100%
         completionPercentage = 100;
       }
@@ -829,7 +873,9 @@ class _CompletedMaintenancesScreenState
             _buildDetailRow(
                 'Iniciado', _formatDateTime(maintenance['startedAt'])),
           _buildDetailRow(
-              'Completado', _formatDateTime(maintenance['completedAt'])),
+              'Completado',
+              _formatDateTime(
+                  maintenance['completedAt'] ?? maintenance['completedDate'])),
         ]),
         if (maintenance['notes'] != null &&
             maintenance['notes'].toString().isNotEmpty) ...[

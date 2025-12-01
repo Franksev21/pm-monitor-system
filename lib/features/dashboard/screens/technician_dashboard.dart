@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/maintenance/screens/completed_maintenance_screen.dart';
+import 'package:pm_monitor/features/maintenance/screens/inprogress_maintenance_screen.dart';
 import 'package:pm_monitor/features/maintenance/screens/pending_maintenances_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_equipment_list_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_faults_screen.dart';
@@ -65,6 +66,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     super.dispose();
   }
 
+  // ✅ MÉTODO CORREGIDO - Detectar "en progreso" sin nuevo estado
   Future<void> _loadMaintenanceCounts() async {
     print('🔄 Iniciando carga de conteos...');
     final currentUserId = _auth.currentUser?.uid;
@@ -81,7 +83,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
       final startOfDay = DateTime(today.year, today.month, today.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
-      // ✅ CONSULTA ACTUALIZADA - Buscar mantenimientos asignados al técnico
       final allMaintenances = await _firestore
           .collection('maintenanceSchedules')
           .where('technicianId', isEqualTo: currentUserId)
@@ -102,12 +103,42 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         final status = data['status'] ?? '';
         final type = data['type'] ?? '';
 
-        print('📄 Doc: ${doc.id}, Status: $status, Type: $type');
+        print('📄 Doc: ${doc.id}, Status: $status');
+        print('   - startedAt: ${data['startedAt']}');
+        print('   - completedAt: ${data['completedAt']}');
 
-        // ✅ ESTADOS ACTUALIZADOS
-        switch (status) {
-          case 'assigned': // ✅ Mantenimientos asignados = pendientes
+        // ✅ DETECTAR ESTADOS
+        if (status == 'executed' || status == 'completed') {
+          // COMPLETADO
+          completed++;
+
+          DateTime? completedDate;
+          if (data['completedAt'] != null) {
+            completedDate = (data['completedAt'] as Timestamp).toDate();
+          } else if (data['updatedAt'] != null) {
+            completedDate = (data['updatedAt'] as Timestamp).toDate();
+          }
+
+          if (completedDate != null &&
+              completedDate.isAfter(startOfDay) &&
+              completedDate.isBefore(endOfDay)) {
+            completedToday++;
+          }
+
+          print('   ✅ COMPLETADO');
+        } else if (status == 'assigned') {
+          // ✅ DETECTAR "EN PROGRESO" vs "PENDIENTE"
+          final hasStarted = data['startedAt'] != null;
+          final hasCompleted = data['completedAt'] != null;
+
+          if (hasStarted && !hasCompleted) {
+            // EN PROGRESO
+            inProgress++;
+            print('   🔧 EN PROGRESO');
+          } else {
+            // PENDIENTE
             pending++;
+
             if (data['scheduledDate'] != null) {
               final scheduledDate =
                   (data['scheduledDate'] as Timestamp).toDate();
@@ -116,43 +147,22 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 pendingToday++;
               }
             }
-            break;
 
-          case 'completed': // ✅ Mantenimientos completados
-            completed++;
-            DateTime? completedDate;
-            if (data['completedAt'] != null) {
-              completedDate = (data['completedAt'] as Timestamp).toDate();
-            } else if (data['updatedAt'] != null) {
-              completedDate = (data['updatedAt'] as Timestamp).toDate();
-            }
-
-            if (completedDate != null &&
-                completedDate.isAfter(startOfDay) &&
-                completedDate.isBefore(endOfDay)) {
-              completedToday++;
-            }
-            break;
-
-          case 'inProgress': // ✅ Mantenimientos en progreso
-            inProgress++;
-            break;
+            print('   📋 PENDIENTE');
+          }
         }
 
-        // ✅ Contar emergencias activas (asignadas o en progreso)
+        // Emergencias
         if (type == 'emergency' &&
-            (status == 'assigned' || status == 'inProgress')) {
+            (status == 'assigned' || status == 'generated')) {
           emergencies++;
         }
       }
 
       print('✅ RESULTADOS:');
-      print('  📋 Pendientes (assigned): $pending');
-      print('  📅 Pendientes hoy: $pendingToday');
-      print('  ✅ Completados: $completed');
-      print('  📅 Completados hoy: $completedToday');
+      print('  📋 Pendientes: $pending');
       print('  🔧 En progreso: $inProgress');
-      print('  🚨 Emergencias: $emergencies');
+      print('  ✅ Completados: $completed');
 
       if (mounted) {
         setState(() {
@@ -171,12 +181,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         setState(() {
           isLoadingCounts = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar datos: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }
@@ -692,6 +696,17 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 onTap: () => _navigateToPending(context),
               ),
             ),
+            Expanded(
+              child: _buildTaskCard(
+                context,
+                'En Proceso',
+                Icons.pending_actions,
+                isLoadingCounts ? '-' : '$inProgressCount',
+                Colors.orange,
+                subtitle: isLoadingCounts ? 'Cargando...' : 'Total',
+                onTap: () => _navigateToInProgress(context),
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildTaskCard(
@@ -980,34 +995,61 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     );
   }
 
+  // ✅ MÉTODO CORREGIDO - Logout sin loading infinito
   Future<void> _performLogout(BuildContext context) async {
     try {
+      // ✅ Guardar navigator antes de operaciones async
+      final navigator = Navigator.of(context);
+
+      // ✅ Mostrar loading
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
+        builder: (dialogContext) => WillPopScope(
+          onWillPop: () async => false,
+          child: const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
         ),
       );
 
+      // ✅ Hacer logout
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.logout();
 
-      if (mounted) {
-        Navigator.pop(context);
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/login',
-          (route) => false,
-        );
-      }
+      // ✅ Cerrar loading ANTES de navegar
+      navigator.pop();
+
+      // ✅ Pequeño delay para asegurar que el pop se complete
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // ✅ Navegar con navigator guardado
+      navigator.pushNamedAndRemoveUntil(
+        '/login',
+        (route) => false,
+      );
+
+      print('✅ Logout exitoso, navegando a /login');
     } catch (e) {
+      print('❌ Error en logout: $e');
+      print('Stack trace: ${StackTrace.current}');
+
+      // ✅ Cerrar loading en caso de error
+      try {
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (_) {
+        // Ignorar si ya está cerrado
+      }
+
+      // ✅ Mostrar error
       if (mounted) {
-        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al cerrar sesión: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -1118,6 +1160,15 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
       context,
       MaterialPageRoute(
         builder: (context) => const PendingMaintenancesScreen(),
+      ),
+    );
+  }
+
+  void _navigateToInProgress(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const InProgressMaintenancesScreen(),
       ),
     );
   }

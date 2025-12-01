@@ -429,7 +429,8 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   void _showClientSearchDialog() async {
     final selectedClient = await showDialog<ClientModel>(
       context: context,
-      builder: (context) => ClientSearchDialog(clients: _clients, returnFullModel: true),
+      builder: (context) =>
+          ClientSearchDialog(clients: _clients, returnFullModel: true),
     );
 
     if (selectedClient != null && mounted) {
@@ -1171,29 +1172,63 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
         allowMultiple: true,
+        withData: true, // ✅ CRÍTICO: Necesario para obtener bytes en web
       );
 
-      if (result != null) {
+      if (result != null && result.files.isNotEmpty) {
+        // ✅ Validar que los archivos tengan bytes
+        final validFiles = result.files.where((file) {
+          if (file.bytes == null) {
+            debugPrint('⚠️ Archivo sin bytes: ${file.name}');
+            return false;
+          }
+          return true;
+        }).toList();
+
+        if (validFiles.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Los archivos no se pudieron cargar correctamente'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
+
         setState(() {
-          _attachedFiles.addAll(result.files);
+          _attachedFiles.addAll(validFiles);
         });
 
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${validFiles.length} archivo(s) adjuntado(s)'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        debugPrint('✅ ${validFiles.length} archivos añadidos con bytes');
+        for (var file in validFiles) {
+          debugPrint(
+              '  - ${file.name}: ${(file.size / 1024).toStringAsFixed(1)} KB');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error seleccionando archivos: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${result.files.length} archivo(s) adjuntado(s)'),
-            backgroundColor: Colors.green,
+            content: Text('Error al seleccionar archivos: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al seleccionar archivos: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
@@ -1463,8 +1498,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         branchId = _selectedBranch!.id;
       }
 
-      // NUEVO: Subir archivos adjuntos a Firebase Storage
-      List<String> uploadedFileUrls = [];
+     List<String> uploadedFileUrls = [];
       if (_attachedFiles.isNotEmpty) {
         debugPrint('📤 Subiendo ${_attachedFiles.length} archivos...');
 

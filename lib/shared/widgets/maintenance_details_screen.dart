@@ -8,9 +8,9 @@ class MaintenanceDetailScreen extends StatefulWidget {
   final String maintenanceId;
 
   const MaintenanceDetailScreen({
-    Key? key,
+    super.key,
     required this.maintenanceId,
-  }) : super(key: key);
+  });
 
   @override
   State<MaintenanceDetailScreen> createState() =>
@@ -169,12 +169,11 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
                   label: 'Cliente',
                   value: m.clientName,
                 ),
-                if (m.branchName != null)
-                  _buildInfoRow(
-                    icon: Icons.location_on,
-                    label: 'Sucursal',
-                    value: m.branchName!,
-                  ),
+                _buildInfoRow(
+                  icon: Icons.location_on,
+                  label: 'Sucursal',
+                  value: m.branchName!,
+                ),
                 _buildInfoRow(
                   icon: Icons.build,
                   label: 'Equipo',
@@ -254,12 +253,11 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
                       value: DateFormat('dd/MM/yyyy HH:mm')
                           .format(m.completedDate!),
                     ),
-                  if (m.completionPercentage != null)
-                    _buildInfoRow(
-                      icon: Icons.percent,
-                      label: 'Porcentaje completado',
-                      value: '${m.completionPercentage}%',
-                    ),
+                  _buildInfoRow(
+                    icon: Icons.percent,
+                    label: 'Porcentaje completado',
+                    value: '${m.completionPercentage}%',
+                  ),
                   if (m.notes != null && m.notes!.isNotEmpty)
                     _buildInfoRow(
                       icon: Icons.note,

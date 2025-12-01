@@ -8,11 +8,7 @@ class MaintenanceScheduleService {
   final String _collection = 'maintenanceSchedules';
   final NotificationService _notificationService = NotificationService();
 
-  // ============================================
-  // MÉTODOS BÁSICOS (CRUD)
-  // ============================================
 
-  /// Crear mantenimiento (estado inicial: GENERATED)
   Future<String> createMaintenance(MaintenanceSchedule maintenance) async {
     try {
       debugPrint('📝 Creando mantenimiento...');
@@ -499,9 +495,6 @@ class MaintenanceScheduleService {
     }
   }
 
-  // ============================================
-  // REPORTES Y ESTADÍSTICAS
-  // ============================================
 
   /// Obtener conteo de mantenimientos por estado
   Future<Map<String, int>> getMaintenanceCountsByStatus() async {
