@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 
 class MaintenanceExecutionService {
@@ -65,7 +66,7 @@ class MaintenanceExecutionService {
 
       return maintenances;
     } catch (e) {
-      print('Error obteniendo mantenimientos: $e');
+      debugPrint('Error obteniendo mantenimientos: $e');
       return [];
     }
   }
@@ -96,38 +97,39 @@ class MaintenanceExecutionService {
 
       return {'id': doc.id, ...data};
     } catch (e) {
-      print('Error obteniendo detalles del mantenimiento: $e');
+      debugPrint('Error obteniendo detalles del mantenimiento: $e');
       return null;
     }
   }
 
-  // ✅ NUEVO - Obtener datos del equipo
+  // Obtener datos del equipo
   Future<Map<String, dynamic>?> getEquipmentData(String equipmentId) async {
     try {
-      print('🔍 Buscando equipo con ID: $equipmentId');
+      debugPrint('🔍 Buscando equipo con ID: $equipmentId');
 
       DocumentSnapshot equipmentDoc =
           await _firestore.collection('equipments').doc(equipmentId).get();
 
       if (equipmentDoc.exists) {
         Map<String, dynamic> data = equipmentDoc.data() as Map<String, dynamic>;
-        print('✅ Equipo encontrado: ${data['name'] ?? 'Sin nombre'}');
+        debugPrint('✅ Equipo encontrado: ${data['name'] ?? 'Sin nombre'}');
         return data;
       } else {
-        print('⚠️ Equipo no encontrado con ID: $equipmentId');
+        debugPrint('⚠️ Equipo no encontrado con ID: $equipmentId');
         return null;
       }
     } catch (e) {
-      print('❌ Error obteniendo datos del equipo: $e');
+      debugPrint('❌ Error obteniendo datos del equipo: $e');
       return null;
     }
   }
 
-  // ✅ NUEVO - Obtener progreso guardado previamente de un mantenimiento
+  // Obtener progreso guardado previamente de un mantenimiento
   Future<Map<String, dynamic>?> getMaintenanceProgress(
       String maintenanceId) async {
     try {
-      print('🔍 Buscando progreso guardado para mantenimiento: $maintenanceId');
+      debugPrint(
+          '🔍 Buscando progreso guardado para mantenimiento: $maintenanceId');
 
       DocumentSnapshot maintenanceDoc = await _firestore
           .collection('maintenanceSchedules')
@@ -140,22 +142,22 @@ class MaintenanceExecutionService {
 
         // Verificar si hay progreso guardado
         if (data.containsKey('taskCompletion') || data.containsKey('notes')) {
-          print('✅ Progreso previo encontrado');
+          debugPrint('✅ Progreso previo encontrado');
           return {
             'taskCompletion': data['taskCompletion'],
             'notes': data['notes'],
             'completionPercentage': data['completionPercentage'],
           };
         } else {
-          print('ℹ️ No hay progreso previo guardado');
+          debugPrint('ℹ️ No hay progreso previo guardado');
           return null;
         }
       } else {
-        print('⚠️ Mantenimiento no encontrado');
+        debugPrint('⚠️ Mantenimiento no encontrado');
         return null;
       }
     } catch (e) {
-      print('❌ Error obteniendo progreso: $e');
+      debugPrint('❌ Error obteniendo progreso: $e');
       return null;
     }
   }
@@ -168,13 +170,13 @@ class MaintenanceExecutionService {
           .doc(maintenanceId)
           .update({
         'status': 'in_progress',
-        'startedAt': Timestamp.now(),
-        'actualStartTime': Timestamp.now(),
+        'startedAt': FieldValue.serverTimestamp(),
+        'actualStartTime': FieldValue.serverTimestamp(),
         'startedBy': _auth.currentUser?.uid,
       });
       return true;
     } catch (e) {
-      print('Error iniciando mantenimiento: $e');
+      debugPrint('Error iniciando mantenimiento: $e');
       return false;
     }
   }
@@ -196,41 +198,82 @@ class MaintenanceExecutionService {
           .update({
         'taskCompletion': taskCompletion,
         'completionPercentage': percentage,
-        'lastUpdated': Timestamp.now(),
+        'lastUpdated': FieldValue.serverTimestamp(),
         'updatedBy': _auth.currentUser?.uid,
       });
       return true;
     } catch (e) {
-      print('Error actualizando progreso: $e');
+      debugPrint('Error actualizando progreso: $e');
       return false;
     }
   }
 
-  // Subir fotos a Firebase Storage
+  // ✅ CORREGIDO - Subir fotos a Firebase Storage
   Future<List<String>> uploadMaintenancePhotos(
-      String maintenanceId, List<File> photos) async {
+    String maintenanceId,
+    List<File> photos,
+  ) async {
     List<String> photoUrls = [];
 
     try {
-      for (int i = 0; i < photos.length; i++) {
-        String fileName =
-            'maintenance_$maintenanceId/photo_${i}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        Reference ref = _storage.ref().child(fileName);
+      debugPrint(
+          '📤 Subiendo ${photos.length} fotos para mantenimiento: $maintenanceId');
 
-        UploadTask uploadTask = ref.putFile(photos[i]);
-        TaskSnapshot snapshot = await uploadTask;
-        String downloadUrl = await snapshot.ref.getDownloadURL();
-        photoUrls.add(downloadUrl);
+      for (int i = 0; i < photos.length; i++) {
+        try {
+          // Verificar que el archivo existe
+          bool exists = await photos[i].exists();
+          if (!exists) {
+            debugPrint('⚠️ Foto $i no existe, saltando...');
+            continue;
+          }
+
+          // Generar nombre único
+          String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+          String fileName = 'maintenance_${maintenanceId}_${timestamp}_$i.jpg';
+
+          // ✅ RUTA CORRECTA: maintenance_photos/{maintenanceId}/{fileName}
+          Reference ref = _storage
+              .ref()
+              .child('maintenance_photos')
+              .child(maintenanceId)
+              .child(fileName);
+
+          debugPrint('📸 Subiendo foto ${i + 1}/${photos.length}: $fileName');
+          debugPrint('📍 Ruta: maintenance_photos/$maintenanceId/$fileName');
+
+          // Subir archivo
+          UploadTask uploadTask = ref.putFile(photos[i]);
+
+          // Esperar a que termine
+          TaskSnapshot snapshot = await uploadTask;
+
+          // Obtener URL de descarga
+          String downloadUrl = await snapshot.ref.getDownloadURL();
+
+          photoUrls.add(downloadUrl);
+          debugPrint('✅ Foto ${i + 1} subida correctamente');
+          debugPrint('🔗 URL: $downloadUrl');
+        } catch (e) {
+          debugPrint('❌ Error subiendo foto $i: $e');
+          // Continuar con la siguiente foto
+        }
       }
+
+      if (photoUrls.isEmpty && photos.isNotEmpty) {
+        throw Exception('No se pudo subir ninguna foto');
+      }
+
+      debugPrint(
+          '✅ Total de fotos subidas: ${photoUrls.length}/${photos.length}');
+      return photoUrls;
     } catch (e) {
-      print('Error subiendo fotos: $e');
+      debugPrint('❌ Error general en uploadMaintenancePhotos: $e');
       throw Exception('Error al subir fotos: $e');
     }
-
-    return photoUrls;
   }
 
-  // Completar mantenimiento - CON DEBUGGING
+  // ✅ CORREGIDO - Completar mantenimiento con mejor manejo de errores
   Future<bool> completeMaintenance(
     String maintenanceId, {
     required Map<String, bool> taskCompletion,
@@ -239,23 +282,20 @@ class MaintenanceExecutionService {
     Map<String, dynamic>? equipmentData,
   }) async {
     try {
-      print('🏁 INICIO - Completar mantenimiento: $maintenanceId');
-      print('📸 Fotos recibidas: ${photos.length}');
-
-      // Verificar fotos antes de procesar
-      for (int i = 0; i < photos.length; i++) {
-        bool exists = await photos[i].exists();
-        int size = await photos[i].length();
-        print('📷 Foto $i - Existe: $exists, Tamaño: $size bytes');
-      }
+      debugPrint('🏁 INICIO - Completar mantenimiento: $maintenanceId');
+      debugPrint('📸 Fotos recibidas: ${photos.length}');
 
       // Subir fotos primero
       List<String> photoUrls = [];
       if (photos.isNotEmpty) {
-        print('🔄 Iniciando subida de fotos...');
-        photoUrls = await uploadMaintenancePhotos(maintenanceId, photos);
-        print('✅ Fotos subidas. URLs generadas: ${photoUrls.length}');
-        print('🔗 URLs: $photoUrls');
+        debugPrint('🔄 Iniciando subida de fotos...');
+        try {
+          photoUrls = await uploadMaintenancePhotos(maintenanceId, photos);
+          debugPrint('✅ Fotos subidas. URLs generadas: ${photoUrls.length}');
+        } catch (e) {
+          debugPrint('❌ Error al subir fotos: $e');
+          throw Exception('Error al subir fotos: $e');
+        }
       }
 
       int totalTasks = taskCompletion.length;
@@ -264,48 +304,48 @@ class MaintenanceExecutionService {
       double percentage =
           totalTasks > 0 ? (completedTasks / totalTasks * 100) : 0;
 
-      print(
+      debugPrint(
           '📊 Progreso: $completedTasks/$totalTasks = ${percentage.toInt()}%');
 
       // Actualizar el mantenimiento
-      print('🔄 Actualizando Firestore...');
+      debugPrint('🔄 Actualizando Firestore...');
       await _firestore
           .collection('maintenanceSchedules')
           .doc(maintenanceId)
           .update({
         'status': 'completed',
-        'completedAt': Timestamp.now(),
+        'completedAt': FieldValue.serverTimestamp(),
         'taskCompletion': taskCompletion,
         'completionPercentage': percentage,
         'photoUrls': photoUrls,
-        'notes': notes,
-        'equipmentDataUpdated': equipmentData,
+        'notes': notes ?? '',
+        'equipmentDataUpdated': equipmentData ?? {},
         'completedBy': _auth.currentUser?.uid,
       });
 
-      print('✅ Firestore actualizado exitosamente');
+      debugPrint('✅ Firestore actualizado exitosamente');
 
       // Si hay datos de equipo actualizados, guardarlos
-      if (equipmentData != null) {
-        String? equipmentId = equipmentData['equipmentId'];
-        if (equipmentId != null) {
-          print('🔄 Actualizando datos del equipo: $equipmentId');
-          await _updateEquipmentData(equipmentId, equipmentData);
-          print('✅ Datos del equipo actualizados');
-        }
+      if (equipmentData != null && equipmentData['equipmentId'] != null) {
+        String equipmentId = equipmentData['equipmentId'];
+        debugPrint('🔄 Actualizando datos del equipo: $equipmentId');
+        await _updateEquipmentData(equipmentId, equipmentData);
+        debugPrint('✅ Datos del equipo actualizados');
       }
 
       // Crear registro de historial
-      print('🔄 Creando historial...');
+      debugPrint('🔄 Creando historial...');
       await _createMaintenanceHistory(
-          maintenanceId, equipmentData?['equipmentId']);
-      print('✅ Historial creado');
+        maintenanceId,
+        equipmentData?['equipmentId'],
+      );
+      debugPrint('✅ Historial creado');
 
-      print('🎉 COMPLETADO EXITOSAMENTE');
+      debugPrint('🎉 COMPLETADO EXITOSAMENTE');
       return true;
-    } catch (e) {
-      print('❌ ERROR en completeMaintenance: $e');
-      print('📍 Stack trace: ${StackTrace.current}');
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERROR en completeMaintenance: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
       return false;
     }
   }
@@ -315,8 +355,8 @@ class MaintenanceExecutionService {
       String equipmentId, Map<String, dynamic> equipmentData) async {
     try {
       Map<String, dynamic> updateData = {
-        'lastMaintenanceDate': Timestamp.now(),
-        'updatedAt': Timestamp.now(),
+        'lastMaintenanceDate': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       };
 
       // Solo actualizar campos que no estén vacíos
@@ -341,7 +381,7 @@ class MaintenanceExecutionService {
           .doc(equipmentId)
           .update(updateData);
     } catch (e) {
-      print('Error actualizando equipo: $e');
+      debugPrint('Error actualizando equipo: $e');
     }
   }
 
@@ -355,19 +395,20 @@ class MaintenanceExecutionService {
         'maintenanceId': maintenanceId,
         'equipmentId': equipmentId,
         'technicianId': _auth.currentUser?.uid,
-        'completedAt': Timestamp.now(),
+        'completedAt': FieldValue.serverTimestamp(),
         'type': 'preventive',
-        'createdAt': Timestamp.now(),
+        'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error creando historial: $e');
+      debugPrint('Error creando historial: $e');
     }
   }
 
   // Obtener tareas predeterminadas para un tipo de equipo
   Future<List<String>> getDefaultTasks(String equipmentType) async {
     try {
-      print('🔍 Buscando tareas predeterminadas para tipo: $equipmentType');
+      debugPrint(
+          '🔍 Buscando tareas predeterminadas para tipo: $equipmentType');
 
       DocumentSnapshot doc = await _firestore
           .collection('maintenanceTemplates')
@@ -377,17 +418,17 @@ class MaintenanceExecutionService {
       if (doc.exists) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         List<String> tasks = List<String>.from(data['defaultTasks'] ?? []);
-        print('✅ Tareas predeterminadas encontradas: ${tasks.length}');
+        debugPrint('✅ Tareas predeterminadas encontradas: ${tasks.length}');
         return tasks;
       } else {
-        print('⚠️ No se encontró template para: $equipmentType');
+        debugPrint('⚠️ No se encontró template para: $equipmentType');
       }
     } catch (e) {
-      print('❌ Error obteniendo tareas predeterminadas: $e');
+      debugPrint('❌ Error obteniendo tareas predeterminadas: $e');
     }
 
     // Tareas predeterminadas genéricas si no hay template
-    print('ℹ️ Usando tareas predeterminadas genéricas');
+    debugPrint('ℹ️ Usando tareas predeterminadas genéricas');
     return [
       'Verificar estado general del equipo',
       'Limpiar filtros y componentes',
@@ -406,13 +447,13 @@ class MaintenanceExecutionService {
           .doc(maintenanceId)
           .update({
         'status': 'paused',
-        'pausedAt': Timestamp.now(),
+        'pausedAt': FieldValue.serverTimestamp(),
         'pauseReason': reason,
         'pausedBy': _auth.currentUser?.uid,
       });
       return true;
     } catch (e) {
-      print('Error pausando mantenimiento: $e');
+      debugPrint('Error pausando mantenimiento: $e');
       return false;
     }
   }
@@ -425,12 +466,12 @@ class MaintenanceExecutionService {
           .doc(maintenanceId)
           .update({
         'status': 'in_progress',
-        'resumedAt': Timestamp.now(),
+        'resumedAt': FieldValue.serverTimestamp(),
         'resumedBy': _auth.currentUser?.uid,
       });
       return true;
     } catch (e) {
-      print('Error reanudando mantenimiento: $e');
+      debugPrint('Error reanudando mantenimiento: $e');
       return false;
     }
   }
@@ -443,13 +484,13 @@ class MaintenanceExecutionService {
         'maintenanceId': maintenanceId,
         'issue': issue,
         'severity': severity,
-        'reportedAt': Timestamp.now(),
+        'reportedAt': FieldValue.serverTimestamp(),
         'reportedBy': _auth.currentUser?.uid,
         'status': 'open',
       });
       return true;
     } catch (e) {
-      print('Error reportando problema: $e');
+      debugPrint('Error reportando problema: $e');
       return false;
     }
   }
