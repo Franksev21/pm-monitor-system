@@ -156,7 +156,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
     );
   }
 
-  Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
+Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
     final equipmentName = data['equipmentName'] ?? 'Equipo sin nombre';
     final clientName = data['clientName'] ?? 'Cliente no especificado';
     final type = data['type'] ?? 'preventive';
@@ -179,82 +179,85 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showMaintenanceDetails(id, data),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // IZQUIERDA: Nombre equipo + cliente
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      equipmentName,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.business, size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            clientName,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[700],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              // DERECHA: Tipo + Botones
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                  Text(
+                    equipmentName,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
                     ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: statusColor.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      statusText,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Row(
+                    children: [
+                      Icon(Icons.business, size: 14, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          clientName,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // ✅ IntrinsicHeight para que el botón Iniciar tome toda la altura
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ✅ COLUMNA IZQUIERDA: Badge y Botón Detalles
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: statusColor.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
                       // Botón Detalles
                       SizedBox(
                         height: 32,
+                        width: 90,
                         child: OutlinedButton(
                           onPressed: () => _showMaintenanceDetails(id, data),
                           style: OutlinedButton.styleFrom(
@@ -271,32 +274,37 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      // Botón Iniciar
-                      SizedBox(
-                        height: 32,
-                        child: ElevatedButton(
-                          onPressed: () => _startMaintenance(id, data),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: statusColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Iniciar',
-                            style: TextStyle(fontSize: 12),
-                          ),
+                    ],
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // ✅ BOTÓN INICIAR: Ocupa toda la altura automáticamente
+                  SizedBox(
+                    width: 100,
+                    child: ElevatedButton(
+                      onPressed: () => _startMaintenance(id, data),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: statusColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                    ],
+                      child: const Text(
+                        'Iniciar',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

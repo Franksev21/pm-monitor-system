@@ -53,7 +53,7 @@ class _MaintenanceManagementScreenState
   void initState() {
     super.initState();
     _loadClients();
-    _loadEquipmentTypes(); 
+    _loadEquipmentTypes();
     _technicianAvailabilityService.getTechniciansAvailability();
   }
 
@@ -214,7 +214,8 @@ class _MaintenanceManagementScreenState
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const Icon(Icons.error_outline,
+                            size: 64, color: Colors.red),
                         const SizedBox(height: 16),
                         const Text('Error al cargar'),
                         const SizedBox(height: 8),
@@ -435,11 +436,14 @@ class _MaintenanceManagementScreenState
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
+              // ✅ Checkbox
               Checkbox(
                 value: isSelected,
                 onChanged: (_) => _toggleSelection(maintenance.id),
                 activeColor: const Color(0xFF007AFF),
               ),
+
+              // ✅ Barra de color
               Container(
                 width: 4,
                 height: 60,
@@ -449,10 +453,13 @@ class _MaintenanceManagementScreenState
                 ),
               ),
               const SizedBox(width: 12),
+
+              // ✅ CONTENIDO PRINCIPAL (Flexible para evitar overflow)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Título con ícono
                     Row(
                       children: [
                         Icon(statusIcon, size: 16, color: statusColor),
@@ -471,6 +478,8 @@ class _MaintenanceManagementScreenState
                       ],
                     ),
                     const SizedBox(height: 4),
+
+                    // Cliente
                     Row(
                       children: [
                         Icon(Icons.business, size: 12, color: Colors.grey[600]),
@@ -489,24 +498,30 @@ class _MaintenanceManagementScreenState
                       ],
                     ),
                     const SizedBox(height: 4),
+
+                    // Fecha y horas
                     Row(
                       children: [
                         Icon(Icons.calendar_today,
                             size: 12, color: Colors.grey[600]),
                         const SizedBox(width: 4),
-                        Text(
-                          DateFormat('dd/MM/yyyy HH:mm')
-                              .format(maintenance.scheduledDate),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[600],
+                        Expanded(
+                          child: Text(
+                            DateFormat('dd/MM/yyyy HH:mm')
+                                .format(maintenance.scheduledDate),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Icon(Icons.schedule, size: 12, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
-                          '${maintenance.estimatedHours ?? 0} hrs',
+                          '${maintenance.estimatedHours ?? 0}h',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey[600],
@@ -515,43 +530,60 @@ class _MaintenanceManagementScreenState
                       ],
                     ),
                     const SizedBox(height: 6),
+
+                    // Tipo y técnico
                     Row(
                       children: [
                         _buildTypeChip(maintenance.type),
                         const SizedBox(width: 6),
-                        if (maintenance.technicianName != null) ...[
-                          Icon(Icons.person, size: 12, color: Colors.blue[700]),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              maintenance.technicianName!,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              if (maintenance.technicianName != null) ...[
+                                Icon(Icons.person,
+                                    size: 12, color: Colors.blue[700]),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    maintenance.technicianName!,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.blue[700],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ] else ...[
+                                Icon(Icons.warning_amber,
+                                    size: 12, color: Colors.orange[700]),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    'Sin asignar',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.orange[700],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ] else ...[
-                          Icon(Icons.warning_amber,
-                              size: 12, color: Colors.orange[700]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Sin asignar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.orange[700],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
+
+              const SizedBox(width: 8),
+
+              // ✅ Badge de estado (ancho fijo)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -568,10 +600,13 @@ class _MaintenanceManagementScreenState
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
+
+              // ✅ Menú (sin padding extra)
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, size: 20),
                 padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
                 onSelected: (value) {
                   if (value == 'edit') {
                     Navigator.push(
@@ -683,7 +718,7 @@ class _MaintenanceManagementScreenState
     }
   }
 
-void _showFiltersBottomSheet() {
+  void _showFiltersBottomSheet() {
     String? tempClientId = _selectedClientId;
     String? tempBranchId = _selectedBranchId;
     String? tempEquipmentType = _selectedEquipmentType;
