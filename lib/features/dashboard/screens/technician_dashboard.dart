@@ -995,64 +995,10 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     );
   }
 
-  // ✅ MÉTODO CORREGIDO - Logout sin loading infinito
   Future<void> _performLogout(BuildContext context) async {
-    try {
-      // ✅ Guardar navigator antes de operaciones async
-      final navigator = Navigator.of(context);
-
-      // ✅ Mostrar loading
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => WillPopScope(
-          onWillPop: () async => false,
-          child: const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
-        ),
-      );
-
-      // ✅ Hacer logout
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.logout();
-
-      // ✅ Cerrar loading ANTES de navegar
-      navigator.pop();
-
-      // ✅ Pequeño delay para asegurar que el pop se complete
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // ✅ Navegar con navigator guardado
-      navigator.pushNamedAndRemoveUntil(
-        '/login',
-        (route) => false,
-      );
-
-      print('✅ Logout exitoso, navegando a /login');
-    } catch (e) {
-      print('❌ Error en logout: $e');
-      print('Stack trace: ${StackTrace.current}');
-
-      // ✅ Cerrar loading en caso de error
-      try {
-        Navigator.of(context, rootNavigator: true).pop();
-      } catch (_) {
-        // Ignorar si ya está cerrado
-      }
-
-      // ✅ Mostrar error
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cerrar sesión: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+    await context.read<AuthProvider>().logout();
+    if (context.mounted) {
+      Navigator.of(context).pushReplacementNamed('/');
     }
   }
 
