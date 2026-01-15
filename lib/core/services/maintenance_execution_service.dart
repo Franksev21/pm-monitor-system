@@ -273,19 +273,18 @@ class MaintenanceExecutionService {
     }
   }
 
-  // ✅ CORREGIDO - Completar mantenimiento con mejor manejo de errores
   Future<bool> completeMaintenance(
     String maintenanceId, {
     required Map<String, bool> taskCompletion,
     required List<File> photos,
     String? notes,
-    Map<String, dynamic>? equipmentData,
+    Map<String, String>? skipReasons,
   }) async {
     try {
       debugPrint('🏁 INICIO - Completar mantenimiento: $maintenanceId');
       debugPrint('📸 Fotos recibidas: ${photos.length}');
 
-      // Subir fotos primero
+      // ✅ Subir fotos primero
       List<String> photoUrls = [];
       if (photos.isNotEmpty) {
         debugPrint('🔄 Iniciando subida de fotos...');
@@ -298,49 +297,44 @@ class MaintenanceExecutionService {
         }
       }
 
+      // ✅ Calcular porcentaje
       int totalTasks = taskCompletion.length;
       int completedTasks =
           taskCompletion.values.where((completed) => completed).length;
-      double percentage =
-          totalTasks > 0 ? (completedTasks / totalTasks * 100) : 0;
+      int percentage =
+          totalTasks > 0 ? ((completedTasks / totalTasks) * 100).round() : 0;
 
-      debugPrint(
-          '📊 Progreso: $completedTasks/$totalTasks = ${percentage.toInt()}%');
+      debugPrint('📊 Progreso: $completedTasks/$totalTasks = $percentage%');
 
-      // Actualizar el mantenimiento
+      // ✅ Preparar datos de actualización
+      Map<String, dynamic> updateData = {
+        'status': 'executed',
+        'completedDate': FieldValue.serverTimestamp(),
+        'taskCompletion': taskCompletion,
+        'completionPercentage': percentage,
+        'photoUrls': photoUrls,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'completedBy': _auth.currentUser?.uid,
+      };
+
+      // ✅ Agregar notas del técnico si existen
+      if (notes != null && notes.isNotEmpty) {
+        updateData['technicianNotes'] = notes;
+      }
+
+      // ✅ Agregar razones de omisión si existen
+      if (skipReasons != null && skipReasons.isNotEmpty) {
+        updateData['skipReasons'] = skipReasons;
+      }
+
+      // ✅ Actualizar el mantenimiento
       debugPrint('🔄 Actualizando Firestore...');
       await _firestore
           .collection('maintenanceSchedules')
           .doc(maintenanceId)
-          .update({
-        'status': 'completed',
-        'completedAt': FieldValue.serverTimestamp(),
-        'taskCompletion': taskCompletion,
-        'completionPercentage': percentage,
-        'photoUrls': photoUrls,
-        'notes': notes ?? '',
-        'equipmentDataUpdated': equipmentData ?? {},
-        'completedBy': _auth.currentUser?.uid,
-      });
+          .update(updateData);
 
       debugPrint('✅ Firestore actualizado exitosamente');
-
-      // Si hay datos de equipo actualizados, guardarlos
-      if (equipmentData != null && equipmentData['equipmentId'] != null) {
-        String equipmentId = equipmentData['equipmentId'];
-        debugPrint('🔄 Actualizando datos del equipo: $equipmentId');
-        await _updateEquipmentData(equipmentId, equipmentData);
-        debugPrint('✅ Datos del equipo actualizados');
-      }
-
-      // Crear registro de historial
-      debugPrint('🔄 Creando historial...');
-      await _createMaintenanceHistory(
-        maintenanceId,
-        equipmentData?['equipmentId'],
-      );
-      debugPrint('✅ Historial creado');
-
       debugPrint('🎉 COMPLETADO EXITOSAMENTE');
       return true;
     } catch (e, stackTrace) {
@@ -348,95 +342,6 @@ class MaintenanceExecutionService {
       debugPrint('📍 Stack trace: $stackTrace');
       return false;
     }
-  }
-
-  // Actualizar datos del equipo
-  Future<void> _updateEquipmentData(
-      String equipmentId, Map<String, dynamic> equipmentData) async {
-    try {
-      Map<String, dynamic> updateData = {
-        'lastMaintenanceDate': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      // Solo actualizar campos que no estén vacíos
-      if (equipmentData['capacity']?.toString().isNotEmpty == true) {
-        updateData['capacity'] = equipmentData['capacity'];
-      }
-      if (equipmentData['model']?.toString().isNotEmpty == true) {
-        updateData['model'] = equipmentData['model'];
-      }
-      if (equipmentData['brand']?.toString().isNotEmpty == true) {
-        updateData['brand'] = equipmentData['brand'];
-      }
-      if (equipmentData['location']?.toString().isNotEmpty == true) {
-        updateData['location'] = equipmentData['location'];
-      }
-      if (equipmentData['condition']?.toString().isNotEmpty == true) {
-        updateData['condition'] = equipmentData['condition'];
-      }
-
-      await _firestore
-          .collection('equipments')
-          .doc(equipmentId)
-          .update(updateData);
-    } catch (e) {
-      debugPrint('Error actualizando equipo: $e');
-    }
-  }
-
-  // Crear registro de historial de mantenimiento
-  Future<void> _createMaintenanceHistory(
-      String maintenanceId, String? equipmentId) async {
-    if (equipmentId == null) return;
-
-    try {
-      await _firestore.collection('maintenanceHistory').add({
-        'maintenanceId': maintenanceId,
-        'equipmentId': equipmentId,
-        'technicianId': _auth.currentUser?.uid,
-        'completedAt': FieldValue.serverTimestamp(),
-        'type': 'preventive',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      debugPrint('Error creando historial: $e');
-    }
-  }
-
-  // Obtener tareas predeterminadas para un tipo de equipo
-  Future<List<String>> getDefaultTasks(String equipmentType) async {
-    try {
-      debugPrint(
-          '🔍 Buscando tareas predeterminadas para tipo: $equipmentType');
-
-      DocumentSnapshot doc = await _firestore
-          .collection('maintenanceTemplates')
-          .doc(equipmentType)
-          .get();
-
-      if (doc.exists) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        List<String> tasks = List<String>.from(data['defaultTasks'] ?? []);
-        debugPrint('✅ Tareas predeterminadas encontradas: ${tasks.length}');
-        return tasks;
-      } else {
-        debugPrint('⚠️ No se encontró template para: $equipmentType');
-      }
-    } catch (e) {
-      debugPrint('❌ Error obteniendo tareas predeterminadas: $e');
-    }
-
-    // Tareas predeterminadas genéricas si no hay template
-    debugPrint('ℹ️ Usando tareas predeterminadas genéricas');
-    return [
-      'Verificar estado general del equipo',
-      'Limpiar filtros y componentes',
-      'Revisar conexiones eléctricas',
-      'Verificar niveles de refrigerante',
-      'Comprobar funcionamiento correcto',
-      'Documentar observaciones',
-    ];
   }
 
   // Pausar mantenimiento

@@ -56,6 +56,17 @@ class MaintenanceSchedule {
   final Map<String, bool>? taskCompletion;
   final Map<String, String>? taskFrequencies;
   final double? estimatedHours;
+
+  // ✅ NUEVOS CAMPOS PARA NOTAS Y APROBACIÓN
+  final String? technicianNotes; // Notas del técnico al completar
+  final String? adminNotes; // Notas del administrador para revisión
+  final String?
+      adminApprovalNotes; // Notas del admin al aprobar (va al cliente)
+  final bool? isApprovedByAdmin; // Si fue aprobado por admin
+  final String? approvedBy; // ID del admin que aprobó
+  final DateTime? approvedDate; // Fecha de aprobación
+  final DateTime? startedAt; // Fecha de inicio del trabajo
+
   MaintenanceSchedule({
     required this.id,
     required this.equipmentId,
@@ -85,6 +96,13 @@ class MaintenanceSchedule {
     this.taskCompletion,
     this.taskFrequencies,
     this.estimatedHours,
+    this.technicianNotes,
+    this.adminNotes,
+    this.adminApprovalNotes,
+    this.isApprovedByAdmin,
+    this.approvedBy,
+    this.approvedDate,
+    this.startedAt,
   });
 
   /// Crear desde Firestore
@@ -138,7 +156,19 @@ class MaintenanceSchedule {
       taskFrequencies: data['taskFrequencies'] != null
           ? Map<String, String>.from(data['taskFrequencies'])
           : null,
-      estimatedHours: estimatedHours, // ✅ USAR EL VALOR CALCULADO
+      estimatedHours: estimatedHours,
+      // ✅ NUEVOS CAMPOS
+      technicianNotes: data['technicianNotes'],
+      adminNotes: data['adminNotes'],
+      adminApprovalNotes: data['adminApprovalNotes'],
+      isApprovedByAdmin: data['isApprovedByAdmin'],
+      approvedBy: data['approvedBy'],
+      approvedDate: data['approvedDate'] != null
+          ? (data['approvedDate'] as Timestamp).toDate()
+          : null,
+      startedAt: data['startedAt'] != null
+          ? (data['startedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -173,6 +203,15 @@ class MaintenanceSchedule {
       'taskCompletion': taskCompletion,
       'taskFrequencies': taskFrequencies,
       'estimatedHours': estimatedHours,
+      // ✅ NUEVOS CAMPOS
+      'technicianNotes': technicianNotes,
+      'adminNotes': adminNotes,
+      'adminApprovalNotes': adminApprovalNotes,
+      'isApprovedByAdmin': isApprovedByAdmin,
+      'approvedBy': approvedBy,
+      'approvedDate':
+          approvedDate != null ? Timestamp.fromDate(approvedDate!) : null,
+      'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
     };
   }
 
@@ -278,6 +317,13 @@ class MaintenanceSchedule {
     Map<String, bool>? taskCompletion,
     Map<String, String>? taskFrequencies,
     double? estimatedHours,
+    String? technicianNotes,
+    String? adminNotes,
+    String? adminApprovalNotes,
+    bool? isApprovedByAdmin,
+    String? approvedBy,
+    DateTime? approvedDate,
+    DateTime? startedAt,
   }) {
     return MaintenanceSchedule(
       id: id ?? this.id,
@@ -308,6 +354,13 @@ class MaintenanceSchedule {
       taskCompletion: taskCompletion ?? this.taskCompletion,
       taskFrequencies: taskFrequencies ?? this.taskFrequencies,
       estimatedHours: estimatedHours ?? this.estimatedHours,
+      technicianNotes: technicianNotes ?? this.technicianNotes,
+      adminNotes: adminNotes ?? this.adminNotes,
+      adminApprovalNotes: adminApprovalNotes ?? this.adminApprovalNotes,
+      isApprovedByAdmin: isApprovedByAdmin ?? this.isApprovedByAdmin,
+      approvedBy: approvedBy ?? this.approvedBy,
+      approvedDate: approvedDate ?? this.approvedDate,
+      startedAt: startedAt ?? this.startedAt,
     );
   }
 
@@ -386,5 +439,42 @@ class MaintenanceSchedule {
       case MaintenanceStatus.executed:
         return Icons.check_circle_outline;
     }
+  }
+
+  /// ✅ Helper: Color del porcentaje de completitud
+  Color getCompletionColor() {
+    if (completionPercentage == 100) {
+      return Colors.green;
+    } else if (completionPercentage >= 61) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  /// ✅ Helper: ¿Está pendiente de aprobación?
+  bool get isPendingApproval {
+    return status == MaintenanceStatus.executed &&
+        (isApprovedByAdmin == null || !isApprovedByAdmin!);
+  }
+
+  /// ✅ Helper: ¿Fue aprobado?
+  bool get isApproved {
+    return status == MaintenanceStatus.executed && isApprovedByAdmin == true;
+  }
+
+  /// ✅ Helper: ¿Tiene notas del técnico?
+  bool get hasTechnicianNotes {
+    return technicianNotes != null && technicianNotes!.isNotEmpty;
+  }
+
+  /// ✅ Helper: ¿Tiene notas del admin?
+  bool get hasAdminNotes {
+    return adminNotes != null && adminNotes!.isNotEmpty;
+  }
+
+  /// ✅ Helper: ¿Tiene notas de aprobación?
+  bool get hasAdminApprovalNotes {
+    return adminApprovalNotes != null && adminApprovalNotes!.isNotEmpty;
   }
 }

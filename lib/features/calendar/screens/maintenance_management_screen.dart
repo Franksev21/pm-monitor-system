@@ -8,6 +8,7 @@ import 'package:pm_monitor/core/services/technician_availability_service.dart';
 import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
 import 'package:pm_monitor/features/equipment/screens/equipment_type_management_dialog.dart';
 import 'package:pm_monitor/features/maintenance/screens/add_maintenance_screen.dart';
+import 'package:pm_monitor/features/maintenance/screens/admin_maintenance_review_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_availability_model.dart';
 import 'package:pm_monitor/shared/widgets/client_search_dialog_widget.dart';
 
@@ -184,7 +185,7 @@ class _MaintenanceManagementScreenState
       backgroundColor: const Color(0xFFF2F2F7),
       appBar: AppBar(
         title: const Text('Gestión de Mantenimientos'),
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF4CAF50),
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
@@ -346,6 +347,23 @@ class _MaintenanceManagementScreenState
   }
 
   Widget _buildSelectAllBar(List<MaintenanceSchedule> maintenances) {
+    // ✅ Solo mostrar si hay filtro específico (no "all")
+    if (_assignmentFilter == 'all') {
+      return const SizedBox.shrink();
+    }
+
+    // ✅ Texto del botón según filtro
+    String actionButtonText = 'Asignar';
+    IconData actionIcon = Icons.person_add;
+
+    if (_assignmentFilter == 'assigned') {
+      actionButtonText = 'Reasignar';
+      actionIcon = Icons.swap_horiz;
+    } else if (_assignmentFilter == 'executed') {
+      actionButtonText = 'Aprobar';
+      actionIcon = Icons.check_circle;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: Colors.white,
@@ -410,6 +428,15 @@ class _MaintenanceManagementScreenState
     final statusName =
         MaintenanceSchedule.getStatusDisplayName(maintenance.status);
 
+    // ✅ Calcular porcentaje de ejecución
+    final completionPercentage = maintenance.completionPercentage ?? 0;
+    Color percentageColor = Colors.red;
+    if (completionPercentage == 100) {
+      percentageColor = Colors.green;
+    } else if (completionPercentage >= 61) {
+      percentageColor = Colors.orange;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -436,14 +463,11 @@ class _MaintenanceManagementScreenState
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // ✅ Checkbox
               Checkbox(
                 value: isSelected,
                 onChanged: (_) => _toggleSelection(maintenance.id),
                 activeColor: const Color(0xFF007AFF),
               ),
-
-              // ✅ Barra de color
               Container(
                 width: 4,
                 height: 60,
@@ -453,13 +477,10 @@ class _MaintenanceManagementScreenState
                 ),
               ),
               const SizedBox(width: 12),
-
-              // ✅ CONTENIDO PRINCIPAL (Flexible para evitar overflow)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Título con ícono
                     Row(
                       children: [
                         Icon(statusIcon, size: 16, color: statusColor),
@@ -478,8 +499,6 @@ class _MaintenanceManagementScreenState
                       ],
                     ),
                     const SizedBox(height: 4),
-
-                    // Cliente
                     Row(
                       children: [
                         Icon(Icons.business, size: 12, color: Colors.grey[600]),
@@ -498,8 +517,6 @@ class _MaintenanceManagementScreenState
                       ],
                     ),
                     const SizedBox(height: 4),
-
-                    // Fecha y horas
                     Row(
                       children: [
                         Icon(Icons.calendar_today,
@@ -530,8 +547,6 @@ class _MaintenanceManagementScreenState
                       ],
                     ),
                     const SizedBox(height: 6),
-
-                    // Tipo y técnico
                     Row(
                       children: [
                         _buildTypeChip(maintenance.type),
@@ -577,13 +592,18 @@ class _MaintenanceManagementScreenState
                         ),
                       ],
                     ),
+                    // ✅ MOSTRAR PORCENTAJE SI ESTÁ EJECUTADO
+                    if (maintenance.status == MaintenanceStatus.executed) ...[
+                      const SizedBox(height: 8),
+                      _buildCompletionIndicator(
+                        completionPercentage,
+                        percentageColor,
+                      ),
+                    ],
                   ],
                 ),
               ),
-
               const SizedBox(width: 8),
-
-              // ✅ Badge de estado (ancho fijo)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -601,8 +621,6 @@ class _MaintenanceManagementScreenState
                 ),
               ),
               const SizedBox(width: 4),
-
-              // ✅ Menú (sin padding extra)
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, size: 20),
                 padding: EdgeInsets.zero,
@@ -649,6 +667,146 @@ class _MaintenanceManagementScreenState
     );
   }
 
+  Widget _buildCompletionIndicator(int percentage, Color color) {
+    return Row(
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                value: percentage / 100,
+                strokeWidth: 3,
+                backgroundColor: Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            ),
+            Text(
+              '$percentage%',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            height: 6,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [color.withOpacity(0.3), color],
+              ),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showApprovalDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Aprobar Mantenimientos'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+                '¿Deseas aprobar ${_selectedIds.length} mantenimiento${_selectedIds.length != 1 ? 's' : ''}?'),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'Notas del Administrador (opcional)',
+                border: OutlineInputBorder(),
+                hintText: 'Agregar comentarios...',
+              ),
+              maxLines: 3,
+              onChanged: (value) {
+                // Guardar nota del admin
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _performApproval();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Aprobar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performApproval() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Aprobando mantenimientos...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // TODO: Implementar lógica de aprobación en el servicio
+      await Future.delayed(const Duration(seconds: 2));
+
+      Navigator.pop(context);
+
+      setState(() {
+        _selectedIds.clear();
+        _selectAll = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Mantenimientos aprobados'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildTypeChip(MaintenanceType type) {
     final color = _getMaintenanceTypeColor(type);
     final name = MaintenanceSchedule.getTypeDisplayName(type);
@@ -693,13 +851,27 @@ class _MaintenanceManagementScreenState
   }
 
   Widget? _buildFloatingActions() {
-    if (_selectedIds.isEmpty) return null;
+    if (_selectedIds.isEmpty || _assignmentFilter == 'all') return null;
+
+    String label = 'Asignar ${_selectedIds.length}';
+    IconData icon = Icons.person_add;
+    VoidCallback onPressed = _showTechnicianAssignment;
+
+    if (_assignmentFilter == 'assigned') {
+      label = 'Reasignar ${_selectedIds.length}';
+      icon = Icons.swap_horiz;
+      onPressed = _showTechnicianAssignment;
+    } else if (_assignmentFilter == 'executed') {
+      label = 'Aprobar ${_selectedIds.length}';
+      icon = Icons.check_circle;
+      onPressed = _showApprovalDialog;
+    }
 
     return FloatingActionButton.extended(
-      onPressed: _showTechnicianAssignment,
+      onPressed: onPressed,
       backgroundColor: const Color(0xFF007AFF),
-      icon: const Icon(Icons.person_add),
-      label: Text('Asignar ${_selectedIds.length}'),
+      icon: Icon(icon),
+      label: Text(label),
     );
   }
 
@@ -1616,8 +1788,118 @@ class _MaintenanceManagementScreenState
   }
 
   void _showMaintenanceDetails(MaintenanceSchedule maintenance) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Detalles: ${maintenance.equipmentName}')),
+    // Solo mostrar revisión si es ejecutado
+    if (maintenance.status == MaintenanceStatus.executed) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AdminMaintenanceReviewScreen(
+            maintenance: maintenance,
+          ),
+        ),
+      );
+    } else {
+      // Para otros estados, mostrar diálogo simple de información
+      _showBasicMaintenanceInfo(maintenance);
+    }
+  }
+
+  void _showBasicMaintenanceInfo(MaintenanceSchedule maintenance) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: Container(
+          width: double.maxFinite,
+          constraints: const BoxConstraints(maxHeight: 500),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: MaintenanceSchedule.getStatusColor(maintenance.status),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      MaintenanceSchedule.getStatusIcon(maintenance.status),
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        maintenance.equipmentName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoRow('Cliente:', maintenance.clientName),
+                      _buildInfoRow('Ubicación:', maintenance.location),
+                      _buildInfoRow('Técnico:',
+                          maintenance.technicianName ?? 'Sin asignar'),
+                      _buildInfoRow(
+                        'Programado:',
+                        DateFormat('dd/MM/yyyy HH:mm')
+                            .format(maintenance.scheduledDate),
+                      ),
+                      if (maintenance.notes != null) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Notas:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(maintenance.notes!),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
     );
   }
 

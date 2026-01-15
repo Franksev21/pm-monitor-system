@@ -8,7 +8,6 @@ class MaintenanceScheduleService {
   final String _collection = 'maintenanceSchedules';
   final NotificationService _notificationService = NotificationService();
 
-
   Future<String> createMaintenance(MaintenanceSchedule maintenance) async {
     try {
       debugPrint('📝 Creando mantenimiento...');
@@ -22,6 +21,51 @@ class MaintenanceScheduleService {
       return docRef.id;
     } catch (e) {
       debugPrint('❌ Error creando mantenimiento: $e');
+      rethrow;
+    }
+  }
+
+  /// Actualizar notas del administrador
+  Future<void> updateAdminNotes({
+    required String maintenanceId,
+    String? adminNotes,
+    String? adminApprovalNotes,
+    bool? isApprovedByAdmin,
+    String? approvedBy,
+  }) async {
+    try {
+      final updateData = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (adminNotes != null) {
+        updateData['adminNotes'] = adminNotes;
+      }
+
+      if (adminApprovalNotes != null) {
+        updateData['adminApprovalNotes'] = adminApprovalNotes;
+      }
+
+      if (isApprovedByAdmin != null) {
+        updateData['isApprovedByAdmin'] = isApprovedByAdmin;
+      }
+
+      if (approvedBy != null) {
+        updateData['approvedBy'] = approvedBy;
+      }
+
+      if (isApprovedByAdmin == true) {
+        updateData['approvedDate'] = FieldValue.serverTimestamp();
+      }
+
+      await _firestore
+          .collection('maintenanceSchedules')
+          .doc(maintenanceId)
+          .update(updateData);
+
+      debugPrint('✅ Notas del admin actualizadas: $maintenanceId');
+    } catch (e) {
+      debugPrint('❌ Error actualizando notas del admin: $e');
       rethrow;
     }
   }
@@ -494,7 +538,6 @@ class MaintenanceScheduleService {
       return [];
     }
   }
-
 
   /// Obtener conteo de mantenimientos por estado
   Future<Map<String, int>> getMaintenanceCountsByStatus() async {

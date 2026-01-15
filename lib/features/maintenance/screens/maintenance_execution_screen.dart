@@ -20,7 +20,9 @@ class _MaintenanceExecutionScreenState
   final MaintenanceExecutionService _service = MaintenanceExecutionService();
   final TextEditingController _notesController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  Map<String, String> taskSkipReasons = {};
+
+  // ✅ CAMBIO: Renombrado para que coincida con el servicio
+  Map<String, String> _skipReasons = {}; // antes: taskSkipReasons
 
   Map<String, bool> taskCompletion = {};
   List<File> selectedImages = [];
@@ -50,35 +52,43 @@ class _MaintenanceExecutionScreenState
       debugPrint(
           '🔄 Cargando detalles del mantenimiento ID: ${widget.maintenance['id']}');
 
+      // ✅ SIMPLIFICADO: Cargar tareas desde los datos recibidos
       List<dynamic> tasks = widget.maintenance['tasks'] ?? [];
 
-      debugPrint(
-          '📋 Tareas recibidas directamente: $tasks (${tasks.length} tareas)');
+      debugPrint('📋 Tareas recibidas: $tasks (${tasks.length} tareas)');
 
+      // Si no hay tareas, cargar desde Firestore
       if (tasks.isEmpty) {
-        debugPrint(
-            '⚠️ No hay tareas en los datos recibidos, cargando desde Firestore...');
+        debugPrint('⚠️ No hay tareas, cargando desde Firestore...');
         Map<String, dynamic>? details =
             await _service.getMaintenanceDetails(widget.maintenance['id']);
 
         if (details != null) {
           tasks = details['tasks'] ?? [];
-          debugPrint(
-              '📋 Tareas cargadas desde Firestore: $tasks (${tasks.length} tareas)');
+          debugPrint('📋 Tareas desde Firestore: ${tasks.length}');
         }
       }
 
+      // ✅ Si aún no hay tareas, usar tareas genéricas
       if (tasks.isEmpty) {
-        String category = widget.maintenance['equipmentCategory'] ?? 'AC';
-        debugPrint(
-            '⚠️ Sin tareas específicas, cargando tareas por defecto para categoría: $category');
-        tasks = await _service.getDefaultTasks(category);
-        debugPrint(
-            '📋 Tareas por defecto cargadas: $tasks (${tasks.length} tareas)');
+        debugPrint('⚠️ Sin tareas específicas, usando genéricas');
+        tasks = [
+          'Limpieza de filtros',
+          'Revisión de gas refrigerante',
+          'Inspección de componentes eléctricos',
+          'Lubricación de partes móviles',
+          'Verificación de temperaturas',
+          'Limpieza de serpentines',
+          'Revisión de drenajes',
+          'Inspección de aislamiento',
+          'Prueba de funcionamiento',
+          'Verificación de controles',
+        ];
       }
 
       _initializeTaskCompletion(tasks);
 
+      // Cargar datos del equipo
       if (widget.maintenance['equipmentId'] != null) {
         debugPrint(
             '🔧 Cargando datos del equipo ID: ${widget.maintenance['equipmentId']}');
@@ -86,13 +96,12 @@ class _MaintenanceExecutionScreenState
             await _service.getEquipmentData(widget.maintenance['equipmentId']);
 
         if (equipmentData != null) {
-          debugPrint('✅ Datos del equipo cargados: $equipmentData');
+          debugPrint('✅ Datos del equipo cargados');
           _loadEquipmentData();
-        } else {
-          debugPrint('⚠️ No se encontraron datos del equipo');
         }
       }
 
+      // Cargar progreso previo guardado
       Map<String, dynamic>? savedProgress =
           await _service.getMaintenanceProgress(widget.maintenance['id']);
 
@@ -102,8 +111,7 @@ class _MaintenanceExecutionScreenState
         if (savedProgress['taskCompletion'] != null) {
           taskCompletion =
               Map<String, bool>.from(savedProgress['taskCompletion']);
-          debugPrint(
-              '✅ Tareas completadas previas cargadas: ${taskCompletion.length}');
+          debugPrint('✅ Tareas previas cargadas: ${taskCompletion.length}');
         }
 
         if (savedProgress['notes'] != null) {
@@ -111,10 +119,9 @@ class _MaintenanceExecutionScreenState
         }
       }
 
-      debugPrint('✅ Carga de detalles completada');
-      debugPrint('📊 Resumen: ${taskCompletion.length} tareas inicializadas');
+      debugPrint('✅ Carga completada: ${taskCompletion.length} tareas');
     } catch (e) {
-      debugPrint('❌ Error cargando detalles del mantenimiento: $e');
+      debugPrint('❌ Error cargando detalles: $e');
       _showErrorDialog('Error cargando detalles del mantenimiento: $e');
     } finally {
       setState(() => isLoading = false);
@@ -357,7 +364,8 @@ class _MaintenanceExecutionScreenState
                     setState(() {
                       final newValue = !allSelected;
                       for (var task in tasks) {
-                        if (!taskSkipReasons.containsKey(task)) {
+                        // ✅ CAMBIO: Usar _skipReasons
+                        if (!_skipReasons.containsKey(task)) {
                           taskCompletion[task] = newValue;
                         }
                       }
@@ -414,7 +422,8 @@ class _MaintenanceExecutionScreenState
 
   Widget _buildTaskItem(String task) {
     final isCompleted = taskCompletion[task] ?? false;
-    final isSkipped = taskSkipReasons.containsKey(task);
+    // ✅ CAMBIO: Usar _skipReasons
+    final isSkipped = _skipReasons.containsKey(task);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -449,7 +458,8 @@ class _MaintenanceExecutionScreenState
                     icon: const Icon(Icons.close, color: Colors.red),
                     onPressed: () {
                       setState(() {
-                        taskSkipReasons.remove(task);
+                        // ✅ CAMBIO: Usar _skipReasons
+                        _skipReasons.remove(task);
                         taskCompletion[task] = false;
                       });
                     },
@@ -487,7 +497,8 @@ class _MaintenanceExecutionScreenState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    taskSkipReasons[task] ?? '',
+                    // ✅ CAMBIO: Usar _skipReasons
+                    _skipReasons[task] ?? '',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.red[800],
@@ -541,7 +552,8 @@ class _MaintenanceExecutionScreenState
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
                 setState(() {
-                  taskSkipReasons[task] = controller.text.trim();
+                  // ✅ CAMBIO: Usar _skipReasons
+                  _skipReasons[task] = controller.text.trim();
                   taskCompletion[task] = false;
                 });
                 Navigator.pop(context);
@@ -748,13 +760,11 @@ class _MaintenanceExecutionScreenState
     );
   }
 
-  // ✅ ÚNICO MÉTODO DE VISTA PREVIA
   void _showFilePreview(String url, int index) async {
     final fileName = url.split('/').last.split('?').first;
     final isPdf = fileName.toLowerCase().endsWith('.pdf');
 
     if (isPdf) {
-      // Vista previa de PDF con Syncfusion
       showDialog(
         context: context,
         builder: (context) => Dialog(
@@ -763,7 +773,6 @@ class _MaintenanceExecutionScreenState
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Header
                 Row(
                   children: [
                     const Icon(Icons.picture_as_pdf, color: Colors.red),
@@ -787,8 +796,6 @@ class _MaintenanceExecutionScreenState
                 ),
                 const Divider(),
                 const SizedBox(height: 8),
-
-                // Vista previa PDF directamente desde URL
                 Expanded(
                   child: SfPdfViewer.network(
                     url,
@@ -807,10 +814,7 @@ class _MaintenanceExecutionScreenState
                     },
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
-                // Botón para abrir en navegador
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -837,7 +841,6 @@ class _MaintenanceExecutionScreenState
         ),
       );
     } else {
-      // Vista previa de imagen
       showDialog(
         context: context,
         builder: (context) => Dialog(
@@ -1256,7 +1259,8 @@ class _MaintenanceExecutionScreenState
     int totalTasks = taskCompletion.length;
     int completedTasks =
         taskCompletion.values.where((completed) => completed).length;
-    int skippedTasks = taskSkipReasons.length;
+    // ✅ CAMBIO: Usar _skipReasons
+    int skippedTasks = _skipReasons.length;
 
     bool hasEnoughPhotos = selectedImages.length >= 3;
     bool tasksRequirementMet = totalTasks == 0 ||
@@ -1547,6 +1551,7 @@ class _MaintenanceExecutionScreenState
     }
   }
 
+  // ✅ MÉTODO ACTUALIZADO CON TODOS LOS CAMBIOS
   Future<void> _completeMaintenance() async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -1574,21 +1579,13 @@ class _MaintenanceExecutionScreenState
     debugPrint('🏁 Completando mantenimiento...');
 
     try {
-      Map<String, dynamic> equipmentDataToUpdate = {
-        'equipmentId': widget.maintenance['equipmentId'],
-        'capacity': _capacityController.text.trim(),
-        'model': _modelController.text.trim(),
-        'brand': _brandController.text.trim(),
-        'location': _locationController.text.trim(),
-        'condition': _selectedCondition,
-      };
-
+      // ✅ LLAMADA ACTUALIZADA AL SERVICIO
       bool success = await _service.completeMaintenance(
         widget.maintenance['id'],
         taskCompletion: taskCompletion,
         photos: selectedImages,
         notes: _notesController.text.trim(),
-        equipmentData: equipmentDataToUpdate,
+        skipReasons: _skipReasons, // ✅ PASANDO skipReasons
       );
 
       if (success) {

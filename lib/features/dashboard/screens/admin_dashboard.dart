@@ -61,7 +61,7 @@ class AdminDashboard extends StatelessWidget {
                         'Mantenimientos',
                         Icons.build_circle,
                         '67',
-                        Colors.green,
+                        const Color(0xFF4CAF50),
                         () {
                           Navigator.push(
                             context,
