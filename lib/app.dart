@@ -18,26 +18,22 @@ class PMMonitorApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        // Agrega más providers según necesites
       ],
       child: MaterialApp(
-        title: 'PM Monitor',
+        title: 'PANDA',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
-
-        // Configuración de localización para español
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [
-          Locale('es'), // Español
-          Locale('en'), // Inglés como fallback
+          Locale('es'),
+          Locale('en'),
         ],
-
         home: const AuthWrapper(),
         routes: {
           '/login': (context) => const LoginScreen(),
@@ -66,7 +62,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    // Inicializar autenticación al cargar la app
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = context.read<AuthProvider>();
       authProvider.initializeAuth();
@@ -77,17 +72,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        // Mostrar splash screen mientras se carga
         if (authProvider.isLoading) {
           return const SplashScreen();
         }
 
-        // Si no está autenticado, mostrar login
         if (!authProvider.isAuthenticated || authProvider.currentUser == null) {
           return const LoginScreen();
         }
 
-        // Si está autenticado, redirigir al dashboard apropiado
         final user = authProvider.currentUser!;
         switch (user.role) {
           case UserRole.admin:
@@ -124,40 +116,47 @@ class SplashScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // ✅ Logo Panda
               Container(
-                width: 120,
-                height: 120,
+                width: 140,
+                height: 140,
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withOpacity(0.2),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.build_rounded,
-                  size: 60,
-                  color: AppTheme.primaryColor,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: Image.asset(
+                    'assets/images/app_icon.png',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
+
+              // ✅ Título
               const Text(
-                'PM Monitor',
+                'PANDA',
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: 36,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
+                  letterSpacing: 2,
                 ),
               ),
               const SizedBox(height: 8),
+
+              // ✅ Subtítulo
               const Text(
                 'Sistema de Mantenimiento Preventivo',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   color: Colors.white70,
                 ),
                 textAlign: TextAlign.center,

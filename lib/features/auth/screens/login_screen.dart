@@ -27,7 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    // Quitar el foco de los campos
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) return;
@@ -43,7 +42,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
-      // Actualizar token FCM del usuario
       try {
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
@@ -53,10 +51,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (e) {
         print('⚠️ Error actualizando token FCM: $e');
-        // No detener el proceso si falla la actualización del token
       }
 
-      // Navegar al dashboard
       _navigateToDashboard();
     } else if (mounted) {
       setState(() {
@@ -114,19 +110,12 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo y título
                 _buildHeader(),
                 const SizedBox(height: 48),
-
-                // Formulario
                 _buildLoginForm(),
                 const SizedBox(height: 24),
-
-                // Botón de login
                 _buildLoginButton(),
                 const SizedBox(height: 16),
-
-                // Texto de recuperar contraseña
                 _buildForgotPassword(),
               ],
             ),
@@ -139,20 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildHeader() {
     return Column(
       children: [
-        // Logo
+        // ✅ Logo Panda
         Container(
-          width: 120,
-          height: 120,
+          width: 140,
+          height: 140,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF1976D2),
-                Color(0xCC1976D2),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF1976D2).withOpacity(0.3),
@@ -161,26 +142,29 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.build_circle,
-            size: 60,
-            color: Colors.white,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Image.asset(
+              'assets/images/app_icon.png',
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(height: 20),
 
-        // Título
+        // ✅ Título PANDA
         const Text(
-          'PM Monitor',
+          'PANDA',
           style: TextStyle(
-            fontSize: 32,
+            fontSize: 36,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1976D2),
+            letterSpacing: 2,
           ),
         ),
         const SizedBox(height: 6),
 
-        // Subtítulo
+        // ✅ Subtítulo
         const Text(
           'Sistema de Mantenimiento Preventivo',
           style: TextStyle(
@@ -199,7 +183,6 @@ class _LoginScreenState extends State<LoginScreen> {
       key: _formKey,
       child: Column(
         children: [
-          // Campo de email
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
@@ -225,8 +208,6 @@ class _LoginScreenState extends State<LoginScreen> {
             },
           ),
           const SizedBox(height: 16),
-
-          // Campo de contraseña
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,

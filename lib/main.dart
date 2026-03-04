@@ -19,9 +19,6 @@ void main() async {
     await FirebaseConfig.initialize();
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
-
-
-        
         options: DefaultFirebaseOptions.currentPlatform,
       );
     }
@@ -42,11 +39,9 @@ void main() async {
     print('Error al enviar  notificaciones: $e');
   }
 
-
   try {
     final typeService = EquipmentTypeService();
     await typeService.initializeDefaultTypes();
-    print('✅ Sistema de tipos inicializado');
   } catch (e) {
     print('❌ Error inicializando tipos: $e');
   }
