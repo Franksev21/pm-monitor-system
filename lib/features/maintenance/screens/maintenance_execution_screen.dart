@@ -1193,11 +1193,15 @@ class _MaintenanceExecutionScreenState
               children: [
                 const Icon(Icons.timeline, color: Color(0xFF1976D2)),
                 const SizedBox(width: 8),
-                const Text(
-                  'Progreso del Mantenimiento',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Expanded(
+                  // ← Expanded en el título
+                  child: Text(
+                    'Progreso del Mantenimiento',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Text(
                   '${(progress * 100).toInt()}%',
                   style: TextStyle(
@@ -1550,8 +1554,7 @@ class _MaintenanceExecutionScreenState
       setState(() => isSaving = false);
     }
   }
-
-  // ✅ MÉTODO ACTUALIZADO CON TODOS LOS CAMBIOS
+  
   Future<void> _completeMaintenance() async {
     bool? confirm = await showDialog<bool>(
       context: context,

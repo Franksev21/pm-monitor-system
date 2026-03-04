@@ -55,6 +55,18 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshCurrentUser() async {
+    final currentUser = _authService.currentUser;
+    if (currentUser != null) {
+      try {
+        _currentUser = await _authService.getUserData(currentUser.uid);
+        notifyListeners();
+      } catch (e) {
+        print('Error refrescando usuario: $e');
+      }
+    }
+  }
+
   // Login mejorado con manejo de errores específicos
   Future<bool> login(String email, String password) async {
     _setLoading(true);

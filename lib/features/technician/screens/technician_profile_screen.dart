@@ -835,7 +835,6 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
         ),
       );
 
-      // Crear referencia en Storage
       final String fileName =
           'profile_${currentUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final Reference storageRef =
@@ -853,13 +852,15 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
         'profileImageUrl': downloadUrl,
       });
 
-      // Actualizar estado local
       if (mounted) {
         setState(() {
           photoUrl = downloadUrl;
         });
 
-        Navigator.pop(context); // Cerrar loading
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.refreshCurrentUser();
+
+        Navigator.pop(context);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -870,7 +871,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Cerrar loading
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al subir foto: $e'),

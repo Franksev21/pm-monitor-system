@@ -64,7 +64,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           _statsCache[tab['role']] = stats;
         });
       } catch (e) {
-        print('Error loading stats for ${tab['role']}: $e');
+        debugPrint('Error loading stats for ${tab['role']}: $e');
       }
     }
   }
@@ -109,10 +109,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       ),
       body: Column(
         children: [
-          // Barra de búsqueda
           _buildSearchBar(),
-
-          // Contenido de las pestañas
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -174,26 +171,19 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
     return Column(
       children: [
-        // Estadísticas
         if (_statsCache.containsKey(role))
           _buildStatsRow(_statsCache[role]!, color),
-
-        // Lista de usuarios
         Expanded(
           child: role == 'client'
-              ? _buildClientsTab() // NUEVO: Tab específico para clientes
+              ? _buildClientsTab()
               : StreamBuilder<List<UserManagementModel>>(
-                  // EXISTENTE: Para técnicos y supervisores
                   stream: _userService.getUsersByRole(role),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return _buildErrorWidget(snapshot.error.toString());
                     }
-
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     final users = snapshot.data ?? [];
@@ -227,7 +217,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       ],
     );
   }
-
 
   Widget _buildStatsRow(Map<String, int> stats, Color color) {
     return Container(
@@ -270,15 +259,13 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         ),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
         ),
       ],
     );
   }
 
+  // ✅ FIX: Corregidos RIGHT overflow y HT overflow en _buildUserCard
   Widget _buildUserCard(UserManagementModel user) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -328,54 +315,73 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                         ),
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
 
-                // Información del usuario
+                // ✅ FIX: Expanded previene RIGHT overflow
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // ✅ FIX: nombre con Expanded + badge con Flexible
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               user.name,
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: user.isActive ? Colors.green : Colors.red,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              user.statusText,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                          const SizedBox(width: 6),
+                          // ✅ FIX: Flexible en el badge evita que empuje al texto
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    user.isActive ? Colors.green : Colors.red,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                user.statusText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 4),
+
+                      // ✅ FIX: email con ellipsis
                       Text(
                         user.email,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           color: Colors.grey,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+
+                      const SizedBox(height: 4),
+
+                      // ✅ FIX: Expanded en la fila de asignaciones
                       Row(
                         children: [
                           Container(
@@ -390,30 +396,34 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             child: Text(
                               user.roleInSpanish,
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: user.roleColor,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          // CORREGIDO: Usar TechnicianEquipmentCount para técnicos
-                          if (user.role == 'technician')
-                            TechnicianEquipmentCount(
-                              technicianId: user.id,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            )
-                          else if (user.assignmentsText.isNotEmpty)
-                            Text(
-                              user.assignmentsText,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
+                          Expanded(
+                            child: user.role == 'technician'
+                                ? TechnicianEquipmentCount(
+                                    technicianId: user.id,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey,
+                                    ),
+                                  )
+                                : user.assignmentsText.isNotEmpty
+                                    ? Text(
+                                        user.assignmentsText,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      )
+                                    : const SizedBox.shrink(),
+                          ),
                         ],
                       ),
                     ],
@@ -460,7 +470,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       ),
     ];
 
-    // Agregar opciones específicas por rol
     if (user.role == 'technician') {
       baseItems.addAll([
         const PopupMenuItem(
@@ -485,28 +494,28 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         ),
       ]);
     } else if (user.role == 'supervisor') {
-  baseItems.addAll([
-    const PopupMenuItem(
-      value: 'assign_technicians',
-      child: Row(
-        children: [
-          Icon(Icons.group, size: 18),
-          SizedBox(width: 8),
-          Text('Asignar Técnicos'),
-        ],
-      ),
-    ),
-    const PopupMenuItem(
-      value: 'view_details',
-      child: Row(
-        children: [
-          Icon(Icons.visibility, size: 18),
-          SizedBox(width: 8),
-          Text('Ver Detalles'),
-        ],
-      ),
-    ),
-  ]);
+      baseItems.addAll([
+        const PopupMenuItem(
+          value: 'assign_technicians',
+          child: Row(
+            children: [
+              Icon(Icons.group, size: 18),
+              SizedBox(width: 8),
+              Text('Asignar Técnicos'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'view_details',
+          child: Row(
+            children: [
+              Icon(Icons.visibility, size: 18),
+              SizedBox(width: 8),
+              Text('Ver Detalles'),
+            ],
+          ),
+        ),
+      ]);
     } else if (user.role == 'client') {
       baseItems.add(
         const PopupMenuItem(
@@ -545,18 +554,11 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 80,
-            color: Colors.red[400],
-          ),
+          Icon(Icons.error_outline, size: 80, color: Colors.red[400]),
           const SizedBox(height: 16),
           Text(
             'Error: $error',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.red[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.red[600]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -574,11 +576,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            _getIconForRole(role),
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(_getIconForRole(role), size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No hay ${title.toLowerCase()} registrados',
@@ -642,19 +640,21 @@ class _UserManagementScreenState extends State<UserManagementScreen>
               _buildDetailRow('Teléfono:', user.phone),
               _buildDetailRow('Rol:', user.roleInSpanish),
               _buildDetailRow('Estado:', user.statusText),
-              // CORREGIDO: Usar TechnicianEquipmentCount para técnicos en el diálogo
               if (user.role == 'technician')
                 _buildDetailRowWithWidget(
-                    'Asignaciones:',
-                    TechnicianEquipmentCount(
-                      technicianId: user.id,
-                      style: const TextStyle(fontSize: 14),
-                    ))
+                  'Asignaciones:',
+                  TechnicianEquipmentCount(
+                    technicianId: user.id,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                )
               else if (user.assignmentsText.isNotEmpty)
                 _buildDetailRow('Asignaciones:', user.assignmentsText),
               if (user.hourlyRate != null)
                 _buildDetailRow(
-                    'Tarifa/Hora:', '\$${user.hourlyRate!.toStringAsFixed(2)}'),
+                  'Tarifa/Hora:',
+                  '\$${user.hourlyRate!.toStringAsFixed(2)}',
+                ),
               _buildDetailRow('Registrado:', user.formattedCreatedDate),
             ],
           ),
@@ -669,7 +669,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     );
   }
 
-
   Widget _buildClientsTab() {
     return StreamBuilder<List<ClientModel>>(
       stream: _userService.getClients(),
@@ -677,11 +676,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         if (snapshot.hasError) {
           return _buildErrorWidget(snapshot.error.toString());
         }
-
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         final clients = snapshot.data ?? [];
@@ -711,7 +707,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     );
   }
 
-
   Widget _buildClientCard(ClientModel client) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -727,7 +722,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Avatar
                 CircleAvatar(
                   radius: 25,
                   backgroundColor: client.statusColor,
@@ -740,13 +734,11 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ),
                   ),
                 ),
-
-                const SizedBox(width: 16),
-
-                // Información del cliente
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
                         children: [
@@ -754,27 +746,34 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             child: Text(
                               client.name,
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: client.statusColor,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              client.status.displayName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: client.statusColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                client.status.displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
@@ -784,18 +783,18 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       Text(
                         client.email,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           color: Colors.grey,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.purple.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
@@ -803,7 +802,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             child: Text(
                               client.type.displayName,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: Colors.purple,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -814,9 +813,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             Text(
                               '🏢 ${client.totalBranches} sucursal(es)',
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                                  fontSize: 11, color: Colors.grey),
                             ),
                           ],
                         ],
@@ -824,8 +821,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ],
                   ),
                 ),
-
-                // Icono para ver detalles
                 const Icon(Icons.arrow_forward_ios,
                     size: 16, color: Colors.grey),
               ],
@@ -836,7 +831,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     );
   }
 
-
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -845,20 +839,15 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         children: [
           SizedBox(
             width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
   }
 
-  // Agregar este método que faltaba
   Widget _buildDetailRowWithWidget(String label, Widget valueWidget) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -867,10 +856,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         children: [
           SizedBox(
             width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           Expanded(child: valueWidget),
         ],
@@ -935,9 +922,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       case 'assign_supervisor':
         _assignSupervisor(user);
         break;
-      // case 'assign_technicians':
-      //   _assignTechnicians(user);
-      //   break;
       case 'assign_locations':
         _assignLocations(user);
         break;
@@ -973,21 +957,24 @@ class _UserManagementScreenState extends State<UserManagementScreen>
               Navigator.of(context).pop();
               try {
                 await _userService.toggleUserStatus(user.id, !user.isActive);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        'Usuario ${!user.isActive ? 'activado' : 'desactivado'} correctamente'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Usuario ${!user.isActive ? 'activado' : 'desactivado'} correctamente'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
                 _loadAllStats();
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -1007,11 +994,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         builder: (context) => AssignEquipmentScreen(technician: user),
       ),
     );
-
-    // Si se asignaron equipos, refrescar estadísticas
-    if (result == true) {
-      _loadAllStats();
-    }
+    if (result == true) _loadAllStats();
   }
 
   void _assignSupervisor(UserManagementModel user) {
@@ -1022,17 +1005,6 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       ),
     );
   }
-
-// void _assignTechnicians(UserManagementModel user) async {
-//     final result = await Navigator.push(
-//       context,
-    
-//     );
-
-//     if (result == true) {
-//       _loadAllStats();
-//     }
-//   }
 
   void _assignLocations(UserManagementModel user) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1073,20 +1045,23 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   Navigator.of(context).pop();
                   try {
                     await _userService.updateHourlyRate(user.id, rate);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tarifa actualizada correctamente'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tarifa actualizada correctamente'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
                     _loadAllStats();
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red),
+                      );
+                    }
                   }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(

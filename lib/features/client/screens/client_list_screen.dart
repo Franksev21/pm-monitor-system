@@ -226,28 +226,35 @@ class _ClientListScreenState extends State<ClientListScreen> {
     );
   }
 
-  Widget _buildStatsRow() {
+ Widget _buildStatsRow() {
     return Consumer<ClientProvider>(
       builder: (context, clientProvider, child) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border(
               bottom: BorderSide(color: Colors.grey[200]!),
             ),
           ),
-          child: Row(
+          // ✅ FIX: Column para que los chips y el texto no compitan en el mismo Row
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildStatChip(
-                  'Total', clientProvider.totalClients, AppTheme.primaryColor),
-              const SizedBox(width: 8),
-              _buildStatChip('Activos', clientProvider.activeClients,
-                  AppTheme.successColor),
-              const SizedBox(width: 8),
-              _buildStatChip(
-                  'Prospectos', clientProvider.prospectClients, Colors.blue),
-              const Spacer(),
+              // ✅ FIX: Wrap permite que los chips bajen de línea si no caben
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _buildStatChip('Total', clientProvider.totalClients,
+                      AppTheme.primaryColor),
+                  _buildStatChip('Activos', clientProvider.activeClients,
+                      AppTheme.successColor),
+                  _buildStatChip('Prospectos', clientProvider.prospectClients,
+                      Colors.blue),
+                ],
+              ),
+              const SizedBox(height: 4),
               Text(
                 '${clientProvider.clients.length} resultados',
                 style: AppTheme.bodySmall.copyWith(color: Colors.grey[600]),

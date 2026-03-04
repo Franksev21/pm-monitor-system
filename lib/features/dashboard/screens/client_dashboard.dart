@@ -329,7 +329,7 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.2, // ← CAMBIADO de 1.3 a 1.2 para más altura
+      childAspectRatio: 1.1, 
       children: [
         _buildMetricCard(
           title: 'Mis Equipos',

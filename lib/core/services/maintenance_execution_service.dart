@@ -208,7 +208,7 @@ class MaintenanceExecutionService {
     }
   }
 
-  // ✅ CORREGIDO - Subir fotos a Firebase Storage
+
   Future<List<String>> uploadMaintenancePhotos(
     String maintenanceId,
     List<File> photos,

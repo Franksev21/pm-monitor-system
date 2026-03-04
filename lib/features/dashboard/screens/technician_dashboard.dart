@@ -402,14 +402,21 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: Colors.white,
-                    child: Text(
-                      user.initials,
-                      style: const TextStyle(
-                        color: Color(0xFF4285F4),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
+                    backgroundImage: (user.profileImageUrl != null &&
+                            user.profileImageUrl!.isNotEmpty)
+                        ? NetworkImage(user.profileImageUrl!)
+                        : null,
+                    child: (user.profileImageUrl == null ||
+                            user.profileImageUrl!.isEmpty)
+                        ? Text(
+                            user.initials,
+                            style: const TextStyle(
+                              color: Color(0xFF4285F4),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -1074,19 +1081,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               },
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature estará disponible pronto'),
-        backgroundColor: const Color(0xFF4285F4),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
         ),
       ),
     );
