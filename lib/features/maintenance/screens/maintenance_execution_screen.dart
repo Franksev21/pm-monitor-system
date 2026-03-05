@@ -999,7 +999,7 @@ class _MaintenanceExecutionScreenState
                 const SizedBox(width: 8),
                 const Text(
                   'Fotos de Evidencia',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Text(

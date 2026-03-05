@@ -51,6 +51,9 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   List<String> _availableTasks = [];
   bool _isSaving = false;
 
+  // ✅ NUEVO: Tiempo estimado
+  double _estimatedHours = 0;
+
   // Available options
   List<ClientModel> _clients = [];
   List<Equipment> _clientEquipments = [];
@@ -133,14 +136,12 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     if (_selectedClient == null) return;
 
     if (_selectedBranchId == null || _selectedBranchId == 'principal') {
-      // Mostrar equipos de dirección principal
       setState(() {
         _branchEquipments = _clientEquipments.where((eq) {
           return eq.branchId == null || eq.branchId!.isEmpty;
         }).toList();
       });
     } else {
-      // Filtrar por sucursal seleccionada
       setState(() {
         _branchEquipments = _clientEquipments.where((eq) {
           return eq.branchId == _selectedBranchId;
@@ -149,7 +150,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     }
   }
 
-  // ← NUEVO: Método helper para convertir enum a string
   String _getMaintenanceTypeString(MaintenanceType type) {
     switch (type) {
       case MaintenanceType.preventive:
@@ -165,18 +165,15 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     }
   }
 
-  // ← MODIFICADO: Ahora carga desde Firebase
   void _updateAvailableTasks() {
     setState(() {
       _isLoadingTasks = true;
     });
 
-    // Cancelar suscripción anterior si existe
     _tasksSubscription?.cancel();
 
     final typeString = _getMaintenanceTypeString(_selectedType);
 
-    // Escuchar cambios en tiempo real desde Firebase
     _tasksSubscription = _taskTemplateService
         .getActiveTemplatesByType(typeString)
         .listen((templates) {
@@ -214,10 +211,12 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
       _selectedTasks = List.from(maintenance.tasks);
       _notesController.text = maintenance.notes ?? '';
 
+      // ✅ Cargar tiempo estimado al editar
+      _estimatedHours = maintenance.estimatedHours ?? 0;
+
       if (MaintenanceSchedule.requiresFrequency(maintenance.type)) {
         if (maintenance.taskFrequencies != null &&
             maintenance.taskFrequencies!.isNotEmpty) {
-          // Cargar frecuencias guardadas
           for (var entry in maintenance.taskFrequencies!.entries) {
             final frequencyEnum = FrequencyType.values.firstWhere(
               (e) => e.toString().split('.').last == entry.value,
@@ -225,13 +224,10 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
             );
             _taskFrequencies[entry.key] = frequencyEnum;
           }
-          debugPrint('✅ Frecuencias cargadas desde BD: $_taskFrequencies');
         } else if (maintenance.frequency != null) {
-          // Fallback: usar frecuencia general para todas las tareas
           for (var task in _selectedTasks) {
             _taskFrequencies[task] = maintenance.frequency!;
           }
-          debugPrint('⚠️ Usando frecuencia general para todas las tareas');
         }
       }
 
@@ -242,7 +238,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   @override
   void dispose() {
     _notesController.dispose();
-    _tasksSubscription?.cancel(); // ← NUEVO: Cancelar suscripción
+    _tasksSubscription?.cancel();
     super.dispose();
   }
 
@@ -293,6 +289,9 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                       _buildType(),
                       const SizedBox(height: 16),
                       _buildTasksSection(),
+                      const SizedBox(height: 16),
+                      // ✅ NUEVO: Sección de tiempo estimado
+                      _buildEstimatedTimeSection(),
                       const SizedBox(height: 16),
                       _buildNotesSection(),
                       const SizedBox(height: 16),
@@ -882,7 +881,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   }
 
   Widget _buildTasksSection() {
-    // Solo mostrar frecuencias si el tipo de mantenimiento las requiere
     final showFrequencies =
         MaintenanceSchedule.requiresFrequency(_selectedType);
 
@@ -919,7 +917,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // ← NUEVO: Mostrar loading mientras se cargan tareas
             if (_isLoadingTasks) ...[
               const Center(
                 child: Padding(
@@ -965,7 +962,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                           setState(() {
                             if (value == true) {
                               _selectedTasks.add(task);
-                              // Inicializar frecuencia por defecto
                               if (showFrequencies &&
                                   !_taskFrequencies.containsKey(task)) {
                                 _taskFrequencies[task] = FrequencyType.monthly;
@@ -977,10 +973,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                           });
                         },
                       ),
-
-                      // Mostrar selector de frecuencia solo si:
-                      // 1. La tarea está seleccionada
-                      // 2. El tipo de mantenimiento requiere frecuencia
                       if (isSelected && showFrequencies) ...[
                         const Divider(height: 1),
                         Padding(
@@ -1057,6 +1049,144 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     );
   }
 
+  // ✅ NUEVO: Widget de tiempo estimado
+  Widget _buildEstimatedTimeSection() {
+    String timeLabel;
+    if (_estimatedHours == 0) {
+      timeLabel = 'No especificado';
+    } else if (_estimatedHours < 1) {
+      timeLabel = '${(_estimatedHours * 60).toInt()} min';
+    } else {
+      timeLabel = '${_estimatedHours.toStringAsFixed(1)} hrs';
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+        Row(
+              children: [
+                const Icon(Icons.timer_outlined,
+                    size: 22, color: Color(0xFF2196F3)),
+                const SizedBox(width: 8),
+                const Expanded(
+                  // ← Expanded en lugar de Text fijo
+                  child: Text(
+                    'Tiempo Estimado',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  constraints:
+                      const BoxConstraints(maxWidth: 120), // ← límite de ancho
+                  decoration: BoxDecoration(
+                    color: _estimatedHours > 0
+                        ? Colors.blue[50]
+                        : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _estimatedHours > 0
+                          ? Colors.blue[300]!
+                          : Colors.grey[300]!,
+                    ),
+                  ),
+                  child: Text(
+                    timeLabel,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _estimatedHours > 0
+                          ? Colors.blue[700]
+                          : Colors.grey[600],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Duración estimada para completar este mantenimiento',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+
+            // Slider
+            Row(
+              children: [
+                const Text('0', style: TextStyle(fontSize: 12)),
+                Expanded(
+                  child: Slider(
+                    value: _estimatedHours,
+                    min: 0,
+                    max: 12,
+                    divisions: 24,
+                    activeColor: const Color(0xFF2196F3),
+                    inactiveColor: Colors.blue[100],
+                    label: timeLabel,
+                    onChanged: (value) {
+                      setState(() => _estimatedHours = value);
+                    },
+                  ),
+                ),
+                const Text('12h', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Botones rápidos
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildTimeChip(0, 'Sin tiempo'),
+                _buildTimeChip(0.5, '30 min'),
+                _buildTimeChip(1.0, '1 hr'),
+                _buildTimeChip(2.0, '2 hrs'),
+                _buildTimeChip(3.0, '3 hrs'),
+                _buildTimeChip(4.0, '4 hrs'),
+                _buildTimeChip(6.0, '6 hrs'),
+                _buildTimeChip(8.0, '8 hrs'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeChip(double hours, String label) {
+    final isSelected = _estimatedHours == hours;
+    return GestureDetector(
+      onTap: () => setState(() => _estimatedHours = hours),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF2196F3) : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF2196F3) : Colors.grey[300]!,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : Colors.grey[700],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildNotesSection() {
     return Card(
       child: Padding(
@@ -1069,8 +1199,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-
-            // Notas adicionales
             TextFormField(
               controller: _notesController,
               maxLines: 3,
@@ -1081,10 +1209,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                 prefixIcon: Icon(Icons.note),
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // Archivos adjuntos
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1174,11 +1299,10 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         type: FileType.custom,
         allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
         allowMultiple: true,
-        withData: true, // ✅ CRÍTICO: Necesario para obtener bytes en web
+        withData: true,
       );
 
       if (result != null && result.files.isNotEmpty) {
-        // ✅ Validar que los archivos tengan bytes
         final validFiles = result.files.where((file) {
           if (file.bytes == null) {
             debugPrint('⚠️ Archivo sin bytes: ${file.name}');
@@ -1211,12 +1335,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
               backgroundColor: Colors.green,
             ),
           );
-        }
-
-        debugPrint('✅ ${validFiles.length} archivos añadidos con bytes');
-        for (var file in validFiles) {
-          debugPrint(
-              '  - ${file.name}: ${(file.size / 1024).toStringAsFixed(1)} KB');
         }
       }
     } catch (e) {
@@ -1271,7 +1389,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         fileColor = Colors.grey;
     }
 
-    final fileSize = file.size / 1024; // KB
+    final fileSize = file.size / 1024;
     final fileSizeText = fileSize < 1024
         ? '${fileSize.toStringAsFixed(1)} KB'
         : '${(fileSize / 1024).toStringAsFixed(1)} MB';
@@ -1396,9 +1514,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   void _saveMaintenance() async {
     if (_isSaving) return;
 
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     if (_selectedClient == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1430,7 +1546,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
       return;
     }
 
-    // Validar que el equipo tenga ID
     if (_selectedEquipment!.id == null || _selectedEquipment!.id!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1451,7 +1566,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
       return;
     }
 
-    // Validar que las tareas que requieren frecuencia la tengan asignada
     if (MaintenanceSchedule.requiresFrequency(_selectedType)) {
       final tasksWithoutFrequency = _selectedTasks.where((task) {
         return !_taskFrequencies.containsKey(task);
@@ -1498,14 +1612,11 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         branchId = _selectedBranch!.id;
       }
 
-     List<String> uploadedFileUrls = [];
+      List<String> uploadedFileUrls = [];
       if (_attachedFiles.isNotEmpty) {
-        debugPrint('📤 Subiendo ${_attachedFiles.length} archivos...');
-
         for (int i = 0; i < _attachedFiles.length; i++) {
           final file = _attachedFiles[i];
           try {
-            // Mostrar progreso
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -1519,19 +1630,13 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
             final fileUrl = await _uploadFileToStorage(file);
             if (fileUrl != null) {
               uploadedFileUrls.add(fileUrl);
-              debugPrint('✅ Archivo subido: ${file.name}');
             }
           } catch (e) {
             debugPrint('❌ Error subiendo archivo ${file.name}: $e');
-            // Continuar con los demás archivos
           }
         }
-
-        debugPrint(
-            '✅ ${uploadedFileUrls.length}/${_attachedFiles.length} archivos subidos');
       }
 
-      // Para mantenimientos que requieren frecuencia, usar la frecuencia más común
       FrequencyType? mainFrequency;
       if (MaintenanceSchedule.requiresFrequency(_selectedType) &&
           _taskFrequencies.isNotEmpty) {
@@ -1544,20 +1649,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
             .key;
       }
 
-      debugPrint('📝 Preparando datos del mantenimiento...');
-      debugPrint(
-          '  Cliente: ${_selectedClient!.name} (${_selectedClient!.id})');
-      debugPrint('  Sucursal: $branchName ($branchId)');
-      debugPrint(
-          '  Equipo: ${_selectedEquipment!.name} (${_selectedEquipment!.id})');
-      debugPrint('  Tipo: ${_selectedType.toString()}');
-      debugPrint(
-          '  Frecuencia principal: ${mainFrequency?.toString() ?? "N/A"}');
-      debugPrint('  Tareas seleccionadas: ${_selectedTasks.length}');
-      debugPrint('  Frecuencias por tarea: $_taskFrequencies');
-      debugPrint('  Archivos adjuntos: ${uploadedFileUrls.length}');
-
-      // Convertir Map<String, FrequencyType> a Map<String, String> para Firestore
       Map<String, String>? taskFrequenciesForFirestore;
       if (_taskFrequencies.isNotEmpty) {
         taskFrequenciesForFirestore = _taskFrequencies.map(
@@ -1586,7 +1677,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         notes: _notesController.text.isEmpty ? null : _notesController.text,
         tasks: _selectedTasks,
         location: branchAddress,
-        photoUrls: uploadedFileUrls, // NUEVO: URLs de archivos subidos
+        photoUrls: uploadedFileUrls,
         createdAt: _isEditing ? widget.maintenance!.createdAt : DateTime.now(),
         updatedAt: DateTime.now(),
         createdBy:
@@ -1595,7 +1686,9 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         completionPercentage:
             _isEditing ? widget.maintenance!.completionPercentage : 0,
         taskCompletion: _isEditing ? widget.maintenance!.taskCompletion : null,
-        taskFrequencies: taskFrequenciesForFirestore, // NUEVO
+        taskFrequencies: taskFrequenciesForFirestore,
+        // ✅ NUEVO: Guardar tiempo estimado
+        estimatedHours: _estimatedHours > 0 ? _estimatedHours : null,
       );
 
       if (_isEditing) {
@@ -1636,15 +1729,10 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     }
   }
 
-  // NUEVO: Método para subir archivos a Firebase Storage
   Future<String?> _uploadFileToStorage(PlatformFile file) async {
     try {
-      if (file.bytes == null) {
-        debugPrint('⚠️ Archivo sin bytes: ${file.name}');
-        return null;
-      }
+      if (file.bytes == null) return null;
 
-      // Crear referencia única en Storage
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = '${timestamp}_${file.name}';
       final storageRef = FirebaseStorage.instance
@@ -1652,7 +1740,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
           .child('maintenance_attachments')
           .child(fileName);
 
-      // Subir archivo
       final uploadTask = await storageRef.putData(
         file.bytes!,
         SettableMetadata(
@@ -1660,7 +1747,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         ),
       );
 
-      // Obtener URL de descarga
       final downloadUrl = await uploadTask.ref.getDownloadURL();
       return downloadUrl;
     } catch (e) {
@@ -1669,7 +1755,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
     }
   }
 
-  // Helper para obtener content type
   String _getContentType(String? extension) {
     switch (extension?.toLowerCase()) {
       case 'jpg':

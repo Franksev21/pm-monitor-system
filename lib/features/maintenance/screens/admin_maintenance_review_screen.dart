@@ -27,7 +27,6 @@ class _AdminMaintenanceReviewScreenState
   @override
   void initState() {
     super.initState();
-    // Cargar notas existentes
     _adminNotesController.text = widget.maintenance.adminNotes ?? '';
     _adminApprovalNotesController.text =
         widget.maintenance.adminApprovalNotes ?? '';
@@ -66,10 +65,7 @@ class _AdminMaintenanceReviewScreenState
       ),
       body: Column(
         children: [
-          // ✅ Header con información básica y porcentaje
           _buildHeader(completionColor, completionPercentage),
-
-          // ✅ Contenido scrollable
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -89,7 +85,7 @@ class _AdminMaintenanceReviewScreenState
                   _buildNotasAdministrador(),
                   const SizedBox(height: 16),
                   _buildNotasAprobacion(),
-                  const SizedBox(height: 80), // Espacio para botón flotante
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -124,7 +120,6 @@ class _AdminMaintenanceReviewScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Título del equipo
           Row(
             children: [
               Container(
@@ -160,13 +155,9 @@ class _AdminMaintenanceReviewScreenState
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
-          // ✅ PORCENTAJE DE COMPLETITUD
           Row(
             children: [
-              // Círculo con porcentaje
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -191,10 +182,7 @@ class _AdminMaintenanceReviewScreenState
                   ),
                 ],
               ),
-
               const SizedBox(width: 16),
-
-              // Barra de progreso
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,10 +208,7 @@ class _AdminMaintenanceReviewScreenState
                   ],
                 ),
               ),
-
               const SizedBox(width: 12),
-
-              // Badge de estado
               if (widget.maintenance.isApproved)
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -304,8 +289,11 @@ class _AdminMaintenanceReviewScreenState
             widget.maintenance.technicianName ?? 'Sin asignar',
           ),
           _buildInfoRow(
-            'Duración:',
-            '${widget.maintenance.estimatedHours?.toStringAsFixed(1) ?? '0'} hrs',
+            'T. Estimado:',
+            widget.maintenance.estimatedHours != null &&
+                    widget.maintenance.estimatedHours! > 0
+                ? '${widget.maintenance.estimatedHours!.toStringAsFixed(1)} hrs'
+                : 'No especificado',
           ),
         ],
       ),
@@ -313,52 +301,63 @@ class _AdminMaintenanceReviewScreenState
   }
 
   Widget _buildFechas() {
-    // ✅ Verificar que ambas fechas existan
     final startedAt = widget.maintenance.startedAt;
     final completedDate = widget.maintenance.completedDate;
     final scheduledDate = widget.maintenance.scheduledDate;
     final estimatedHours = widget.maintenance.estimatedHours ?? 0;
 
-    // ✅ Calcular duración real solo si ambas fechas existen
+    // Calcular duración real
     Duration? realDuration;
     String realDurationText = 'N/A';
 
     if (startedAt != null && completedDate != null) {
       realDuration = completedDate.difference(startedAt);
-
       final hours = realDuration.inHours;
       final minutes = realDuration.inMinutes.remainder(60);
-
-      if (hours > 0) {
-        realDurationText = '${hours}h ${minutes}min';
-      } else {
-        realDurationText = '${minutes}min';
-      }
+      realDurationText =
+          hours > 0 ? '${hours}h ${minutes}min' : '${minutes}min';
     }
 
-    // ✅ Tiempo estimado
-    String estimatedDurationText = estimatedHours > 0
+    // Tiempo estimado display
+    final estimatedDurationText = estimatedHours > 0
         ? '${estimatedHours.toStringAsFixed(1)} hrs'
         : 'No especificado';
 
-    // ✅ Calcular eficiencia
+    // ✅ NUEVA LÓGICA DE EFICIENCIA
+    // efficiency = (realHours / estimatedHours) * 100
+    // 100% = exactamente en tiempo
+    // < 100% = más rápido que lo estimado
+    // > 100% = más lento que lo estimado
+    double? efficiency;
     String efficiencyText = 'N/A';
     Color efficiencyColor = Colors.grey;
+    IconData efficiencyIcon = Icons.help_outline;
 
     if (realDuration != null && estimatedHours > 0) {
       final realHours = realDuration.inMinutes / 60;
-      final efficiency = (estimatedHours / realHours) * 100;
-
+      efficiency = (realHours / estimatedHours) * 100;
       efficiencyText = '${efficiency.toStringAsFixed(0)}%';
 
-      if (efficiency >= 90 && efficiency <= 110) {
+      if (efficiency >= 85 && efficiency <= 115) {
+        // ✅ En tiempo (85–115%)
         efficiencyColor = Colors.green;
-      } else if (efficiency >= 80 && efficiency < 90) {
-        efficiencyColor = Colors.orange;
-      } else if (efficiency > 110 && efficiency <= 130) {
+        efficiencyIcon = Icons.check_circle;
+      } else if (efficiency >= 50 && efficiency < 85) {
+        // ⚡ Más rápido de lo esperado (50–84%)
         efficiencyColor = Colors.blue;
+        efficiencyIcon = Icons.bolt;
+      } else if (efficiency < 50) {
+        // ⚠️ Muy rápido — revisar calidad (< 50%)
+        efficiencyColor = Colors.orange;
+        efficiencyIcon = Icons.warning_amber;
+      } else if (efficiency > 115 && efficiency <= 150) {
+        // 🕐 Tomó más tiempo (116–150%)
+        efficiencyColor = Colors.amber[700]!;
+        efficiencyIcon = Icons.schedule;
       } else {
+        // 🔴 Excedió significativamente (> 150%)
         efficiencyColor = Colors.red;
+        efficiencyIcon = Icons.error;
       }
     }
 
@@ -368,7 +367,7 @@ class _AdminMaintenanceReviewScreenState
       color: Colors.green,
       child: Column(
         children: [
-          // ✅ Programado con tiempo estimado
+          // Programado con tiempo estimado
           Row(
             children: [
               Expanded(
@@ -406,7 +405,7 @@ class _AdminMaintenanceReviewScreenState
 
           const Divider(height: 24),
 
-          // ✅ Iniciado (solo si existe)
+          // Iniciado
           if (startedAt != null) ...[
             _buildInfoRow(
               'Iniciado:',
@@ -415,7 +414,7 @@ class _AdminMaintenanceReviewScreenState
             const SizedBox(height: 12),
           ],
 
-          // ✅ Completado con tiempo real (solo si existe)
+          // Completado con duración real
           if (completedDate != null) ...[
             Row(
               children: [
@@ -429,23 +428,21 @@ class _AdminMaintenanceReviewScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: efficiencyColor.withOpacity(0.1),
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: efficiencyColor.withOpacity(0.3),
-                    ),
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.schedule, size: 14, color: efficiencyColor),
+                      Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
                         realDurationText,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: efficiencyColor,
+                          color: Colors.grey[700],
                         ),
                       ),
                     ],
@@ -454,7 +451,6 @@ class _AdminMaintenanceReviewScreenState
               ],
             ),
           ] else ...[
-            // ✅ Mostrar mensaje si no hay fecha de completado
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -481,31 +477,45 @@ class _AdminMaintenanceReviewScreenState
             ),
           ],
 
-          // ✅ Indicador de eficiencia (solo si hay ambas fechas)
-          if (realDuration != null && estimatedHours > 0) ...[
+          // ✅ Indicador de eficiencia con nueva lógica
+          if (efficiency != null && estimatedHours > 0) ...[
             const SizedBox(height: 16),
+
+            // Leyenda de referencia
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: efficiencyColor.withOpacity(0.1),
+                color: Colors.grey[50],
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildEfficiencyLegend('< 50%', '⚠️ Revisar', Colors.orange),
+                  _buildEfficiencyLegend('50–84%', '⚡ Rápido', Colors.blue),
+                  _buildEfficiencyLegend('85–115%', '✅ Ok', Colors.green),
+                  _buildEfficiencyLegend('> 115%', '🕐 Lento', Colors.red),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Badge principal de eficiencia
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: efficiencyColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: efficiencyColor.withOpacity(0.3),
+                  color: efficiencyColor.withOpacity(0.4),
+                  width: 1.5,
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    efficiencyColor == Colors.green
-                        ? Icons.check_circle
-                        : efficiencyColor == Colors.orange
-                            ? Icons.warning_amber
-                            : efficiencyColor == Colors.blue
-                                ? Icons.speed
-                                : Icons.error,
-                    color: efficiencyColor,
-                    size: 20,
-                  ),
+                  Icon(efficiencyIcon, color: efficiencyColor, size: 22),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -514,31 +524,33 @@ class _AdminMaintenanceReviewScreenState
                         Text(
                           'Eficiencia del Técnico',
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey[800],
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         Text(
-                          _getEfficiencyMessage(
-                            (estimatedHours / (realDuration.inMinutes / 60)) *
-                                100,
-                          ),
+                          _getEfficiencyMessage(efficiency),
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: Colors.grey[600],
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Text(
-                    efficiencyText,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: efficiencyColor,
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      efficiencyText,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: efficiencyColor,
+                      ),
                     ),
                   ),
                 ],
@@ -550,17 +562,39 @@ class _AdminMaintenanceReviewScreenState
     );
   }
 
+  Widget _buildEfficiencyLegend(String range, String label, Color color) {
+    return Column(
+      children: [
+        Text(
+          range,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+        ),
+      ],
+    );
+  }
+
+  /// ✅ NUEVA lógica: efficiency = (realHours / estimatedHours) * 100
+  /// 100% = exactamente en tiempo
+  /// < 100% = más rápido | > 100% = más lento
   String _getEfficiencyMessage(double efficiency) {
-    if (efficiency >= 90 && efficiency <= 110) {
-      return 'Tiempo dentro del estimado ✓';
-    } else if (efficiency >= 80 && efficiency < 90) {
-      return 'Ligeramente más lento que lo estimado';
-    } else if (efficiency > 110 && efficiency <= 130) {
-      return 'Completado más rápido que lo estimado';
-    } else if (efficiency > 130) {
-      return 'Completado mucho más rápido (revisar calidad)';
+    if (efficiency >= 85 && efficiency <= 115) {
+      return 'Completado dentro del tiempo estimado ✓';
+    } else if (efficiency >= 50 && efficiency < 85) {
+      return 'Completado más rápido de lo esperado';
+    } else if (efficiency < 50) {
+      return 'Muy rápido — se recomienda revisar calidad';
+    } else if (efficiency > 115 && efficiency <= 150) {
+      return 'Tomó más tiempo que lo estimado';
     } else {
-      return 'Requiere más tiempo que lo estimado';
+      return 'Excedió significativamente el tiempo estimado';
     }
   }
 
@@ -754,7 +788,7 @@ class _AdminMaintenanceReviewScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Este mensaje será visible para el cliente en el informe del mantenimiento.',
+            'Observaciones: ',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[600],
@@ -940,7 +974,6 @@ class _AdminMaintenanceReviewScreenState
           ),
         );
 
-        // Esperar un momento y volver
         await Future.delayed(const Duration(seconds: 2));
         Navigator.pop(context);
       }
@@ -961,7 +994,6 @@ class _AdminMaintenanceReviewScreenState
   }
 
   Future<void> _showApprovalDialog() async {
-    // Validar que hay mensaje para el cliente
     if (_adminApprovalNotesController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
