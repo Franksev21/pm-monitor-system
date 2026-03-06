@@ -581,9 +581,7 @@ class _AdminMaintenanceReviewScreenState
     );
   }
 
-  /// ✅ NUEVA lógica: efficiency = (realHours / estimatedHours) * 100
-  /// 100% = exactamente en tiempo
-  /// < 100% = más rápido | > 100% = más lento
+
   String _getEfficiencyMessage(double efficiency) {
     if (efficiency >= 85 && efficiency <= 115) {
       return 'Completado dentro del tiempo estimado ✓';

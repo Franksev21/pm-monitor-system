@@ -27,7 +27,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // Conteos dinámicos
   int pendingCount = 0;
   int completedCount = 0;
   int inProgressCount = 0;
@@ -36,6 +35,9 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
   int pendingTodayCount = 0;
   int totalEquipments = 0;
   int notificationCount = 0;
+
+  // ✅ Foto asignada por el admin
+  String? technicianPhotoUrl;
 
   bool isLoadingCounts = true;
 
@@ -46,18 +48,14 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
-
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
     _animationController.forward();
     _loadMaintenanceCounts();
     _loadEquipmentCount();
     _loadNotifications();
+    _loadTechnicianPhoto();
   }
 
   @override
@@ -66,17 +64,31 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     super.dispose();
   }
 
-  // ✅ MÉTODO CORREGIDO - Detectar "en progreso" sin nuevo estado
-  Future<void> _loadMaintenanceCounts() async {
-    print('🔄 Iniciando carga de conteos...');
+  // ✅ NUEVO: Cargar foto asignada por el admin desde Firestore
+  Future<void> _loadTechnicianPhoto() async {
     final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null) return;
 
-    if (currentUserId == null) {
-      print('❌ No hay usuario autenticado');
-      return;
+    try {
+      final userDoc =
+          await _firestore.collection('users').doc(currentUserId).get();
+
+      if (userDoc.exists && mounted) {
+        final data = userDoc.data();
+        // ✅ Leer 'photoUrl' (campo guardado por el admin) con fallback a 'profileImageUrl'
+        final photo = data?['photoUrl'] ?? data?['profileImageUrl'];
+        setState(() {
+          technicianPhotoUrl = photo;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error cargando foto del técnico: $e');
     }
+  }
 
-    print('👤 Usuario ID: $currentUserId');
+  Future<void> _loadMaintenanceCounts() async {
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null) return;
 
     try {
       final today = DateTime.now();
@@ -87,9 +99,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
           .collection('maintenanceSchedules')
           .where('technicianId', isEqualTo: currentUserId)
           .get();
-
-      print(
-          '📊 Total mantenimientos encontrados: ${allMaintenances.docs.length}');
 
       int pending = 0;
       int completed = 0;
@@ -103,42 +112,27 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         final status = data['status'] ?? '';
         final type = data['type'] ?? '';
 
-        print('📄 Doc: ${doc.id}, Status: $status');
-        print('   - startedAt: ${data['startedAt']}');
-        print('   - completedAt: ${data['completedAt']}');
-
-        // ✅ DETECTAR ESTADOS
         if (status == 'executed' || status == 'completed') {
-          // COMPLETADO
           completed++;
-
           DateTime? completedDate;
           if (data['completedAt'] != null) {
             completedDate = (data['completedAt'] as Timestamp).toDate();
           } else if (data['updatedAt'] != null) {
             completedDate = (data['updatedAt'] as Timestamp).toDate();
           }
-
           if (completedDate != null &&
               completedDate.isAfter(startOfDay) &&
               completedDate.isBefore(endOfDay)) {
             completedToday++;
           }
-
-          print('   ✅ COMPLETADO');
         } else if (status == 'assigned') {
-          // ✅ DETECTAR "EN PROGRESO" vs "PENDIENTE"
           final hasStarted = data['startedAt'] != null;
           final hasCompleted = data['completedAt'] != null;
 
           if (hasStarted && !hasCompleted) {
-            // EN PROGRESO
             inProgress++;
-            print('   🔧 EN PROGRESO');
           } else {
-            // PENDIENTE
             pending++;
-
             if (data['scheduledDate'] != null) {
               final scheduledDate =
                   (data['scheduledDate'] as Timestamp).toDate();
@@ -147,22 +141,14 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 pendingToday++;
               }
             }
-
-            print('   📋 PENDIENTE');
           }
         }
 
-        // Emergencias
         if (type == 'emergency' &&
             (status == 'assigned' || status == 'generated')) {
           emergencies++;
         }
       }
-
-      print('✅ RESULTADOS:');
-      print('  📋 Pendientes: $pending');
-      print('  🔧 En progreso: $inProgress');
-      print('  ✅ Completados: $completed');
 
       if (mounted) {
         setState(() {
@@ -176,12 +162,8 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         });
       }
     } catch (e) {
-      print('❌ Error cargando conteos: $e');
-      if (mounted) {
-        setState(() {
-          isLoadingCounts = false;
-        });
-      }
+      debugPrint('❌ Error cargando conteos: $e');
+      if (mounted) setState(() => isLoadingCounts = false);
     }
   }
 
@@ -190,23 +172,14 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     if (currentUserId == null) return;
 
     try {
-      print('🔍 Buscando equipos asignados...');
-
-      // Buscar por assignedTechnicianId
       final equipments = await _firestore
           .collection('equipments')
           .where('assignedTechnicianId', isEqualTo: currentUserId)
           .get();
 
-      print('✅ Equipos encontrados: ${equipments.docs.length}');
-
-      if (mounted) {
-        setState(() {
-          totalEquipments = equipments.docs.length;
-        });
-      }
+      if (mounted) setState(() => totalEquipments = equipments.docs.length);
     } catch (e) {
-      print('❌ Error cargando equipos: $e');
+      debugPrint('❌ Error cargando equipos: $e');
     }
   }
 
@@ -215,7 +188,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     if (currentUserId == null) return;
 
     try {
-      // Cargar notificaciones no leídas
       final notifications = await _firestore
           .collection('pendingNotifications')
           .where('userId', isEqualTo: currentUserId)
@@ -223,12 +195,10 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
           .get();
 
       if (mounted) {
-        setState(() {
-          notificationCount = notifications.docs.length;
-        });
+        setState(() => notificationCount = notifications.docs.length);
       }
     } catch (e) {
-      print('❌ Error cargando notificaciones: $e');
+      debugPrint('❌ Error cargando notificaciones: $e');
     }
   }
 
@@ -244,6 +214,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             await _loadMaintenanceCounts();
             await _loadEquipmentCount();
             await _loadNotifications();
+            await _loadTechnicianPhoto();
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -301,10 +272,8 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                     color: Colors.red,
                     shape: BoxShape.circle,
                   ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
                   child: Text(
                     '$notificationCount',
                     style: const TextStyle(
@@ -325,14 +294,13 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             await _loadMaintenanceCounts();
             await _loadEquipmentCount();
             await _loadNotifications();
+            await _loadTechnicianPhoto();
           },
         ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert),
           onSelected: (value) {
-            if (value == 'logout') {
-              _showLogoutConfirmation(context);
-            }
+            if (value == 'logout') _showLogoutConfirmation(context);
           },
           itemBuilder: (context) => [
             const PopupMenuItem(
@@ -341,10 +309,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 children: [
                   Icon(Icons.logout, color: Colors.red, size: 20),
                   SizedBox(width: 8),
-                  Text(
-                    'Cerrar Sesión',
-                    style: TextStyle(color: Colors.red),
-                  ),
+                  Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
                 ],
               ),
             ),
@@ -358,6 +323,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         final user = authProvider.currentUser;
+
         if (user == null) {
           return Container(
             padding: const EdgeInsets.all(20),
@@ -369,7 +335,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             ),
             child: const Center(
               child: Text(
-                'Cargando información del usuario...',
+                'Cargando...',
                 style: TextStyle(color: Colors.white),
               ),
             ),
@@ -379,6 +345,12 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
         final efficiency = (completedCount + pendingCount) > 0
             ? ((completedCount / (completedCount + pendingCount)) * 100).toInt()
             : 100;
+
+        // ✅ Prioridad: foto cargada de Firestore → foto en AuthProvider → iniciales
+        final photoToShow = technicianPhotoUrl ??
+            (user.profileImageUrl?.isNotEmpty == true
+                ? user.profileImageUrl
+                : null);
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -395,64 +367,57 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               ),
             ],
           ),
-          child: Column(
+          child: Row(
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    backgroundImage: (user.profileImageUrl != null &&
-                            user.profileImageUrl!.isNotEmpty)
-                        ? NetworkImage(user.profileImageUrl!)
-                        : null,
-                    child: (user.profileImageUrl == null ||
-                            user.profileImageUrl!.isEmpty)
-                        ? Text(
-                            user.initials,
-                            style: const TextStyle(
-                              color: Color(0xFF4285F4),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+              // ✅ Avatar solo lectura — sin botón de cámara
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                backgroundImage:
+                    photoToShow != null ? NetworkImage(photoToShow) : null,
+                onBackgroundImageError: photoToShow != null ? (_, __) {} : null,
+                child: photoToShow == null
+                    ? Text(
+                        user.initials,
+                        style: const TextStyle(
+                          color: Color(0xFF4285F4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Técnico $efficiency% eficiencia',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Técnico · $efficiency% eficiencia',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -521,10 +486,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
           ),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 10,
-              color: color.withOpacity(0.8),
-            ),
+            style: TextStyle(fontSize: 10, color: color.withOpacity(0.8)),
             textAlign: TextAlign.center,
           ),
         ],
@@ -543,124 +505,85 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
           children: [
             const Text(
               'Acciones Principales',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: Card(
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const TechnicianCalendarScreen(),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.blue[50],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.calendar_today,
-                                color: Colors.blue[700],
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Mi Calendario',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Ver agenda',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
+                  child: _buildActionCard(
+                    icon: Icons.calendar_today,
+                    label: 'Mi Calendario',
+                    subtitle: 'Ver agenda',
+                    color: Colors.blue,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const TechnicianCalendarScreen()),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Card(
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const TechnicianEquipmentListScreen(),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.purple[50],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.build_circle,
-                                color: Colors.purple[700],
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Mis Equipos',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Asignados',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
+                  child: _buildActionCard(
+                    icon: Icons.build_circle,
+                    label: 'Mis Equipos',
+                    subtitle: 'Asignados',
+                    color: Colors.purple,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              const TechnicianEquipmentListScreen()),
                     ),
                   ),
                 ),
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -699,22 +622,23 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 Icons.pending_actions,
                 isLoadingCounts ? '-' : '$pendingCount',
                 Colors.orange,
-                subtitle: isLoadingCounts ? 'Cargando...' : 'Total',
+                subtitle: 'Total',
                 onTap: () => _navigateToPending(context),
               ),
             ),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildTaskCard(
                 context,
                 'En Proceso',
-                Icons.pending_actions,
+                Icons.engineering,
                 isLoadingCounts ? '-' : '$inProgressCount',
-                Colors.orange,
-                subtitle: isLoadingCounts ? 'Cargando...' : 'Total',
+                Colors.blue,
+                subtitle: 'Total',
                 onTap: () => _navigateToInProgress(context),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildTaskCard(
                 context,
@@ -722,7 +646,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 Icons.check_circle,
                 isLoadingCounts ? '-' : '$completedCount',
                 Colors.green,
-                subtitle: isLoadingCounts ? 'Cargando...' : 'Total',
+                subtitle: 'Total',
                 onTap: () => _navigateToCompleted(context),
               ),
             ),
@@ -737,7 +661,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 'Equipos',
                 Icons.devices,
                 isLoadingCounts ? '-' : '$totalEquipments',
-                Colors.blue,
+                Colors.purple,
                 subtitle: 'Asignados',
                 onTap: () => _navigateToEquipments(context),
               ),
@@ -746,7 +670,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             Expanded(
               child: _buildTaskCard(
                 context,
-                'Reporte de fallas',
+                'Fallas',
                 Icons.warning,
                 isLoadingCounts ? '-' : '$emergenciesCount',
                 Colors.red,
@@ -790,20 +714,15 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               ),
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                 textAlign: TextAlign.center,
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                 ),
               ],
             ],
@@ -868,7 +787,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               children: [
                 Text(
                   isLoadingCounts
-                      ? 'Cargando mantenimientos...'
+                      ? 'Cargando...'
                       : '$completedTodayCount de $totalToday mantenimientos',
                   style: const TextStyle(fontSize: 12),
                 ),
@@ -903,28 +822,13 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
       selectedItemColor: const Color(0xFF4285F4),
       unselectedItemColor: Colors.grey,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Inicio',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.assignment),
-          label: 'Tareas',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.devices),
-          label: 'Equipos',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Perfil',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
+        BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Tareas'),
+        BottomNavigationBarItem(icon: Icon(Icons.devices), label: 'Equipos'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
       ],
       onTap: (index) {
         switch (index) {
-          case 0:
-            // Ya estamos en inicio
-            break;
           case 1:
             _navigateToPending(context);
             break;
@@ -939,32 +843,42 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     );
   }
 
-  void _navigateToEquipments(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TechnicianEquipmentListScreen(),
-      ),
-    );
-  }
+  void _navigateToPending(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PendingMaintenancesScreen()),
+      );
 
-  void _navigateToTheFaultsReportScreen(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TechnicianFaultsScreen(),
-      ),
-    );
-  }
+  void _navigateToInProgress(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const InProgressMaintenancesScreen()),
+      );
 
-  void _navigateToProfile(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TechnicianProfileScreen(),
-      ),
-    );
-  }
+  void _navigateToCompleted(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CompletedMaintenancesScreen()),
+      );
+
+  void _navigateToEquipments(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => const TechnicianEquipmentListScreen()),
+      );
+
+  void _navigateToTheFaultsReportScreen(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TechnicianFaultsScreen()),
+      );
+
+  void _navigateToProfile(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TechnicianProfileScreen()),
+      );
+
+  void _showNotifications(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => const TechnicianNotificationsScreen()),
+      );
 
   void _showLogoutConfirmation(BuildContext context) {
     showDialog(
@@ -977,10 +891,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             Text('Cerrar Sesión'),
           ],
         ),
-        content: const Text(
-          '¿Estás seguro que deseas cerrar sesión?',
-          style: TextStyle(fontSize: 16),
-        ),
+        content: const Text('¿Estás seguro que deseas cerrar sesión?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1009,15 +920,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
     }
   }
 
-  void _showNotifications(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TechnicianNotificationsScreen(),
-      ),
-    );
-  }
-
   void _showQuickActionMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -1044,11 +946,9 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TechnicianCalendarScreen(),
-                  ),
-                );
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const TechnicianCalendarScreen()));
               },
             ),
             ListTile(
@@ -1056,12 +956,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               title: const Text('Ver Mis Equipos'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TechnicianEquipmentListScreen(),
-                  ),
-                );
+                _navigateToEquipments(context);
               },
             ),
             ListTile(
@@ -1082,33 +977,6 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _navigateToCompleted(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const CompletedMaintenancesScreen(),
-      ),
-    );
-  }
-
-  void _navigateToPending(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const PendingMaintenancesScreen(),
-      ),
-    );
-  }
-
-  void _navigateToInProgress(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const InProgressMaintenancesScreen(),
       ),
     );
   }

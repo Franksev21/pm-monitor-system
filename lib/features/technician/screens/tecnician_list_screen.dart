@@ -122,10 +122,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
         ),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
         ),
       ],
     );
@@ -178,18 +175,11 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 80,
-              color: Colors.red[400],
-            ),
+            Icon(Icons.error_outline, size: 80, color: Colors.red[400]),
             const SizedBox(height: 16),
             Text(
               'Error: ${provider.errorMessage}',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.red[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.red[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -211,11 +201,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.engineering,
-              size: 80,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.engineering, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               provider.searchQuery.isEmpty
@@ -258,6 +244,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
 
   Widget _buildTechnicianCard(
       TechnicianModel technician, TechnicianProvider provider) {
+    final isUploadingPhoto = provider.uploadingPhotoForId == technician.id;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Card(
@@ -272,39 +260,80 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundColor: technician.isActive
-                      ? const Color(0xFF2196F3)
-                      : Colors.grey,
-                  child: technician.profileImageUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(25),
-                          child: Image.network(
-                            technician.profileImageUrl!,
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Text(
-                                technician.initials,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                // ✅ Avatar tappable con overlay de cámara
+                GestureDetector(
+                  onTap: () => _uploadPhotoForTechnician(technician, provider),
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: technician.isActive
+                            ? const Color(0xFF2196F3)
+                            : Colors.grey,
+                        child: isUploadingPhoto
+                            ? const SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
-                              );
-                            },
-                          ),
-                        )
-                      : Text(
-                          technician.initials,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                              )
+                            : technician.profileImageUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(28),
+                                    child: Image.network(
+                                      technician.profileImageUrl!,
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Text(
+                                          technician.initials,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  )
+                                : Text(
+                                    technician.initials,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                      ),
+                      // Overlay de cámara
+                      if (!isUploadingPhoto)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2196F3),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -355,6 +384,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                               technician.email,
                               style: const TextStyle(
                                   fontSize: 14, color: Colors.grey),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -415,6 +445,16 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                         ],
                       ),
                     ),
+                    const PopupMenuItem(
+                      value: 'upload_photo',
+                      child: Row(
+                        children: [
+                          Icon(Icons.photo_camera, size: 18),
+                          SizedBox(width: 8),
+                          Text('Cambiar Foto'),
+                        ],
+                      ),
+                    ),
                     PopupMenuItem(
                       value: 'toggle_status',
                       child: Row(
@@ -470,11 +510,33 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     );
   }
 
+  // ✅ NUEVO: Método para subir foto
+  Future<void> _uploadPhotoForTechnician(
+      TechnicianModel technician, TechnicianProvider provider) async {
+    final success = await provider.uploadTechnicianPhoto(technician.id);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? '✅ Foto actualizada para ${technician.fullName}'
+                : '❌ No se pudo actualizar la foto',
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+
   void _handleMenuAction(
       String action, TechnicianModel technician, TechnicianProvider provider) {
     switch (action) {
       case 'edit':
         _editTechnician(technician, provider);
+        break;
+      case 'upload_photo':
+        _uploadPhotoForTechnician(technician, provider);
         break;
       case 'toggle_status':
         _toggleTechnicianStatus(technician, provider);
@@ -501,15 +563,29 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ✅ Foto grande en el detalle
+              if (technician.profileImageUrl != null)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: CircleAvatar(
+                      radius: 48,
+                      backgroundImage:
+                          NetworkImage(technician.profileImageUrl!),
+                      onBackgroundImageError: (_, __) {},
+                    ),
+                  ),
+                ),
               _buildDetailRow('Email:', technician.email),
               _buildDetailRow('Teléfono:', technician.phone),
               _buildDetailRow('Estado:', technician.statusText),
               _buildDetailRowWithWidget(
-                  'Equipos Asignados:',
-                  TechnicianEquipmentCount(
-                    technicianId: technician.id,
-                    style: const TextStyle(fontSize: 14),
-                  )),
+                'Equipos Asignados:',
+                TechnicianEquipmentCount(
+                  technicianId: technician.id,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
               if (technician.hourlyRate != null)
                 _buildDetailRow('Tarifa/Hora:',
                     '\$${technician.hourlyRate!.toStringAsFixed(2)}'),
@@ -602,7 +678,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
               final success = await provider.toggleTechnicianStatus(
                   technician.id, !technician.isActive);
 
-              if (success) {
+              if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -622,7 +698,6 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     );
   }
 
-  // MÉTODO ACTUALIZADO: Ahora navega a AssignEquipmentScreen igual que en UserManagementScreen
   void _assignEquipment(
       TechnicianModel technician, TechnicianProvider provider) async {
     final userModel = UserManagementModel(
@@ -632,7 +707,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       phone: technician.phone,
       role: 'technician',
       isActive: technician.isActive,
-      createdAt: technician.createdAt ?? DateTime.now(), // ✅ AQUÍ
+      createdAt: technician.createdAt ?? DateTime.now(),
       hourlyRate: technician.hourlyRate,
       photoUrl: technician.profileImageUrl,
     );
@@ -682,7 +757,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                   final success =
                       await provider.updateTechnicianRate(technician.id, rate);
 
-                  if (success) {
+                  if (success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Tarifa actualizada correctamente'),

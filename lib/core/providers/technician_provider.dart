@@ -1,13 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pm_monitor/core/models/technician_model.dart';
 import 'package:pm_monitor/core/services/tecnician_service.dart';
-import 'package:pm_monitor/core/services/user_management_service.dart';
 
 class TechnicianProvider with ChangeNotifier {
   final TechnicianService _technicianService = TechnicianService();
-  final UserManagementService _userManagementService = UserManagementService();
+  final ImagePicker _imagePicker = ImagePicker();
 
-  // Estado local
   List<TechnicianModel> _technicians = [];
   List<TechnicianModel> _filteredTechnicians = [];
   TechnicianModel? _selectedTechnician;
@@ -15,8 +17,8 @@ class TechnicianProvider with ChangeNotifier {
   String _searchQuery = '';
   String _errorMessage = '';
   Map<String, int> _stats = {};
+  String? _uploadingPhotoForId; // ← NUEVO: tracking qué técnico está subiendo
 
-  // Getters
   List<TechnicianModel> get technicians => _technicians;
   List<TechnicianModel> get filteredTechnicians => _filteredTechnicians;
   TechnicianModel? get selectedTechnician => _selectedTechnician;
@@ -24,20 +26,17 @@ class TechnicianProvider with ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get errorMessage => _errorMessage;
   Map<String, int> get stats => _stats;
+  String? get uploadingPhotoForId => _uploadingPhotoForId;
 
-  // Getter para técnicos activos
   List<TechnicianModel> get activeTechnicians =>
       _technicians.where((tech) => tech.isActive).toList();
 
-  // Getter para técnicos inactivos
   List<TechnicianModel> get inactiveTechnicians =>
       _technicians.where((tech) => !tech.isActive).toList();
 
-  // Stream de técnicos
   Stream<List<TechnicianModel>> get techniciansStream =>
       _technicianService.getTechniciansStream();
 
-  // Inicializar listener del stream
   void initializeTechniciansListener() {
     _technicianService.getTechniciansStream().listen(
       (technicians) {
@@ -52,14 +51,72 @@ class TechnicianProvider with ChangeNotifier {
     );
   }
 
-  // Buscar técnicos
+  // ✅ NUEVO: Subir foto de perfil del técnico desde el admin
+  Future<bool> uploadTechnicianPhoto(String technicianId) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+
+      if (image == null) return false;
+
+      _uploadingPhotoForId = technicianId;
+      notifyListeners();
+
+      // Subir a Firebase Storage
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('technician_photos')
+          .child('${technicianId}_$timestamp.jpg');
+
+      final file = File(image.path);
+      final uploadTask = await storageRef.putFile(
+        file,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      // Actualizar en Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(technicianId)
+          .update({
+        'photoUrl': downloadUrl,
+        'updatedAt': Timestamp.now(),
+      });
+
+      // Actualizar en lista local
+      final index = _technicians.indexWhere((t) => t.id == technicianId);
+      if (index != -1) {
+        _technicians[index] = _technicians[index].copyWith(
+          profileImageUrl: downloadUrl,
+          updatedAt: DateTime.now(),
+        );
+        _applySearchFilter();
+      }
+
+      _uploadingPhotoForId = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error subiendo foto: $e');
+      _uploadingPhotoForId = null;
+      notifyListeners();
+      return false;
+    }
+  }
+
   void searchTechnicians(String query) {
     _searchQuery = query;
     _applySearchFilter();
     notifyListeners();
   }
 
-  // Aplicar filtro de búsqueda
   void _applySearchFilter() {
     if (_searchQuery.isEmpty) {
       _filteredTechnicians = List.from(_technicians);
@@ -73,20 +130,17 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Limpiar búsqueda
   void clearSearch() {
     _searchQuery = '';
     _filteredTechnicians = List.from(_technicians);
     notifyListeners();
   }
 
-  // Seleccionar técnico
   void selectTechnician(TechnicianModel? technician) {
     _selectedTechnician = technician;
     notifyListeners();
   }
 
-  // Obtener técnico por ID
   Future<TechnicianModel?> getTechnicianById(String technicianId) async {
     try {
       _setLoading(true);
@@ -101,7 +155,6 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Crear técnico
   Future<bool> createTechnician(TechnicianModel technician) async {
     try {
       _setLoading(true);
@@ -116,14 +169,12 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Actualizar técnico
   Future<bool> updateTechnician(
       String technicianId, Map<String, dynamic> updates) async {
     try {
       _setLoading(true);
       await _technicianService.updateTechnician(technicianId, updates);
 
-      // Actualizar en la lista local
       final index = _technicians.indexWhere((tech) => tech.id == technicianId);
       if (index != -1) {
         _technicians[index] = _technicians[index].copyWith(
@@ -148,14 +199,12 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Cambiar estado del técnico
   Future<bool> toggleTechnicianStatus(
       String technicianId, bool isActive) async {
     try {
       _setLoading(true);
       await _technicianService.toggleTechnicianStatus(technicianId, isActive);
 
-      // Actualizar en la lista local
       final index = _technicians.indexWhere((tech) => tech.id == technicianId);
       if (index != -1) {
         _technicians[index] = _technicians[index].copyWith(
@@ -175,7 +224,6 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Asignar equipos a técnico
   Future<bool> assignEquipmentsToTechnician(
       String technicianId, List<String> equipmentIds) async {
     try {
@@ -183,7 +231,6 @@ class TechnicianProvider with ChangeNotifier {
       await _technicianService.assignEquipmentsToTechnician(
           technicianId, equipmentIds);
 
-      // Actualizar en la lista local
       final index = _technicians.indexWhere((tech) => tech.id == technicianId);
       if (index != -1) {
         _technicians[index] = _technicians[index].copyWith(
@@ -203,17 +250,13 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Agregar equipo a técnico
   Future<bool> addEquipmentToTechnician(
       String technicianId, String equipmentId, String technicianName) async {
     try {
       _setLoading(true);
-
-      // Usar el nuevo método sincronizado
       await _technicianService.assignEquipmentToTechnicianSync(
           technicianId, equipmentId, technicianName);
 
-      // Actualizar en la lista local
       final index = _technicians.indexWhere((tech) => tech.id == technicianId);
       if (index != -1) {
         final currentEquipments =
@@ -238,17 +281,13 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Remover equipo de técnico
   Future<bool> removeEquipmentFromTechnician(
       String technicianId, String equipmentId) async {
     try {
       _setLoading(true);
-
-      // Usar el nuevo método sincronizado
       await _technicianService.unassignEquipmentFromTechnicianSync(
           technicianId, equipmentId);
 
-      // Actualizar en la lista local
       final index = _technicians.indexWhere((tech) => tech.id == technicianId);
       if (index != -1) {
         final currentEquipments =
@@ -271,13 +310,11 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Actualizar tarifa horaria
   Future<bool> updateTechnicianRate(
       String technicianId, double hourlyRate) async {
     try {
       await _technicianService.updateTechnicianRate(technicianId, hourlyRate);
 
-      // Actualizar en la lista local
       final index = _technicians.indexWhere((tech) => tech.id == technicianId);
       if (index != -1) {
         _technicians[index] = _technicians[index].copyWith(
@@ -295,7 +332,6 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Cargar estadísticas
   Future<void> loadStats() async {
     try {
       _stats = await _technicianService.getTechnicianStats();
@@ -305,7 +341,6 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Métodos de utilidad privados
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -320,7 +355,6 @@ class TechnicianProvider with ChangeNotifier {
     _errorMessage = '';
   }
 
-  // Limpiar provider
   @override
   void dispose() {
     _technicians.clear();
@@ -332,29 +366,26 @@ class TechnicianProvider with ChangeNotifier {
     super.dispose();
   }
 
-  // Refrescar datos
   Future<void> refresh() async {
     await loadStats();
-    // El stream se actualiza automáticamente
   }
 
   Future<int> getAssignedEquipmentsCount(String technicianId) async {
     try {
       return await _technicianService.getAssignedEquipmentsCount(technicianId);
     } catch (e) {
-      print('Error al obtener conteo de equipos: $e');
+      debugPrint('Error al obtener conteo de equipos: $e');
       return 0;
     }
   }
 
-  // Cargar conteos de equipos para todos los técnicos
   Future<void> loadEquipmentCounts() async {
     try {
       for (int i = 0; i < _technicians.length; i++) {
         notifyListeners();
       }
     } catch (e) {
-      print('Error al cargar conteos de equipos: $e');
+      debugPrint('Error al cargar conteos de equipos: $e');
     }
   }
 
@@ -363,10 +394,7 @@ class TechnicianProvider with ChangeNotifier {
       _setLoading(true);
       await _technicianService.syncTechnicianEquipmentData();
       _clearError();
-
-      // Recargar datos después de la sincronización
       await refresh();
-
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -374,14 +402,12 @@ class TechnicianProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
-// También agregar estos métodos helper si no los tienes:
+
   void setLoading(bool loading) {
-    // Actualizar tu estado de loading
     notifyListeners();
   }
 
   void setError(String error) {
-    // Manejar tu estado de error
     notifyListeners();
   }
 }
