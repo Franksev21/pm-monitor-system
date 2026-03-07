@@ -1066,24 +1066,24 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-        Row(
+            Row(
               children: [
                 const Icon(Icons.timer_outlined,
                     size: 22, color: Color(0xFF2196F3)),
                 const SizedBox(width: 8),
                 const Expanded(
-                  // ← Expanded en lugar de Text fijo
                   child: Text(
                     'Tiempo Estimado',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Badge con el valor actual
                 Container(
+                  constraints: const BoxConstraints(maxWidth: 120),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  constraints:
-                      const BoxConstraints(maxWidth: 120), // ← límite de ancho
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: _estimatedHours > 0
                         ? Colors.blue[50]
@@ -1097,8 +1097,6 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                   ),
                   child: Text(
                     timeLabel,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -1106,6 +1104,8 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                           ? Colors.blue[700]
                           : Colors.grey[600],
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
@@ -1125,8 +1125,8 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                   child: Slider(
                     value: _estimatedHours,
                     min: 0,
-                    max: 12,
-                    divisions: 24,
+                    max: 48,
+                    divisions: 96,
                     activeColor: const Color(0xFF2196F3),
                     inactiveColor: Colors.blue[100],
                     label: timeLabel,
@@ -1135,7 +1135,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                     },
                   ),
                 ),
-                const Text('12h', style: TextStyle(fontSize: 12)),
+                const Text('48h', style: TextStyle(fontSize: 12)),
               ],
             ),
 
@@ -1149,8 +1149,8 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                 _buildTimeChip(0, 'Sin tiempo'),
                 _buildTimeChip(0.5, '30 min'),
                 _buildTimeChip(1.0, '1 hr'),
+                _buildTimeChip(1.5, '1.5 hrs'),
                 _buildTimeChip(2.0, '2 hrs'),
-                _buildTimeChip(3.0, '3 hrs'),
                 _buildTimeChip(4.0, '4 hrs'),
                 _buildTimeChip(6.0, '6 hrs'),
                 _buildTimeChip(8.0, '8 hrs'),

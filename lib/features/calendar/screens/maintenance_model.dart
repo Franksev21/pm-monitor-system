@@ -9,22 +9,22 @@ enum MaintenanceStatus {
 }
 
 enum MaintenanceType {
-  preventive, // Preventivo
-  corrective, // Correctivo
-  emergency, // Emergencia
-  inspection, // Inspección
-  technicalAssistance // Asistencia Técnica
+  preventive,
+  corrective,
+  emergency,
+  inspection,
+  technicalAssistance
 }
 
 enum FrequencyType {
-  weekly, // Semanal
-  biweekly, // Bi-semanal (cada 2 semanas)
-  monthly, // Mensual
-  bimonthly, // Cada 2 meses
-  quarterly, // Trimestral (cada 3 meses)
-  quadrimestral, // Cuatrimestral (cada 4 meses)
-  biannual, // Semestral (cada 6 meses)
-  annual // Anual
+  weekly,
+  biweekly,
+  monthly,
+  bimonthly,
+  quarterly,
+  quadrimestral,
+  biannual,
+  annual
 }
 
 class MaintenanceSchedule {
@@ -57,15 +57,17 @@ class MaintenanceSchedule {
   final Map<String, String>? taskFrequencies;
   final double? estimatedHours;
 
-  // ✅ NUEVOS CAMPOS PARA NOTAS Y APROBACIÓN
-  final String? technicianNotes; // Notas del técnico al completar
-  final String? adminNotes; // Notas del administrador para revisión
-  final String?
-      adminApprovalNotes; // Notas del admin al aprobar (va al cliente)
-  final bool? isApprovedByAdmin; // Si fue aprobado por admin
-  final String? approvedBy; // ID del admin que aprobó
-  final DateTime? approvedDate; // Fecha de aprobación
-  final DateTime? startedAt; // Fecha de inicio del trabajo
+  // Notas y aprobación
+  final String? technicianNotes;
+  final String? adminNotes;
+  final String? adminApprovalNotes;
+  final bool? isApprovedByAdmin;
+  final String? approvedBy;
+  final DateTime? approvedDate;
+  final DateTime? startedAt;
+
+  // ✅ NUEVO: Razones de tareas no completadas (guardadas por el técnico)
+  final Map<String, String>? skipReasons;
 
   MaintenanceSchedule({
     required this.id,
@@ -103,13 +105,12 @@ class MaintenanceSchedule {
     this.approvedBy,
     this.approvedDate,
     this.startedAt,
+    this.skipReasons, // ✅ NUEVO
   });
 
-  /// Crear desde Firestore
   factory MaintenanceSchedule.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
-    // ✅ CALCULAR HORAS - CORREGIDO
     double? estimatedHours;
     if (data['estimatedHours'] != null) {
       estimatedHours = (data['estimatedHours'] as num).toDouble();
@@ -157,7 +158,6 @@ class MaintenanceSchedule {
           ? Map<String, String>.from(data['taskFrequencies'])
           : null,
       estimatedHours: estimatedHours,
-      // ✅ NUEVOS CAMPOS
       technicianNotes: data['technicianNotes'],
       adminNotes: data['adminNotes'],
       adminApprovalNotes: data['adminApprovalNotes'],
@@ -169,10 +169,13 @@ class MaintenanceSchedule {
       startedAt: data['startedAt'] != null
           ? (data['startedAt'] as Timestamp).toDate()
           : null,
+      // ✅ NUEVO: Leer skipReasons de Firestore
+      skipReasons: data['skipReasons'] != null
+          ? Map<String, String>.from(data['skipReasons'])
+          : null,
     );
   }
 
-  /// Convertir a Map para Firestore
   Map<String, dynamic> toFirestore() {
     return {
       'equipmentId': equipmentId,
@@ -203,7 +206,6 @@ class MaintenanceSchedule {
       'taskCompletion': taskCompletion,
       'taskFrequencies': taskFrequencies,
       'estimatedHours': estimatedHours,
-      // ✅ NUEVOS CAMPOS
       'technicianNotes': technicianNotes,
       'adminNotes': adminNotes,
       'adminApprovalNotes': adminApprovalNotes,
@@ -212,34 +214,29 @@ class MaintenanceSchedule {
       'approvedDate':
           approvedDate != null ? Timestamp.fromDate(approvedDate!) : null,
       'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
+      'skipReasons': skipReasons, // ✅ NUEVO
     };
   }
 
-  /// ⭐ MIGRACIÓN AUTOMÁTICA DE ESTADOS ANTIGUOS
   static MaintenanceStatus _parseStatus(String? statusString) {
     if (statusString == null) return MaintenanceStatus.generated;
-
-    // Mapeo de estados antiguos → nuevos
     switch (statusString) {
-      case 'scheduled': // Programado → Generado
+      case 'scheduled':
         return MaintenanceStatus.generated;
-      case 'inProgress': // En progreso → Asignado
+      case 'inProgress':
         return MaintenanceStatus.assigned;
-      case 'completed': // Completado → Ejecutado
+      case 'completed':
         return MaintenanceStatus.executed;
-      case 'overdue': // Vencido → Asignado (sigue pendiente)
+      case 'overdue':
         return MaintenanceStatus.assigned;
-      case 'cancelled': // Cancelado → Generado (se puede reasignar)
+      case 'cancelled':
         return MaintenanceStatus.generated;
-
-      // Estados nuevos
       case 'generated':
         return MaintenanceStatus.generated;
       case 'assigned':
         return MaintenanceStatus.assigned;
       case 'executed':
         return MaintenanceStatus.executed;
-
       default:
         return MaintenanceStatus.generated;
     }
@@ -247,7 +244,6 @@ class MaintenanceSchedule {
 
   static MaintenanceType _parseType(String? typeString) {
     if (typeString == null) return MaintenanceType.preventive;
-
     switch (typeString) {
       case 'preventive':
         return MaintenanceType.preventive;
@@ -287,7 +283,6 @@ class MaintenanceSchedule {
     }
   }
 
-  /// Copiar con modificaciones
   MaintenanceSchedule copyWith({
     String? id,
     String? equipmentId,
@@ -324,6 +319,7 @@ class MaintenanceSchedule {
     String? approvedBy,
     DateTime? approvedDate,
     DateTime? startedAt,
+    Map<String, String>? skipReasons, // ✅ NUEVO
   }) {
     return MaintenanceSchedule(
       id: id ?? this.id,
@@ -361,27 +357,24 @@ class MaintenanceSchedule {
       approvedBy: approvedBy ?? this.approvedBy,
       approvedDate: approvedDate ?? this.approvedDate,
       startedAt: startedAt ?? this.startedAt,
+      skipReasons: skipReasons ?? this.skipReasons, // ✅ NUEVO
     );
   }
 
-  /// Helper: ¿Requiere frecuencia?
-  static bool requiresFrequency(MaintenanceType type) {
-    return type == MaintenanceType.preventive;
-  }
+  static bool requiresFrequency(MaintenanceType type) =>
+      type == MaintenanceType.preventive;
 
-  /// Helper: Colores por estado
   static Color getStatusColor(MaintenanceStatus status) {
     switch (status) {
       case MaintenanceStatus.generated:
-        return Colors.grey.shade400; // ⚪ Gris
+        return Colors.grey.shade400;
       case MaintenanceStatus.assigned:
-        return Colors.orange.shade600; // 🟡 Naranja
+        return Colors.orange.shade600;
       case MaintenanceStatus.executed:
-        return Colors.green.shade600; // 🟢 Verde
+        return Colors.green.shade600;
     }
   }
 
-  /// Helper: Nombres legibles
   static String getStatusDisplayName(MaintenanceStatus status) {
     switch (status) {
       case MaintenanceStatus.generated:
@@ -429,7 +422,6 @@ class MaintenanceSchedule {
     }
   }
 
-  /// Helper: Ícono por estado
   static IconData getStatusIcon(MaintenanceStatus status) {
     switch (status) {
       case MaintenanceStatus.generated:
@@ -441,40 +433,27 @@ class MaintenanceSchedule {
     }
   }
 
-  /// ✅ Helper: Color del porcentaje de completitud
   Color getCompletionColor() {
-    if (completionPercentage == 100) {
-      return Colors.green;
-    } else if (completionPercentage >= 61) {
-      return Colors.orange;
-    } else {
-      return Colors.red;
-    }
+    if (completionPercentage == 100) return Colors.green;
+    if (completionPercentage >= 61) return Colors.orange;
+    return Colors.red;
   }
 
-  /// ✅ Helper: ¿Está pendiente de aprobación?
-  bool get isPendingApproval {
-    return status == MaintenanceStatus.executed &&
-        (isApprovedByAdmin == null || !isApprovedByAdmin!);
-  }
+  bool get isPendingApproval =>
+      status == MaintenanceStatus.executed &&
+      (isApprovedByAdmin == null || !isApprovedByAdmin!);
 
-  /// ✅ Helper: ¿Fue aprobado?
-  bool get isApproved {
-    return status == MaintenanceStatus.executed && isApprovedByAdmin == true;
-  }
+  bool get isApproved =>
+      status == MaintenanceStatus.executed && isApprovedByAdmin == true;
 
-  /// ✅ Helper: ¿Tiene notas del técnico?
-  bool get hasTechnicianNotes {
-    return technicianNotes != null && technicianNotes!.isNotEmpty;
-  }
+  bool get hasTechnicianNotes =>
+      technicianNotes != null && technicianNotes!.isNotEmpty;
 
-  /// ✅ Helper: ¿Tiene notas del admin?
-  bool get hasAdminNotes {
-    return adminNotes != null && adminNotes!.isNotEmpty;
-  }
+  bool get hasAdminNotes => adminNotes != null && adminNotes!.isNotEmpty;
 
-  /// ✅ Helper: ¿Tiene notas de aprobación?
-  bool get hasAdminApprovalNotes {
-    return adminApprovalNotes != null && adminApprovalNotes!.isNotEmpty;
-  }
+  bool get hasAdminApprovalNotes =>
+      adminApprovalNotes != null && adminApprovalNotes!.isNotEmpty;
+
+  // ✅ NUEVO helper
+  bool get hasSkipReasons => skipReasons != null && skipReasons!.isNotEmpty;
 }

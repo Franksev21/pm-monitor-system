@@ -481,27 +481,6 @@ class _AdminMaintenanceReviewScreenState
           if (efficiency != null && estimatedHours > 0) ...[
             const SizedBox(height: 16),
 
-            // Leyenda de referencia
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildEfficiencyLegend('< 50%', '⚠️ Revisar', Colors.orange),
-                  _buildEfficiencyLegend('50–84%', '⚡ Rápido', Colors.blue),
-                  _buildEfficiencyLegend('85–115%', '✅ Ok', Colors.green),
-                  _buildEfficiencyLegend('> 115%', '🕐 Lento', Colors.red),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
             // Badge principal de eficiencia
             Container(
               padding: const EdgeInsets.all(14),
@@ -521,13 +500,27 @@ class _AdminMaintenanceReviewScreenState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Eficiencia del Técnico',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey[800],
-                          ),
+                        // ✅ Título + botón ⓘ en la misma línea
+                        Row(
+                          children: [
+                            Text(
+                              'Eficiencia del Técnico',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => _showLegendDialog(context),
+                              child: Icon(
+                                Icons.info_outline,
+                                size: 16,
+                                color: efficiencyColor.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 3),
                         Text(
@@ -563,41 +556,209 @@ class _AdminMaintenanceReviewScreenState
   }
 
   Widget _buildEfficiencyLegend(String range, String label, Color color) {
-    return Column(
-      children: [
-        Text(
-          range,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: color,
+    // Descripción completa por rango
+    final Map<String, String> descriptions = {
+      '< 50%': 'Muy rápido — Favor prestar atención a los detalles.',
+      '50–84%':
+          'Regular — Completado más rápido de lo esperado.\nFavor prestar atención a los detalles.',
+      '85–115%':
+          'Eficiente (Excelente) — Completado dentro\ndel tiempo estimado.',
+      '> 115%':
+          'Deficiente — Excedió el tiempo estimado.\nAgradecemos que prestes atención a los detalles,\nrecomendamos mejorar la destreza.',
+    };
+
+    return GestureDetector(
+      onTap: () {
+        final desc = descriptions[range] ?? '';
+        if (desc.isEmpty) return;
+        // Mostrar tooltip al tocar
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: Text(
+              label.replaceAll(RegExp(r'[⚠️⚡✅🕐]'), '').trim(),
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            ),
+            content:
+                Text(desc, style: const TextStyle(fontSize: 14, height: 1.5)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
+            ],
           ),
+        );
+      },
+      child: Column(
+        children: [
+          Text(
+            range,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+              ),
+              const SizedBox(width: 2),
+              Icon(Icons.info_outline, size: 10, color: color.withOpacity(0.7)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ✅ NUEVA lógica: efficiency = (realHours / estimatedHours) * 100
+  /// 100% = exactamente en tiempo
+  /// < 100% = más rápido | > 100% = más lento
+  /// ✅ Popup con leyenda completa de eficiencia
+  void _showLegendDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Color(0xFF4285F4)),
+            SizedBox(width: 8),
+            Text('Leyenda de Eficiencia',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
         ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildLegendRow(
+              color: Colors.green,
+              icon: Icons.check_circle,
+              range: '85% – 115%',
+              title: 'Eficiente (Excelente)',
+              desc: 'Completado dentro del tiempo estimado.',
+            ),
+            const Divider(height: 20),
+            _buildLegendRow(
+              color: Colors.blue,
+              icon: Icons.bolt,
+              range: '50% – 84%',
+              title: 'Regular',
+              desc:
+                  'Completado más rápido de lo esperado.\nFavor prestar atención a los detalles.',
+            ),
+            const Divider(height: 20),
+            _buildLegendRow(
+              color: Colors.orange,
+              icon: Icons.warning_amber,
+              range: '< 50%',
+              title: 'Revisar',
+              desc:
+                  'Muy rápido — se recomienda revisar calidad.\nFavor prestar atención a los detalles.',
+            ),
+            const Divider(height: 20),
+            _buildLegendRow(
+              color: Colors.red,
+              icon: Icons.schedule,
+              range: '> 115%',
+              title: 'Deficiente',
+              desc:
+                  'Excedió el tiempo estimado.\nAgradecemos que prestes atención a los detalles, recomendamos mejorar la destreza.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendRow({
+    required Color color,
+    required IconData icon,
+    required String range,
+    required String title,
+    required String desc,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  range,
+                  style: TextStyle(
+                      fontSize: 10, color: color, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                desc,
+                style: TextStyle(
+                    fontSize: 12, color: Colors.grey[600], height: 1.4),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-
   String _getEfficiencyMessage(double efficiency) {
     if (efficiency >= 85 && efficiency <= 115) {
-      return 'Completado dentro del tiempo estimado ✓';
+      return 'Eficiente — Completado dentro del tiempo estimado ✓ (Excelente)';
     } else if (efficiency >= 50 && efficiency < 85) {
-      return 'Completado más rápido de lo esperado';
+      return 'Regular — Completado más rápido de lo esperado. Favor prestar atención a los detalles.';
     } else if (efficiency < 50) {
-      return 'Muy rápido — se recomienda revisar calidad';
+      return 'Muy rápido — se recomienda revisar calidad. Favor prestar atención a los detalles.';
     } else if (efficiency > 115 && efficiency <= 150) {
-      return 'Tomó más tiempo que lo estimado';
+      return 'Deficiente — Tomó más tiempo que lo estimado. Agradecemos que prestes atención a los detalles, recomendamos mejorar la destreza.';
     } else {
-      return 'Excedió significativamente el tiempo estimado';
+      return 'Deficiente — Excedió significativamente el tiempo estimado. Agradecemos que prestes atención a los detalles, recomendamos mejorar la destreza.';
     }
   }
 
   Widget _buildTareasRealizadas() {
     final taskCompletion = widget.maintenance.taskCompletion ?? {};
+    final skipReasons = widget.maintenance.skipReasons ?? {};
     final completedTasks =
         taskCompletion.values.where((completed) => completed).length;
     final totalTasks = widget.maintenance.tasks.length;
@@ -617,25 +778,139 @@ class _AdminMaintenanceReviewScreenState
       child: Column(
         children: widget.maintenance.tasks.map((task) {
           final isCompleted = taskCompletion[task] ?? false;
+          final skipReason = skipReasons[task]; // ✅ razón si existe
+          final wasSkipped = skipReason != null && skipReason.isNotEmpty;
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                Icon(
-                  isCompleted ? Icons.check_circle : Icons.cancel,
-                  color: isCompleted ? Colors.green : Colors.red,
-                  size: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                color: wasSkipped
+                    ? Colors.red[50]
+                    : isCompleted
+                        ? Colors.green[50]
+                        : Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: wasSkipped
+                      ? Colors.red[200]!
+                      : isCompleted
+                          ? Colors.green[200]!
+                          : Colors.grey[200]!,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    task,
-                    style: TextStyle(
-                      color: isCompleted ? Colors.grey : Colors.black,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Fila principal — ícono + nombre tarea
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          wasSkipped
+                              ? Icons.block
+                              : isCompleted
+                                  ? Icons.check_circle
+                                  : Icons.cancel,
+                          color: wasSkipped
+                              ? Colors.red[600]
+                              : isCompleted
+                                  ? Colors.green
+                                  : Colors.red,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            task,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: wasSkipped
+                                  ? Colors.red[800]
+                                  : isCompleted
+                                      ? Colors.grey[700]
+                                      : Colors.black87,
+                            ),
+                          ),
+                        ),
+                        // Badge de estado
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: wasSkipped
+                                ? Colors.red[100]
+                                : isCompleted
+                                    ? Colors.green[100]
+                                    : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            wasSkipped
+                                ? 'No realizada'
+                                : isCompleted
+                                    ? 'Completada'
+                                    : 'Pendiente',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: wasSkipped
+                                  ? Colors.red[700]
+                                  : isCompleted
+                                      ? Colors.green[700]
+                                      : Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+
+                  // ✅ Razón de no ejecución — solo si existe
+                  if (wasSkipped) ...[
+                    Divider(height: 1, color: Colors.red[200]),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 14, color: Colors.red[600]),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Motivo reportado por el técnico:',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  skipReason!,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.red[900],
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           );
         }).toList(),
