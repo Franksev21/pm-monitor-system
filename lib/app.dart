@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pm_monitor/features/auth/widgets/global_alert_listener.dart';
 import 'package:pm_monitor/features/maintenance/screens/unified_maintenance_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -86,7 +87,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           case UserRole.supervisor:
             return const AdminDashboard();
           case UserRole.technician:
-            return const TechnicianDashboard();
+            return const GlobalAlertListener(child: TechnicianDashboard());
           case UserRole.client:
             return const ClientDashboard();
         }
