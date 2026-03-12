@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum UserRole { admin, supervisor, technician, client }
 
 class UserModel {
@@ -46,9 +48,14 @@ class UserModel {
 
   // Alias para compatibilidad
   Map<String, dynamic> toMap() => toJson();
+factory UserModel.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      if (value is Timestamp) return value.toDate();
+      if (value is String) return DateTime.tryParse(value);
+      return null;
+    }
 
-  // Crear desde JSON/Map de Firestore
-  factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? '',
       email: json['email'] ?? '',
@@ -58,19 +65,15 @@ class UserModel {
         (e) => e.toString().split('.').last == json['role'],
         orElse: () => UserRole.client,
       ),
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
+      createdAt: parseDate(json['createdAt']) ?? DateTime.now(),
       isActive: json['isActive'] ?? true,
       emailVerified: json['emailVerified'] ?? false,
       profileImageUrl: json['profileImageUrl'],
-      lastLogin:
-          json['lastLogin'] != null ? DateTime.parse(json['lastLogin']) : null,
+      lastLogin: parseDate(json['lastLogin']),
       metadata: json['metadata'],
     );
   }
 
-  // Alias para compatibilidad
   factory UserModel.fromMap(Map<String, dynamic> map) =>
       UserModel.fromJson(map);
 
