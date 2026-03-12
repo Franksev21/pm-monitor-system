@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
 import 'package:pm_monitor/core/services/user_management_service.dart';
+import 'package:pm_monitor/features/auth/screens/admin_add_user_screen.dart';
 import 'package:pm_monitor/features/equipment/assign_equipment_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 
@@ -865,14 +866,19 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     );
   }
 
-  void _showAddUserDialog({String? role}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            'Agregar ${role != null ? _getRoleInSpanish(role) : 'Usuario'} - Por implementar'),
-        backgroundColor: Colors.blue,
+  void _showAddUserDialog({String? role}) async {
+    final selectedRole = role ?? _tabs[_tabController.index]['role'] as String;
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminAddUserScreen(preSelectedRole: selectedRole),
       ),
     );
+
+    if (result == true) {
+      _loadAllStats();
+    }
   }
 
   void _showClientDetails(ClientModel client) {
