@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/features/equipment/equipment_detail_screen.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
+import 'package:pm_monitor/features/equipment/equipment_detail_screen.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -13,46 +13,29 @@ class QRScannerScreen extends StatefulWidget {
 }
 
 class _QRScannerScreenState extends State<QRScannerScreen> {
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  QRViewController? controller;
+  final MobileScannerController _controller = MobileScannerController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isProcessing = false;
   bool _flashOn = false;
 
   @override
-  void reassemble() {
-    super.reassemble();
-    if (controller != null) {
-      controller!.pauseCamera();
-      controller!.resumeCamera();
-    }
-  }
-
-  @override
   void dispose() {
-    controller?.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  void _onQRViewCreated(QRViewController controller) {
-    this.controller = controller;
-    controller.scannedDataStream.listen((scanData) {
-      if (!_isProcessing &&
-          scanData.code != null &&
-          scanData.code!.isNotEmpty) {
-        _searchEquipment(scanData.code!);
-      }
-    });
+  Future<void> _onDetect(BarcodeCapture capture) async {
+    if (_isProcessing) return;
+    final barcode = capture.barcodes.firstOrNull;
+    final code = barcode?.rawValue;
+    if (code == null || code.isEmpty) return;
+    await _searchEquipment(code);
   }
 
   Future<void> _searchEquipment(String equipmentNumber) async {
-    setState(() {
-      _isProcessing = true;
-    });
-
-    // Pausar la cámara mientras procesamos
-    await controller?.pauseCamera();
+    setState(() => _isProcessing = true);
+    await _controller.stop();
 
     try {
       print('🔍 Buscando equipo: $equipmentNumber');
@@ -96,7 +79,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       final equipment = Equipment.fromFirestore(equipmentDoc);
 
       if (mounted) {
-        Navigator.pop(context); // Cerrar escáner
+        Navigator.pop(context);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -109,18 +92,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       _showError('Error al buscar el equipo');
     } finally {
       if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-        // Reanudar cámara si seguimos en la pantalla
-        await controller?.resumeCamera();
+        setState(() => _isProcessing = false);
+        await _controller.start();
       }
     }
   }
 
   void _showError(String message) {
     if (!mounted) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -128,18 +107,12 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
-
-    setState(() {
-      _isProcessing = false;
-    });
+    setState(() => _isProcessing = false);
   }
 
   void _toggleFlash() async {
-    await controller?.toggleFlash();
-    final flashStatus = await controller?.getFlashStatus();
-    setState(() {
-      _flashOn = flashStatus ?? false;
-    });
+    await _controller.toggleTorch();
+    setState(() => _flashOn = !_flashOn);
   }
 
   @override
@@ -160,16 +133,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
       body: Stack(
         children: [
-          QRView(
-            key: qrKey,
-            onQRViewCreated: _onQRViewCreated,
-            overlay: QrScannerOverlayShape(
-              borderColor: const Color(0xFF4285F4),
-              borderRadius: 20,
-              borderLength: 40,
-              borderWidth: 8,
-              cutOutSize: MediaQuery.of(context).size.width * 0.7,
-            ),
+          MobileScanner(
+            controller: _controller,
+            onDetect: _onDetect,
+          ),
+          // Overlay del scanner
+          CustomPaint(
+            painter: _ScannerOverlayPainter(),
+            child: const SizedBox.expand(),
           ),
           if (_isProcessing)
             Container(
@@ -229,4 +200,87 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
     );
   }
+}
+
+// Overlay con recuadro de escaneo
+class _ScannerOverlayPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cutOutSize = size.width * 0.7;
+    final left = (size.width - cutOutSize) / 2;
+    final top = (size.height - cutOutSize) / 2;
+    final right = left + cutOutSize;
+    final bottom = top + cutOutSize;
+
+    final backgroundPaint = Paint()..color = Colors.black.withOpacity(0.5);
+    final transparentPaint = Paint()..blendMode = BlendMode.clear;
+    final borderPaint = Paint()
+      ..color = const Color(0xFF4285F4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), Paint());
+
+    // Fondo oscuro
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
+
+    // Recuadro transparente
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(left, top, right, bottom),
+        const Radius.circular(16),
+      ),
+      transparentPaint,
+    );
+
+    canvas.restore();
+
+    // Bordes azules
+    final cornerLen = 40.0;
+    final r = 16.0;
+
+    // Esquina superior izquierda
+    canvas.drawPath(
+        Path()
+          ..moveTo(left, top + cornerLen)
+          ..lineTo(left, top + r)
+          ..arcToPoint(Offset(left + r, top),
+              radius: Radius.circular(r), clockwise: true)
+          ..lineTo(left + cornerLen, top),
+        borderPaint);
+
+    // Esquina superior derecha
+    canvas.drawPath(
+        Path()
+          ..moveTo(right - cornerLen, top)
+          ..lineTo(right - r, top)
+          ..arcToPoint(Offset(right, top + r),
+              radius: Radius.circular(r), clockwise: true)
+          ..lineTo(right, top + cornerLen),
+        borderPaint);
+
+    // Esquina inferior derecha
+    canvas.drawPath(
+        Path()
+          ..moveTo(right, bottom - cornerLen)
+          ..lineTo(right, bottom - r)
+          ..arcToPoint(Offset(right - r, bottom),
+              radius: Radius.circular(r), clockwise: false)
+          ..lineTo(right - cornerLen, bottom),
+        borderPaint);
+
+    // Esquina inferior izquierda
+    canvas.drawPath(
+        Path()
+          ..moveTo(left + cornerLen, bottom)
+          ..lineTo(left + r, bottom)
+          ..arcToPoint(Offset(left, bottom - r),
+              radius: Radius.circular(r), clockwise: false)
+          ..lineTo(left, bottom - cornerLen),
+        borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
