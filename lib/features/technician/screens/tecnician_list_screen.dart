@@ -5,6 +5,7 @@ import 'package:pm_monitor/core/providers/technician_provider.dart';
 import 'package:pm_monitor/core/services/alert_service.dart';
 import 'package:pm_monitor/features/equipment/assign_equipment_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
+import 'package:pm_monitor/features/technician/screens/alert_history_screen.dart';
 import 'package:provider/provider.dart';
 
 class TechniciansListScreen extends StatefulWidget {
@@ -16,6 +17,18 @@ class TechniciansListScreen extends StatefulWidget {
 
 class _TechniciansListScreenState extends State<TechniciansListScreen> {
   final TextEditingController _searchController = TextEditingController();
+
+  void _showAlertHistory(TechnicianModel technician) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AlertHistoryScreen(
+          technicianId: technician.id,
+          technicianName: technician.fullName,
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -443,6 +456,15 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                               Text('Enviar Alerta',
                                   style: TextStyle(color: Colors.red)),
                             ])),
+                            const PopupMenuItem(
+                            value: 'alert_history',
+                            child: Row(children: [
+                              Icon(Icons.history,
+                                  size: 18, color: Colors.deepPurple),
+                              SizedBox(width: 8),
+                              Text('Historial de Alertas',
+                                  style: TextStyle(color: Colors.deepPurple)),
+                            ])),
                       ],
                     ),
                   ],
@@ -631,6 +653,9 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
         break;
       case 'send_alert':
         _showSendAlertDialog(technician);
+        break;
+        case 'alert_history':
+        _showAlertHistory(technician);
         break;
     }
   }

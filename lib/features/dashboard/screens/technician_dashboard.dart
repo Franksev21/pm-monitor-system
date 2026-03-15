@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pm_monitor/features/maintenance/screens/completed_maintenance_screen.dart';
 import 'package:pm_monitor/features/maintenance/screens/inprogress_maintenance_screen.dart';
 import 'package:pm_monitor/features/maintenance/screens/pending_maintenances_screen.dart';
+import 'package:pm_monitor/features/technician/screens/technician_alerts_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_equipment_list_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_faults_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_notification_screen.dart';
@@ -182,16 +183,15 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
       debugPrint('❌ Error cargando equipos: $e');
     }
   }
-
-  Future<void> _loadNotifications() async {
+Future<void> _loadNotifications() async {
     final currentUserId = _auth.currentUser?.uid;
     if (currentUserId == null) return;
 
     try {
       final notifications = await _firestore
-          .collection('pendingNotifications')
-          .where('userId', isEqualTo: currentUserId)
-          .where('status', isEqualTo: 'pending')
+          .collection('alerts')
+          .where('technicianId', isEqualTo: currentUserId)
+          .where('isRead', isEqualTo: false)
           .get();
 
       if (mounted) {
@@ -877,7 +877,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
   void _showNotifications(BuildContext context) => Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (_) => const TechnicianNotificationsScreen()),
+            builder: (_) => const TechnicianAlertsScreen()),
       );
 
   void _showLogoutConfirmation(BuildContext context) {

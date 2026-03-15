@@ -28,6 +28,23 @@ class _GlobalAlertListenerState extends State<GlobalAlertListener> {
     }
   }
 
+  String _formatAlertDateTime(dynamic createdAt) {
+    if (createdAt == null) return 'Ahora';
+    try {
+      final date = (createdAt as Timestamp).toDate();
+      final day = date.day.toString().padLeft(2, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      final year = date.year;
+      final hour =
+          date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+      final minute = date.minute.toString().padLeft(2, '0');
+      final period = date.hour >= 12 ? 'PM' : 'AM';
+      return '$day/$month/$year $hour:$minute $period';
+    } catch (_) {
+      return 'Ahora';
+    }
+  }
+
   void _handleAlert(DocumentSnapshot doc) {
     if (_isShowingAlert || !mounted) return;
     _isShowingAlert = true;
@@ -130,6 +147,22 @@ class _GlobalAlertListenerState extends State<GlobalAlertListener> {
                           color: Colors.white.withOpacity(0.8),
                           fontSize: 13,
                         ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.access_time,
+                              size: 14, color: Colors.white.withOpacity(0.7)),
+                          const SizedBox(width: 6),
+                          Text(
+                            _formatAlertDateTime(data['createdAt']),
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 48),
                       SizedBox(
