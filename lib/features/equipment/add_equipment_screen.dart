@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pm_monitor/shared/widgets/equipment_selector_field.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -23,14 +24,12 @@ class CurrencyInputFormatter extends TextInputFormatter {
       return newValue;
     }
 
-    // Remover caracteres no numéricos
     String digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
 
     if (digitsOnly.isEmpty) {
       return const TextEditingValue(text: '');
     }
 
-    // Formatear con comas
     int value = int.parse(digitsOnly);
     String formatted = _formatter.format(value);
 
@@ -75,11 +74,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   Timer? _debounceTimer;
 
-  // ✨ NUEVAS VARIABLES PARA SISTEMA DINÁMICO
-  String? _selectedEquipmentType; // Nombre del tipo seleccionado
+  // Sistema dinámico de tipos
+  String? _selectedEquipmentType;
   String? _selectedCategory;
   List<String> _availableCategories = [];
   bool _isLoadingCategories = false;
+
+  // ✅ Ubicaciones del cliente
+  List<String> _clientLocations = [];
+  bool _isLoadingLocations = false;
+  String? _selectedLocation;
 
   String _selectedCapacityUnit = 'BTU';
   String _selectedBrand = '';
@@ -101,28 +105,62 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   ];
   final List<String> _currencies = ['USD', 'DOP', 'EUR'];
 
-  // Lista de marcas comunes
   final List<String> _equipmentBrands = [
-    // Refrigeración
-    'Carrier', 'Trane', 'York', 'Lennox', 'Rheem', 'Goodman', 'Daikin',
-    'Mitsubishi Electric', 'LG', 'Samsung', 'Panasonic', 'Fujitsu',
-    'Hitachi', 'Gree', 'Midea', 'Haier', 'Friedrich', 'Amana',
-    'Frigidaire', 'Emerson', 'Bard', 'McQuay', 'Climaveneta',
-    // Electrónicos/UPS/Generadores
-    'APC', 'Schneider Electric', 'Eaton', 'Tripp Lite', 'CyberPower',
-    'Vertiv', 'Riello', 'Socomec', 'Legrand', 'Caterpillar', 'Cummins',
-    'Generac', 'Kohler', 'Perkins', 'MTU', 'Stamford', 'Leroy Somer',
-    // Otros
-    'ABB', 'Siemens', 'General Electric', 'Honeywell', 'Johnson Controls',
-    'Otra', // Opción para marcas no listadas
+    'Carrier',
+    'Trane',
+    'York',
+    'Lennox',
+    'Rheem',
+    'Goodman',
+    'Daikin',
+    'Mitsubishi Electric',
+    'LG',
+    'Samsung',
+    'Panasonic',
+    'Fujitsu',
+    'Hitachi',
+    'Gree',
+    'Midea',
+    'Haier',
+    'Friedrich',
+    'Amana',
+    'Frigidaire',
+    'Emerson',
+    'Bard',
+    'McQuay',
+    'Climaveneta',
+    'APC',
+    'Schneider Electric',
+    'Eaton',
+    'Tripp Lite',
+    'CyberPower',
+    'Vertiv',
+    'Riello',
+    'Socomec',
+    'Legrand',
+    'Caterpillar',
+    'Cummins',
+    'Generac',
+    'Kohler',
+    'Perkins',
+    'MTU',
+    'Stamford',
+    'Leroy Somer',
+    'ABB',
+    'Siemens',
+    'General Electric',
+    'Honeywell',
+    'Johnson Controls',
+    'Otra',
   ];
+
+
+  
 
   BranchModel? _selectedBranch;
 
-  // Formatter para moneda
   final NumberFormat _currencyFormatter = NumberFormat('#,##0', 'en_US');
 
-  // ✨ SERVICIO DE TIPOS
   final EquipmentTypeService _equipmentTypeService = EquipmentTypeService();
 
   @override
@@ -137,8 +175,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       _initializeClientData();
     }
 
-    // Ordenar marcas alfabéticamente
     _equipmentBrands.sort();
+    _loadClientLocations();
   }
 
   void _loadEquipmentData() async {
@@ -160,7 +198,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     _branchController.text = eq.branch;
     _addressController.text = eq.address;
 
-    // Formatear costo con comas
     if (eq.equipmentCost > 0) {
       _equipmentCostController.text =
           _currencyFormatter.format(eq.equipmentCost.toInt());
@@ -168,11 +205,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
     _estimatedHoursController.text = eq.estimatedMaintenanceHours.toString();
 
-    // ✨ CARGAR TIPO Y CATEGORÍAS DINÁMICAMENTE
     _selectedEquipmentType = eq.tipo;
     await _loadCategoriesForType(eq.tipo);
 
-    // Seleccionar categoría
     String cleanCategory = eq.category
         .replaceAll('AC - ', '')
         .replaceAll('Panel - ', '')
@@ -211,7 +246,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     setState(() {});
   }
 
-  // ✨ CARGAR CATEGORÍAS DINÁMICAMENTE
   Future<void> _loadCategoriesForType(String typeName) async {
     setState(() {
       _isLoadingCategories = true;
@@ -236,8 +270,226 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
   }
 
+ // ✅ Lista predeterminada de ubicaciones
+  static const List<String> _defaultLocations = [
+    'Recepción',
+    'Recursos Humanos',
+    'Sala de Conferencias',
+    'Sala de Servidores',
+    'Oficina Principal',
+    'Comedor',
+    'Almacén',
+    'Pasillo',
+    'Lobby',
+    'Baño',
+    'Cocina',
+    'Techo',
+    'Área de Producción',
+    'Área Común',
+    'Estacionamiento',
+    'Cuarto Eléctrico',
+    'Cuarto de Máquinas',
+    'Planta Baja',
+    'Segundo Piso',
+    'Tercer Piso',
+    'Sótano',
+  ];
+
+  Future<void> _loadClientLocations() async {
+    setState(() => _isLoadingLocations = true);
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('clients')
+          .doc(widget.client.id);
+      final doc = await docRef.get();
+
+      List<String> existingLocations = [];
+
+      if (doc.exists) {
+        final data = doc.data();
+        existingLocations = List<String>.from(data?['locations'] ?? []);
+      }
+
+      // Si el cliente no tiene ubicaciones, sembrar las predeterminadas
+      if (existingLocations.isEmpty) {
+        await docRef.update({
+          'locations': _defaultLocations,
+        });
+        existingLocations = List<String>.from(_defaultLocations);
+      }
+
+      existingLocations.sort();
+
+      setState(() {
+        _clientLocations = existingLocations;
+        if (_isEditing && _locationController.text.isNotEmpty) {
+          if (_clientLocations.contains(_locationController.text)) {
+            _selectedLocation = _locationController.text;
+          } else {
+            // Agregar la ubicación del equipo si no existe en la lista
+            _clientLocations.add(_locationController.text);
+            _clientLocations.sort();
+            _selectedLocation = _locationController.text;
+            // Guardarla también en Firestore
+            docRef.update({
+              'locations': FieldValue.arrayUnion([_locationController.text]),
+            });
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Error cargando ubicaciones: $e');
+      // Fallback: usar lista predeterminada localmente
+      setState(() {
+        _clientLocations = List<String>.from(_defaultLocations)..sort();
+      });
+    }
+    setState(() => _isLoadingLocations = false);
+  }
+
+  // ✅ Agregar nueva ubicación al cliente en Firestore
+  Future<void> _addNewLocation(String location) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('clients')
+          .doc(widget.client.id)
+          .update({
+        'locations': FieldValue.arrayUnion([location]),
+      });
+      setState(() {
+        _clientLocations.add(location);
+        _clientLocations.sort();
+        _selectedLocation = location;
+        _locationController.text = location;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ubicación "$location" agregada'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error agregando ubicación: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al agregar ubicación'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // ✅ Diálogo para agregar nueva ubicación
+  void _showAddLocationDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.add_location_alt, color: Color(0xFF2196F3)),
+            SizedBox(width: 8),
+            Text('Nueva Ubicación', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Agrega un área o departamento dentro de la sucursal.',
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                hintText: 'Ej: Recepción, Sala de Conferencias...',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                prefixIcon: const Icon(Icons.place),
+              ),
+            ),
+            if (_clientLocations.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Ubicaciones existentes:',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: _clientLocations.map((loc) {
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Text(loc,
+                        style:
+                            TextStyle(fontSize: 11, color: Colors.grey[600])),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Escribe un nombre de ubicación'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              if (_clientLocations.contains(text)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Esta ubicación ya existe'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              _addNewLocation(text);
+            },
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Agregar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _initializeClientData() {
-    // Por defecto, seleccionar oficina principal (null)
     _selectedBranch = null;
     _branchController.text = widget.client.name;
     _addressController.text = widget.client.mainAddress.fullAddress;
@@ -292,16 +544,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     });
   }
 
-  // Obtener la condición basada en la vida útil
   String _getConditionFromLifeScale(int lifeScale) {
     if (lifeScale <= 4) return 'Malo';
     if (lifeScale == 5) return 'Crítico';
     if (lifeScale >= 6 && lifeScale <= 7) return 'Regular';
     if (lifeScale >= 8 && lifeScale <= 9) return 'Bueno';
-    return 'Excelente'; // 10
+    return 'Excelente';
   }
 
-  // Obtener color de la condición
   Color _getConditionColor(String condition) {
     switch (condition) {
       case 'Excelente':
@@ -448,7 +698,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       return;
     }
 
-    // Validar marca si es "Otra"
     if (_selectedBrand == 'Otra' && _brandController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -459,7 +708,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       return;
     }
 
-    // ✨ VALIDAR QUE SE HAYA SELECCIONADO UN TIPO
     if (_selectedEquipmentType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -483,12 +731,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     String region =
         _selectedBranch?.address.state ?? widget.client.mainAddress.state;
 
-    // Obtener condición calculada
     String calculatedCondition = _getConditionFromLifeScale(_selectedLifeScale);
 
-    // Parsear costo removiendo comas
     String costText = _equipmentCostController.text.trim().replaceAll(',', '');
     double equipmentCost = double.tryParse(costText) ?? 0.0;
+
+    debugPrint(
+        '🔍 equipmentNumber: "${_equipmentNumberController.text.trim()}"');
+    debugPrint('🔍 clientId: "${widget.client.id}"');
 
     Equipment equipment = Equipment(
       id: _isEditing ? widget.equipment!.id : null,
@@ -503,7 +753,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       description: _descriptionController.text.trim(),
       brand: _brandController.text.trim(),
       model: _modelController.text.trim(),
-      tipo: _selectedEquipmentType!, // ✨ USAR TIPO DINÁMICO
+      tipo: _selectedEquipmentType!,
       category: _selectedCategory ?? '',
       capacity: double.tryParse(_capacityController.text.trim()) ?? 0.0,
       capacityUnit: _selectedCapacityUnit,
@@ -835,21 +1085,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // ✨ WIDGET SELECTOR DINÁMICO DE TIPOS
             EquipmentTypeSelectorField(
               selectedType: _selectedEquipmentType,
               onTypeSelected: (typeName) async {
                 setState(() {
                   _selectedEquipmentType = typeName;
-                  _selectedCategory = null; // Reset categoría
+                  _selectedCategory = null;
                 });
                 await _loadCategoriesForType(typeName);
               },
             ),
-
             const SizedBox(height: 16),
-
-            // ✨ DROPDOWN DE CATEGORÍAS (carga dinámica)
             if (_selectedEquipmentType != null) ...[
               if (_isLoadingCategories)
                 const Center(child: CircularProgressIndicator())
@@ -907,8 +1153,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 ),
               const SizedBox(height: 16),
             ],
-
-            // Marca con búsqueda
             InkWell(
               onTap: _showBrandSearchDialog,
               child: InputDecorator(
@@ -934,8 +1178,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 ),
               ),
             ),
-
-            // Campo de texto para "Otra" marca
             if (_selectedBrand == 'Otra') ...[
               const SizedBox(height: 16),
               TextFormField(
@@ -955,7 +1197,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 },
               ),
             ],
-
             const SizedBox(height: 16),
             TextFormField(
               controller: _modelController,
@@ -1078,21 +1319,75 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            TextFormField(
-              controller: _locationController,
-              decoration: const InputDecoration(
-                labelText: 'Ubicación Específica *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.place),
-                hintText: 'Ej: Oficina 1, Sala de servidores',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'La ubicación es requerida';
-                }
-                return null;
-              },
-            ),
+
+            // ✅ Dropdown de ubicación/departamento con botón de agregar
+            _isLoadingLocations
+                ? const Center(
+                    child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ))
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedLocation,
+                          decoration: const InputDecoration(
+                            labelText: 'Ubicación / Departamento *',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.place),
+                          ),
+                          isExpanded: true,
+                          hint: Text(
+                            _clientLocations.isEmpty
+                                ? 'Agrega una ubicación →'
+                                : 'Seleccionar ubicación...',
+                            style: TextStyle(
+                                fontSize: 14, color: Colors.grey[500]),
+                          ),
+                          items: _clientLocations.map((location) {
+                            return DropdownMenuItem(
+                              value: location,
+                              child: Text(
+                                location,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedLocation = value;
+                              _locationController.text = value ?? '';
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Selecciona una ubicación';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2196F3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.add, color: Colors.white),
+                            onPressed: _showAddLocationDialog,
+                            tooltip: 'Agregar nueva ubicación',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
             const SizedBox(height: 16),
             TextFormField(
               controller: _addressController,
@@ -1141,8 +1436,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               },
             ),
             const SizedBox(height: 24),
-
-            // Indicador de Vida Útil con condición
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -1210,7 +1503,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  // Leyenda
                   Wrap(
                     spacing: 8,
                     runSpacing: 4,
@@ -1226,7 +1518,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
             Row(
               children: [
                 Expanded(

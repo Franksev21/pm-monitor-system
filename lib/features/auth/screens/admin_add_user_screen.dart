@@ -80,42 +80,50 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
 
       final uid = userCredential.user!.uid;
 
-      // 3. Guardar en Firestore según el rol
       if (_selectedRole == 'client') {
         // Clientes van a la colección 'clients'
         await FirebaseFirestore.instance.collection('clients').doc(uid).set({
+          'id': uid,
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'phone': _phoneController.text.trim(),
           'status': 'active',
-          'type': 'empresa',
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
+          'type': 'small',
+          'taxId': '',
+          'notes': '',
+          'mainAddress': {
+            'street': '',
+            'city': '',
+            'state': '',
+            'country': 'República Dominicana',
+            'zipCode': '',
+          },
           'branches': [],
           'contacts': [],
-        });
-
-        // También en 'users' para que pueda iniciar sesión
-        await FirebaseFirestore.instance.collection('users').doc(uid).set({
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'role': 'client',
-          'isActive': true,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } else {
-        // Técnicos y supervisores solo en 'users'
-        await FirebaseFirestore.instance.collection('users').doc(uid).set({
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'role': _selectedRole,
-          'isActive': true,
-          'hourlyRate': 0.0,
-          'assignedEquipments': [],
-          'assignedTechnicians': [],
+          'locations': [
+            'Recepción',
+            'Recursos Humanos',
+            'Sala de Conferencias',
+            'Sala de Servidores',
+            'Oficina Principal',
+            'Comedor',
+            'Almacén',
+            'Pasillo',
+            'Lobby',
+            'Baño',
+            'Cocina',
+            'Techo',
+            'Área de Producción',
+            'Área Común',
+            'Estacionamiento',
+            'Cuarto Eléctrico',
+            'Cuarto de Máquinas',
+            'Planta Baja',
+            'Segundo Piso',
+            'Tercer Piso',
+            'Sótano',
+          ],
+          'createdBy': FirebaseAuth.instance.currentUser?.uid ?? '',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
