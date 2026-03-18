@@ -33,18 +33,17 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
   bool _isSubmitting = false;
   bool _isLoadingEquipments = true;
 
-  // Todos los equipos del cliente
   List<Map<String, dynamic>> _allEquipments = [];
-  // Equipos filtrados para mostrar en el dropdown
   List<Map<String, dynamic>> _filteredEquipments = [];
 
-  // Filtros
+  // Filtros — orden: Sucursal → Departamento → Tipo
   String _selectedBranch = 'Todas';
+  String _selectedDepartment = 'Todos';
   String _selectedTipo = 'Todos';
   List<String> _availableBranches = ['Todas'];
+  List<String> _availableDepartments = ['Todos'];
   List<String> _availableTipos = ['Todos'];
 
-  // Info del equipo seleccionado
   Map<String, dynamic>? _selectedEquipmentData;
 
   @override
@@ -73,57 +72,60 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
           await _firestore.collection('users').doc(currentUserId).get();
       final userData = userDoc.data();
       final clientName = userData?['name'] ?? '';
-
       if (clientName.isEmpty) return;
 
-      final equipmentsSnapshot =
-          await _firestore.collection('equipments').get();
+      final snapshot = await _firestore.collection('equipments').get();
 
-      final equipments = equipmentsSnapshot.docs.where((doc) {
-        final data = doc.data();
-        final branch = (data['branch'] ?? '').toString().toLowerCase();
+      final equipments = snapshot.docs.where((doc) {
+        final branch = (doc.data()['branch'] ?? '').toString().toLowerCase();
         return branch == clientName.toLowerCase();
       }).map((doc) {
-        final data = doc.data();
+        final d = doc.data();
         return {
           'id': doc.id,
-          'equipmentNumber': data['equipmentNumber'] ?? '',
-          'name': data['name'] ?? '',
-          'status': data['status'] ?? '',
-          'branch': data['branch'] ?? '',
-          'tipo': data['tipo'] ?? '',
-          'location': data['location'] ?? '',
-          'category': data['category'] ?? '',
-          'brand': data['brand'] ?? '',
-          'model': data['model'] ?? '',
+          'equipmentNumber': d['equipmentNumber'] ?? '',
+          'name': d['name'] ?? '',
+          'status': d['status'] ?? '',
+          'branch': d['branch'] ?? '',
+          'tipo': d['tipo'] ?? '',
+          'location': d['location'] ?? '',
+          'category': d['category'] ?? '',
+          'brand': d['brand'] ?? '',
         };
       }).toList();
 
-      // Extraer sucursales y tipos únicos
       final branches = <String>{'Todas'};
+      final departments = <String>{'Todos'};
       final tipos = <String>{'Todos'};
-      for (var eq in equipments) {
-        if ((eq['branch'] as String).isNotEmpty) {
-          branches.add(eq['branch'] as String);
-        }
-        if ((eq['tipo'] as String).isNotEmpty) {
-          tipos.add(eq['tipo'] as String);
-        }
+
+      for (final eq in equipments) {
+        if ((eq['branch'] as String).isNotEmpty) branches.add(eq['branch']);
+        if ((eq['location'] as String).isNotEmpty)
+          departments.add(eq['location']);
+        if ((eq['tipo'] as String).isNotEmpty) tipos.add(eq['tipo']);
       }
 
       setState(() {
         _allEquipments = equipments;
         _filteredEquipments = equipments;
-        _availableBranches = branches.toList();
-        _availableTipos = tipos.toList();
+        _availableBranches = [
+          'Todas',
+          ...branches.toList().where((b) => b != 'Todas').toList()..sort()
+        ];
+        _availableDepartments = [
+          'Todos',
+          ...departments.toList().where((d) => d != 'Todos').toList()..sort()
+        ];
+        _availableTipos = [
+          'Todos',
+          ...tipos.toList().where((t) => t != 'Todos').toList()..sort()
+        ];
         _isLoadingEquipments = false;
 
-        // Si viene con equipo preseleccionado, cargar sus datos
         if (_selectedEquipmentId != null) {
           try {
-            _selectedEquipmentData = _allEquipments.firstWhere(
-              (e) => e['id'] == _selectedEquipmentId,
-            );
+            _selectedEquipmentData = _allEquipments
+                .firstWhere((e) => e['id'] == _selectedEquipmentId);
           } catch (_) {}
         }
       });
@@ -138,16 +140,16 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
       _filteredEquipments = _allEquipments.where((eq) {
         final matchBranch =
             _selectedBranch == 'Todas' || eq['branch'] == _selectedBranch;
+        final matchDept = _selectedDepartment == 'Todos' ||
+            eq['location'] == _selectedDepartment;
         final matchTipo =
             _selectedTipo == 'Todos' || eq['tipo'] == _selectedTipo;
-        return matchBranch && matchTipo;
+        return matchBranch && matchDept && matchTipo;
       }).toList();
 
-      // Si el equipo seleccionado ya no está en los filtrados, limpiar
       if (_selectedEquipmentId != null) {
-        final stillExists = _filteredEquipments.any(
-          (e) => e['id'] == _selectedEquipmentId,
-        );
+        final stillExists =
+            _filteredEquipments.any((e) => e['id'] == _selectedEquipmentId);
         if (!stillExists) {
           _selectedEquipmentId = null;
           _selectedEquipmentNumber = null;
@@ -169,7 +171,6 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
       return;
     }
 
-    // Nota es opcional, no validamos el form
     setState(() => _isSubmitting = true);
 
     try {
@@ -178,8 +179,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
 
       final userDoc =
           await _firestore.collection('users').doc(currentUser.uid).get();
-      final userData = userDoc.data();
-      final clientName = userData?['name'] ?? '';
+      final clientName = userDoc.data()?['name'] ?? '';
 
       final equipLocation = _selectedEquipmentData?['location'] ?? '';
       final equipBranch = _selectedEquipmentData?['branch'] ?? '';
@@ -190,7 +190,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
         equipmentName: _selectedEquipmentName!,
         clientId: currentUser.uid,
         clientName: clientName,
-        severity: 'MEDIA', // Severidad fija ya que se removió el selector
+        severity: 'MEDIA',
         description: _descriptionController.text.trim(),
         status: 'pending',
         reportedAt: DateTime.now(),
@@ -202,10 +202,8 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
       final docRef =
           await _firestore.collection('faultReports').add(report.toFirestore());
 
-      // Enviar notificaciones
       try {
-        final notificationService = NotificationService();
-        await notificationService.sendFaultNotifications(
+        await NotificationService().sendFaultNotifications(
           equipmentName: _selectedEquipmentName!,
           equipmentId: _selectedEquipmentId!,
           severity: 'MEDIA',
@@ -215,10 +213,9 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
           reportId: docRef.id,
         );
       } catch (e) {
-        debugPrint('Error enviando notificaciones: $e');
+        debugPrint('Error notificaciones: $e');
       }
 
-      // Notificación pendiente
       try {
         await _firestore.collection('pendingNotifications').add({
           'type': 'fault_report',
@@ -233,7 +230,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
           'createdAt': FieldValue.serverTimestamp(),
         });
       } catch (e) {
-        debugPrint('Error creando notificación pendiente: $e');
+        debugPrint('Error pendingNotifications: $e');
       }
 
       if (mounted) {
@@ -265,13 +262,11 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      debugPrint('Error reportando falla: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al reportar: ${e.toString().split(']').last}'),
             backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -299,13 +294,12 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Encabezado
+                    // ── Encabezado ──
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Colors.red, Colors.orange],
-                        ),
+                            colors: [Colors.red, Colors.orange]),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -335,152 +329,80 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Filtros si no viene equipo preseleccionado
                     if (widget.equipmentId == null) ...[
-                      // Filtro Sucursal
-                      const Text('Sucursal',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87)),
+                      // ── 1. SUCURSAL ──
+                      _buildFilterLabel('Sucursal'),
                       const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2)),
-                          ],
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _selectedBranch,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.business_center,
-                                color: Colors.grey),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none),
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
-                          isExpanded: true,
-                          items: _availableBranches.map((branch) {
-                            return DropdownMenuItem(
-                                value: branch,
-                                child: Text(branch,
-                                    overflow: TextOverflow.ellipsis));
-                          }).toList(),
-                          onChanged: (value) {
-                            _selectedBranch = value ?? 'Todas';
-                            _applyFilters();
-                          },
-                        ),
+                      _buildFilterDropdown(
+                        value: _selectedBranch,
+                        items: _availableBranches,
+                        icon: Icons.store_outlined,
+                        onChanged: (v) {
+                          _selectedBranch = v ?? 'Todas';
+                          _applyFilters();
+                        },
                       ),
                       const SizedBox(height: 16),
 
-                      // Filtro Tipo
-                      const Text('Tipo de Equipo',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87)),
+                      // ── 2. DEPARTAMENTO ──
+                      _buildFilterLabel('Departamento'),
                       const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2)),
-                          ],
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _selectedTipo,
-                          decoration: InputDecoration(
-                            prefixIcon:
-                                const Icon(Icons.category, color: Colors.grey),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none),
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
-                          isExpanded: true,
-                          items: _availableTipos.map((tipo) {
-                            return DropdownMenuItem(
-                                value: tipo,
-                                child: Text(tipo,
-                                    overflow: TextOverflow.ellipsis));
-                          }).toList(),
-                          onChanged: (value) {
-                            _selectedTipo = value ?? 'Todos';
-                            _applyFilters();
-                          },
-                        ),
+                      _buildFilterDropdown(
+                        value: _selectedDepartment,
+                        items: _availableDepartments,
+                        icon: Icons.meeting_room_outlined,
+                        onChanged: (v) {
+                          _selectedDepartment = v ?? 'Todos';
+                          _applyFilters();
+                        },
                       ),
                       const SizedBox(height: 16),
 
-                      // Selector de equipo
-                      const Text('Seleccionar Equipo',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87)),
+                      // ── 3. TIPO DE EQUIPO ──
+                      _buildFilterLabel('Tipo de Equipo'),
                       const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2)),
-                          ],
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _selectedEquipmentId,
-                          decoration: InputDecoration(
-                            hintText: _filteredEquipments.isEmpty
-                                ? 'No hay equipos con estos filtros'
-                                : 'Selecciona el equipo con falla',
-                            prefixIcon: const Icon(Icons.build_circle,
-                                color: Colors.grey),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none),
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
-                          isExpanded: true,
-                          items: _filteredEquipments.map((equipment) {
-                            return DropdownMenuItem<String>(
-                              value: equipment['id'] as String,
-                              child: Text(
-                                '${equipment['equipmentNumber']} - ${equipment['name']}',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            final selected = _filteredEquipments.firstWhere(
-                              (e) => e['id'] == value,
-                            );
-                            setState(() {
-                              _selectedEquipmentId = value;
-                              _selectedEquipmentNumber =
-                                  selected['equipmentNumber'] as String;
-                              _selectedEquipmentName =
-                                  selected['name'] as String;
-                              _selectedEquipmentData = selected;
-                            });
-                          },
-                        ),
+                      _buildFilterDropdown(
+                        value: _selectedTipo,
+                        items: _availableTipos,
+                        icon: Icons.category_outlined,
+                        onChanged: (v) {
+                          _selectedTipo = v ?? 'Todos';
+                          _applyFilters();
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── 4. SELECCIONAR EQUIPO ──
+                      _buildFilterLabel('Seleccionar Equipo'),
+                      const SizedBox(height: 8),
+                      _buildFilterDropdown(
+                        value: _selectedEquipmentId,
+                        items: const [],
+                        icon: Icons.build_circle_outlined,
+                        hintText: _filteredEquipments.isEmpty
+                            ? 'No hay equipos con estos filtros'
+                            : 'Selecciona el equipo con falla',
+                        customItems: _filteredEquipments.map((eq) {
+                          return DropdownMenuItem<String>(
+                            value: eq['id'] as String,
+                            child: Text(
+                              '${eq['equipmentNumber']} - ${eq['name']}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          final selected = _filteredEquipments
+                              .firstWhere((e) => e['id'] == value);
+                          setState(() {
+                            _selectedEquipmentId = value;
+                            _selectedEquipmentNumber =
+                                selected['equipmentNumber'] as String;
+                            _selectedEquipmentName = selected['name'] as String;
+                            _selectedEquipmentData = selected;
+                          });
+                        },
                       ),
                       const SizedBox(height: 16),
                     ] else ...[
@@ -518,7 +440,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                       const SizedBox(height: 16),
                     ],
 
-                    // Info del equipo seleccionado (ubicación)
+                    // ── Info reducida del equipo: Descripción, Marca, Departamento ──
                     if (_selectedEquipmentData != null) ...[
                       Container(
                         padding: const EdgeInsets.all(14),
@@ -549,36 +471,30 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            _buildEquipmentInfoRow(
-                                Icons.precision_manufacturing,
-                                'Tipo',
-                                _selectedEquipmentData!['tipo'] as String),
-                            _buildEquipmentInfoRow(Icons.devices, 'Categoría',
-                                _selectedEquipmentData!['category'] as String),
-                            _buildEquipmentInfoRow(
-                                Icons.business,
-                                'Marca / Modelo',
-                                '${_selectedEquipmentData!['brand']} ${_selectedEquipmentData!['model']}'),
-                            _buildEquipmentInfoRow(
-                                Icons.business_center,
-                                'Sucursal',
-                                _selectedEquipmentData!['branch'] as String),
-                            if ((_selectedEquipmentData!['location'] as String)
-                                .isNotEmpty)
-                              _buildEquipmentInfoRow(
-                                  Icons.place,
-                                  'Departamento',
-                                  _selectedEquipmentData!['location']
-                                      as String),
-                            _buildEquipmentInfoRow(Icons.settings, 'Estado',
-                                _selectedEquipmentData!['status'] as String),
+                            // Solo 3 campos
+                            _buildInfoRow(
+                              Icons.devices,
+                              'Descripción',
+                              _selectedEquipmentData!['category'] as String,
+                            ),
+                            _buildInfoRow(
+                              Icons.business,
+                              'Marca',
+                              '${_selectedEquipmentData!['brand']} ${_selectedEquipmentData!['model']}'
+                                  .trim(),
+                            ),
+                            _buildInfoRow(
+                              Icons.meeting_room_outlined,
+                              'Departamento',
+                              _selectedEquipmentData!['location'] as String,
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                     ],
 
-                    // Nota (opcional)
+                    // ── Nota (opcional) ──
                     Row(
                       children: [
                         const Text('Nota',
@@ -626,12 +542,11 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                           fillColor: Colors.white,
                           contentPadding: const EdgeInsets.all(16),
                         ),
-                        // Sin validator — es opcional
                       ),
                     ),
                     const SizedBox(height: 32),
 
-                    // Botón enviar
+                    // ── Botón enviar ──
                     SizedBox(
                       width: double.infinity,
                       height: 54,
@@ -672,20 +587,75 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
     );
   }
 
-  Widget _buildEquipmentInfoRow(IconData icon, String label, String value) {
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  Widget _buildFilterLabel(String label) {
+    return Text(
+      label,
+      style: const TextStyle(
+          fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+    );
+  }
+
+  Widget _buildFilterDropdown({
+    required String? value,
+    required List<String> items,
+    required IconData icon,
+    required ValueChanged<String?> onChanged,
+    String? hintText,
+    List<DropdownMenuItem<String>>? customItems,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.grey),
+          hintText: hintText,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        isExpanded: true,
+        items: customItems ??
+            items.map((item) {
+              return DropdownMenuItem(
+                  value: item,
+                  child: Text(item, overflow: TextOverflow.ellipsis));
+            }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
     if (value.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: Colors.grey[500]),
+          Icon(icon, size: 15, color: Colors.grey[500]),
           const SizedBox(width: 8),
           Text('$label: ',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500)),
           Expanded(
             child: Text(value,
                 style:
-                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 overflow: TextOverflow.ellipsis),
           ),
         ],

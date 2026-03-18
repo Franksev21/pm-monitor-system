@@ -281,18 +281,7 @@ class _ClientEquipmentInventoryScreenState
                     ),
                     const SizedBox(height: 10),
 
-                    // ── 2. TIPO DE EQUIPO ──
-                    _buildDropdownField(
-                      label: 'Tipo de Equipo',
-                      icon: Icons.category_outlined,
-                      value: _selectedCategory,
-                      items: _categories,
-                      activeColor: Colors.purple,
-                      onChanged: (v) => setState(() => _selectedCategory = v!),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // ── 3. DEPARTAMENTO ──
+                    // ── 2. DEPARTAMENTO ──
                     _buildDropdownField(
                       label: 'Departamento',
                       icon: Icons.meeting_room_outlined,
@@ -301,6 +290,17 @@ class _ClientEquipmentInventoryScreenState
                       activeColor: Colors.teal,
                       onChanged: (v) =>
                           setState(() => _selectedDepartment = v!),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // ── 3. TIPO DE EQUIPO ──
+                    _buildDropdownField(
+                      label: 'Tipo de Equipo',
+                      icon: Icons.category_outlined,
+                      value: _selectedCategory,
+                      items: _categories,
+                      activeColor: Colors.purple,
+                      onChanged: (v) => setState(() => _selectedCategory = v!),
                     ),
                     const SizedBox(height: 10),
 
@@ -534,16 +534,12 @@ class _ClientEquipmentInventoryScreenState
                   return false;
                 }
               }
-              if (_selectedBranch != 'Todos' && branch != _selectedBranch) {
+              if (_selectedBranch != 'Todos' && branch != _selectedBranch)
                 return false;
-              }
-              if (_selectedCategory != 'Todos' && category != _selectedCategory) {
+              if (_selectedCategory != 'Todos' && category != _selectedCategory)
                 return false;
-              }
               if (_selectedDepartment != 'Todos' &&
-                  department != _selectedDepartment) {
-                return false;
-              }
+                  department != _selectedDepartment) return false;
 
               return true;
             }).toList();

@@ -11,7 +11,6 @@ import 'package:pm_monitor/core/providers/auth_provider.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/services/equipment_type_service.dart';
 
-/// Formatter personalizado para entrada de moneda
 class CurrencyInputFormatter extends TextInputFormatter {
   final NumberFormat _formatter = NumberFormat('#,##0', 'en_US');
 
@@ -20,19 +19,11 @@ class CurrencyInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (newValue.text.isEmpty) {
-      return newValue;
-    }
-
+    if (newValue.text.isEmpty) return newValue;
     String digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-
-    if (digitsOnly.isEmpty) {
-      return const TextEditingValue(text: '');
-    }
-
+    if (digitsOnly.isEmpty) return const TextEditingValue(text: '');
     int value = int.parse(digitsOnly);
     String formatted = _formatter.format(value);
-
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
@@ -74,13 +65,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   Timer? _debounceTimer;
 
-  // Sistema dinámico de tipos
   String? _selectedEquipmentType;
   String? _selectedCategory;
   List<String> _availableCategories = [];
   bool _isLoadingCategories = false;
 
-  // ✅ Ubicaciones del cliente
   List<String> _clientLocations = [];
   bool _isLoadingLocations = false;
   String? _selectedLocation;
@@ -154,57 +143,69 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     'Otra',
   ];
 
-
-  
-
   BranchModel? _selectedBranch;
-
   final NumberFormat _currencyFormatter = NumberFormat('#,##0', 'en_US');
-
   final EquipmentTypeService _equipmentTypeService = EquipmentTypeService();
+
+  static const List<String> _defaultLocations = [
+    'Recepción',
+    'Recursos Humanos',
+    'Sala de Conferencias',
+    'Sala de Servidores',
+    'Oficina Principal',
+    'Comedor',
+    'Almacén',
+    'Pasillo',
+    'Lobby',
+    'Baño',
+    'Cocina',
+    'Techo',
+    'Área de Producción',
+    'Área Común',
+    'Estacionamiento',
+    'Cuarto Eléctrico',
+    'Cuarto de Máquinas',
+    'Planta Baja',
+    'Segundo Piso',
+    'Tercer Piso',
+    'Sótano',
+  ];
 
   @override
   void initState() {
     super.initState();
     _isEditing = widget.equipment != null;
-
     if (_isEditing) {
       _loadEquipmentData();
     } else {
       _generateEquipmentNumber();
       _initializeClientData();
     }
-
     _equipmentBrands.sort();
     _loadClientLocations();
   }
 
+  // ─── Cargar datos del equipo al editar ───────────────────────────────────
   void _loadEquipmentData() async {
     final eq = widget.equipment!;
-
     _equipmentNumberController.text = eq.equipmentNumber;
     _rfidController.text = eq.rfidTag;
     _nameController.text = eq.name;
     _descriptionController.text = eq.description;
     _brandController.text = eq.brand;
     _selectedBrand = _equipmentBrands.contains(eq.brand) ? eq.brand : 'Otra';
-    if (_selectedBrand == 'Otra') {
-      _brandController.text = eq.brand;
-    }
+    if (_selectedBrand == 'Otra') _brandController.text = eq.brand;
     _modelController.text = eq.model;
     _capacityController.text = eq.capacity.toString();
     _serialNumberController.text = eq.serialNumber;
     _locationController.text = eq.location;
     _branchController.text = eq.branch;
     _addressController.text = eq.address;
-
     if (eq.equipmentCost > 0) {
       _equipmentCostController.text =
           _currencyFormatter.format(eq.equipmentCost.toInt());
     }
-
     _estimatedHoursController.text = eq.estimatedMaintenanceHours.toString();
-
     _selectedEquipmentType = eq.tipo;
     await _loadCategoriesForType(eq.tipo);
 
@@ -235,22 +236,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
     if (eq.branchId != null && widget.client.branches.isNotEmpty) {
       try {
-        _selectedBranch = widget.client.branches.firstWhere(
-          (b) => b.id == eq.branchId,
-        );
+        _selectedBranch =
+            widget.client.branches.firstWhere((b) => b.id == eq.branchId);
       } catch (e) {
         _selectedBranch = null;
       }
     }
-
     setState(() {});
   }
 
   Future<void> _loadCategoriesForType(String typeName) async {
-    setState(() {
-      _isLoadingCategories = true;
-    });
-
+    setState(() => _isLoadingCategories = true);
     try {
       final categories =
           await _equipmentTypeService.getCategoriesForType(typeName);
@@ -270,31 +266,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     }
   }
 
- // ✅ Lista predeterminada de ubicaciones
-  static const List<String> _defaultLocations = [
-    'Recepción',
-    'Recursos Humanos',
-    'Sala de Conferencias',
-    'Sala de Servidores',
-    'Oficina Principal',
-    'Comedor',
-    'Almacén',
-    'Pasillo',
-    'Lobby',
-    'Baño',
-    'Cocina',
-    'Techo',
-    'Área de Producción',
-    'Área Común',
-    'Estacionamiento',
-    'Cuarto Eléctrico',
-    'Cuarto de Máquinas',
-    'Planta Baja',
-    'Segundo Piso',
-    'Tercer Piso',
-    'Sótano',
-  ];
-
+  // ─── Ubicaciones ─────────────────────────────────────────────────────────
   Future<void> _loadClientLocations() async {
     setState(() => _isLoadingLocations = true);
     try {
@@ -302,7 +274,6 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           .collection('clients')
           .doc(widget.client.id);
       final doc = await docRef.get();
-
       List<String> existingLocations = [];
 
       if (doc.exists) {
@@ -310,11 +281,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         existingLocations = List<String>.from(data?['locations'] ?? []);
       }
 
-      // Si el cliente no tiene ubicaciones, sembrar las predeterminadas
       if (existingLocations.isEmpty) {
-        await docRef.update({
-          'locations': _defaultLocations,
-        });
+        await docRef.update({'locations': _defaultLocations});
         existingLocations = List<String>.from(_defaultLocations);
       }
 
@@ -326,20 +294,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           if (_clientLocations.contains(_locationController.text)) {
             _selectedLocation = _locationController.text;
           } else {
-            // Agregar la ubicación del equipo si no existe en la lista
             _clientLocations.add(_locationController.text);
             _clientLocations.sort();
             _selectedLocation = _locationController.text;
-            // Guardarla también en Firestore
             docRef.update({
-              'locations': FieldValue.arrayUnion([_locationController.text]),
+              'locations': FieldValue.arrayUnion([_locationController.text])
             });
           }
         }
       });
     } catch (e) {
       debugPrint('Error cargando ubicaciones: $e');
-      // Fallback: usar lista predeterminada localmente
       setState(() {
         _clientLocations = List<String>.from(_defaultLocations)..sort();
       });
@@ -347,14 +312,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     setState(() => _isLoadingLocations = false);
   }
 
-  // ✅ Agregar nueva ubicación al cliente en Firestore
   Future<void> _addNewLocation(String location) async {
     try {
       await FirebaseFirestore.instance
           .collection('clients')
           .doc(widget.client.id)
           .update({
-        'locations': FieldValue.arrayUnion([location]),
+        'locations': FieldValue.arrayUnion([location])
       });
       setState(() {
         _clientLocations.add(location);
@@ -363,27 +327,19 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         _locationController.text = location;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Ubicación "$location" agregada'),
-            backgroundColor: Colors.green,
-          ),
-        );
+            backgroundColor: Colors.green));
       }
     } catch (e) {
-      debugPrint('Error agregando ubicación: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Error al agregar ubicación'),
-            backgroundColor: Colors.red,
-          ),
-        );
+            backgroundColor: Colors.red));
       }
     }
   }
 
-  // ✅ Diálogo para agregar nueva ubicación
   void _showAddLocationDialog() {
     final controller = TextEditingController();
     showDialog(
@@ -401,10 +357,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Agrega un área o departamento dentro de la sucursal.',
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-            ),
+            Text('Agrega un área o departamento dentro de la sucursal.',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600])),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
@@ -417,61 +371,25 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 prefixIcon: const Icon(Icons.place),
               ),
             ),
-            if (_clientLocations.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Ubicaciones existentes:',
-                style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: _clientLocations.map((loc) {
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: Text(loc,
-                        style:
-                            TextStyle(fontSize: 11, color: Colors.grey[600])),
-                  );
-                }).toList(),
-              ),
-            ],
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar')),
           ElevatedButton.icon(
             onPressed: () {
               final text = controller.text.trim();
               if (text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Escribe un nombre de ubicación'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
+                    backgroundColor: Colors.orange));
                 return;
               }
               if (_clientLocations.contains(text)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Esta ubicación ya existe'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
+                    backgroundColor: Colors.orange));
                 return;
               }
               Navigator.pop(context);
@@ -480,13 +398,296 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Agregar'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-              foregroundColor: Colors.white,
-            ),
+                backgroundColor: const Color(0xFF2196F3),
+                foregroundColor: Colors.white),
           ),
         ],
       ),
     );
+  }
+
+  // ─── Gestionar ubicaciones (editar / eliminar) ───────────────────────────
+  void _showManageLocationsDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheet) => DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          expand: false,
+          builder: (_, scrollController) => Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.place, color: Color(0xFF2196F3)),
+                    const SizedBox(width: 8),
+                    const Text('Gestionar Ubicaciones',
+                        style: TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _showAddLocationDialog();
+                      },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Agregar'),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                Expanded(
+                  child: _clientLocations.isEmpty
+                      ? const Center(
+                          child: Text('No hay ubicaciones registradas',
+                              style: TextStyle(color: Colors.grey)))
+                      : ListView.separated(
+                          controller: scrollController,
+                          itemCount: _clientLocations.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (_, index) {
+                            final loc = _clientLocations[index];
+                            return ListTile(
+                              leading: const Icon(Icons.meeting_room_outlined,
+                                  color: Color(0xFF2196F3)),
+                              title: Text(loc),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined,
+                                        color: Colors.orange, size: 20),
+                                    tooltip: 'Editar',
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _showEditLocationDialog(loc, index);
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Colors.red, size: 20),
+                                    tooltip: 'Eliminar',
+                                    onPressed: () async {
+                                      Navigator.pop(ctx);
+                                      await _deleteLocation(loc);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showEditLocationDialog(String oldLocation, int index) async {
+    final controller = TextEditingController(text: oldLocation);
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.edit_location_alt, color: Color(0xFF2196F3)),
+            SizedBox(width: 8),
+            Text('Editar Ubicación', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            hintText: 'Nombre de la ubicación',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            prefixIcon: const Icon(Icons.place),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar')),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isEmpty) return;
+              if (newName == oldLocation) {
+                Navigator.pop(context);
+                return;
+              }
+              if (_clientLocations.contains(newName)) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Esa ubicación ya existe'),
+                    backgroundColor: Colors.orange));
+                return;
+              }
+              Navigator.pop(context);
+              await _editLocation(oldLocation, newName);
+            },
+            icon: const Icon(Icons.save, size: 18),
+            label: const Text('Guardar'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+                foregroundColor: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editLocation(String oldName, String newName) async {
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('clients')
+          .doc(widget.client.id);
+      await docRef.update({
+        'locations': FieldValue.arrayRemove([oldName])
+      });
+      await docRef.update({
+        'locations': FieldValue.arrayUnion([newName])
+      });
+      setState(() {
+        final idx = _clientLocations.indexOf(oldName);
+        if (idx != -1) _clientLocations[idx] = newName;
+        _clientLocations.sort();
+        if (_selectedLocation == oldName) {
+          _selectedLocation = newName;
+          _locationController.text = newName;
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Ubicación renombrada a "$newName"'),
+            backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Error al editar la ubicación'),
+            backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Future<void> _deleteLocation(String location) async {
+    try {
+      // Query solo por location, luego filtramos en memoria
+      final snapshot = await FirebaseFirestore.instance
+          .collection('equipments')
+          .where('location', isEqualTo: location)
+          .get();
+
+      debugPrint(
+          '🔍 Total equipos con location "$location": ${snapshot.docs.length}');
+      for (final doc in snapshot.docs) {
+        final d = doc.data();
+        debugPrint(
+            '  → id: ${doc.id}, branch: ${d['branch']}, clientId: ${d['clientId']}');
+      }
+
+      final clientNameLower = widget.client.name.toLowerCase().trim();
+      final clientId = widget.client.id;
+
+      final equipmentsUsingIt = snapshot.docs.where((doc) {
+        final d = doc.data();
+        final branch = (d['branch'] ?? '').toString().toLowerCase().trim();
+        final docClientId = (d['clientId'] ?? '').toString();
+        return branch == clientNameLower || docClientId == clientId;
+      }).toList();
+
+      debugPrint(
+          '🔍 Equipos del cliente con esa ubicación: ${equipmentsUsingIt.length}');
+
+      if (equipmentsUsingIt.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'No se puede eliminar "$location" — '
+                '${equipmentsUsingIt.length} equipo'
+                '${equipmentsUsingIt.length != 1 ? 's' : ''} '
+                'la usa${equipmentsUsingIt.length != 1 ? 'n' : ''}.',
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Text('Eliminar ubicación'),
+          content: Text('¿Eliminar "$location"?'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Eliminar',
+                    style: TextStyle(color: Colors.red))),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
+      await FirebaseFirestore.instance
+          .collection('clients')
+          .doc(widget.client.id)
+          .update({
+        'locations': FieldValue.arrayRemove([location])
+      });
+
+      setState(() {
+        _clientLocations.remove(location);
+        if (_selectedLocation == location) {
+          _selectedLocation = null;
+          _locationController.clear();
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Ubicación "$location" eliminada'),
+            backgroundColor: Colors.orange));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Error al eliminar la ubicación'),
+            backgroundColor: Colors.red));
+      }
+    }
   }
 
   void _initializeClientData() {
@@ -516,15 +717,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   }
 
   Future<void> _generateEquipmentNumber() async {
-    setState(() {
-      _isGeneratingNumber = true;
-    });
-
+    setState(() => _isGeneratingNumber = true);
     final equipmentProvider =
         Provider.of<EquipmentProvider>(context, listen: false);
     String generatedNumber =
         await equipmentProvider.generateEquipmentNumber(widget.client.id);
-
     setState(() {
       _equipmentNumberController.text = generatedNumber;
       _isGeneratingNumber = false;
@@ -580,14 +777,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           void filterBrands(String query) {
             setDialogState(() {
               searchQuery = query;
-              if (query.isEmpty) {
-                filteredBrands = _equipmentBrands;
-              } else {
-                final queryLower = query.toLowerCase();
-                filteredBrands = _equipmentBrands.where((brand) {
-                  return brand.toLowerCase().contains(queryLower);
-                }).toList();
-              }
+              filteredBrands = query.isEmpty
+                  ? _equipmentBrands
+                  : _equipmentBrands
+                      .where(
+                          (b) => b.toLowerCase().contains(query.toLowerCase()))
+                      .toList();
             });
           }
 
@@ -599,18 +794,13 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'Seleccionar Marca',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const Text('Seleccionar Marca',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context)),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -622,41 +812,27 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       suffixIcon: searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),
-                              onPressed: () => filterBrands(''),
-                            )
+                              onPressed: () => filterBrands(''))
                           : null,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onChanged: filterBrands,
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    '${filteredBrands.length} marcas',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
+                  Text('${filteredBrands.length} marcas',
+                      style: TextStyle(color: Colors.grey[600])),
                   const SizedBox(height: 8),
                   Expanded(
                     child: filteredBrands.isEmpty
                         ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.search_off,
-                                    size: 64, color: Colors.grey[400]),
-                                const SizedBox(height: 16),
-                                Text('No se encontraron marcas',
-                                    style: TextStyle(color: Colors.grey[600])),
-                              ],
-                            ),
-                          )
+                            child: Text('No se encontraron marcas',
+                                style: TextStyle(color: Colors.grey[600])))
                         : ListView.builder(
                             itemCount: filteredBrands.length,
                             itemBuilder: (context, index) {
                               final brand = filteredBrands[index];
                               final isSelected = _selectedBrand == brand;
-
                               return ListTile(
                                 title: Text(brand),
                                 trailing: isSelected
@@ -690,31 +866,22 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
   Future<void> _saveEquipment() async {
     if (!_formKey.currentState!.validate()) {
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       return;
     }
 
     if (_selectedBrand == 'Otra' && _brandController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Por favor ingresa el nombre de la marca'),
-          backgroundColor: Colors.red,
-        ),
-      );
+          backgroundColor: Colors.red));
       return;
     }
 
     if (_selectedEquipmentType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Por favor selecciona un tipo de equipo'),
-          backgroundColor: Colors.red,
-        ),
-      );
+          backgroundColor: Colors.red));
       return;
     }
 
@@ -730,15 +897,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         _selectedBranch?.address.country ?? widget.client.mainAddress.country;
     String region =
         _selectedBranch?.address.state ?? widget.client.mainAddress.state;
-
     String calculatedCondition = _getConditionFromLifeScale(_selectedLifeScale);
-
-    String costText = _equipmentCostController.text.trim().replaceAll(',', '');
-    double equipmentCost = double.tryParse(costText) ?? 0.0;
-
-    debugPrint(
-        '🔍 equipmentNumber: "${_equipmentNumberController.text.trim()}"');
-    debugPrint('🔍 clientId: "${widget.client.id}"');
+    double equipmentCost = double.tryParse(
+            _equipmentCostController.text.trim().replaceAll(',', '')) ??
+        0.0;
 
     Equipment equipment = Equipment(
       id: _isEditing ? widget.equipment!.id : null,
@@ -808,9 +970,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -825,44 +985,36 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
 
       if (success) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_isEditing
-                  ? 'Equipo actualizado exitosamente'
-                  : 'Equipo agregado exitosamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(_isEditing
+                ? 'Equipo actualizado exitosamente'
+                : 'Equipo agregado exitosamente'),
+            backgroundColor: Colors.green,
+          ));
           Navigator.of(context).pop(true);
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(equipmentProvider.errorMessage ??
-                  (_isEditing
-                      ? 'Error al actualizar equipo'
-                      : 'Error al agregar equipo')),
-              backgroundColor: Colors.red,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(equipmentProvider.errorMessage ??
+                (_isEditing
+                    ? 'Error al actualizar equipo'
+                    : 'Error al agregar equipo')),
+            backgroundColor: Colors.red,
+          ));
         }
       }
     } catch (e) {
       if (mounted) Navigator.of(context).pop();
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Error inesperado: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+            backgroundColor: Colors.red));
       }
     }
   }
 
+  // ─── BUILD ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -874,13 +1026,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         actions: [
           TextButton(
             onPressed: _saveEquipment,
-            child: const Text(
-              'GUARDAR',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text('GUARDAR',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -922,14 +1070,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF2196F3),
-        ),
-      ),
+      child: Text(title,
+          style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2196F3))),
     );
   }
 
@@ -938,57 +1083,37 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: widget.client.statusColor,
-                  child: Text(
-                    widget.client.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.client.displayName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        widget.client.type.displayName,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: widget.client.statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    widget.client.status.displayName,
-                    style: TextStyle(
+            CircleAvatar(
+              backgroundColor: widget.client.statusColor,
+              child: Text(widget.client.name.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(color: Colors.white)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.client.displayName,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(widget.client.type.displayName,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: widget.client.statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(widget.client.status.displayName,
+                  style: TextStyle(
                       color: widget.client.statusColor,
                       fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+                      fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -1003,39 +1128,30 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _equipmentNumberController,
-                    decoration: InputDecoration(
-                      labelText: 'Número de Equipo *',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.tag),
-                      suffixIcon: _isEditing
-                          ? null
-                          : (_isGeneratingNumber
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  ),
-                                )
-                              : IconButton(
-                                  icon: const Icon(Icons.refresh),
-                                  onPressed: _generateEquipmentNumber,
-                                  tooltip: 'Generar nuevo número',
-                                )),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 16),
-                    ),
-                    readOnly: true,
-                  ),
-                ),
-              ],
+            TextFormField(
+              controller: _equipmentNumberController,
+              decoration: InputDecoration(
+                labelText: 'Número de Equipo *',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.tag),
+                suffixIcon: _isEditing
+                    ? null
+                    : (_isGeneratingNumber
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2)))
+                        : IconButton(
+                            icon: const Icon(Icons.refresh),
+                            onPressed: _generateEquipmentNumber,
+                            tooltip: 'Generar nuevo número')),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              ),
+              readOnly: true,
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -1055,12 +1171,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.build),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'El nombre es requerido';
-                }
-                return null;
-              },
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'El nombre es requerido'
+                  : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -1113,43 +1226,33 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'No hay categorías disponibles para este tipo',
-                          style: TextStyle(color: Colors.orange[700]),
-                        ),
+                            'No hay categorías disponibles para este tipo',
+                            style: TextStyle(color: Colors.orange[700])),
                       ),
                     ],
                   ),
                 )
               else
                 DropdownButtonFormField<String>(
-                  initialValue: _selectedCategory,
+                  value: _selectedCategory,
                   decoration: const InputDecoration(
                     labelText: 'Categoría *',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.devices),
                   ),
                   isExpanded: true,
-                  items: _availableCategories.map((category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(
-                        category,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategory = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Selecciona una categoría';
-                    }
-                    return null;
-                  },
+                  items: _availableCategories
+                      .map((category) => DropdownMenuItem(
+                          value: category,
+                          child: Text(category,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 14))))
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => _selectedCategory = value),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Selecciona una categoría'
+                      : null,
                 ),
               const SizedBox(height: 16),
             ],
@@ -1166,15 +1269,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   _selectedBrand.isEmpty
                       ? 'Seleccionar marca...'
                       : (_selectedBrand == 'Otra'
-                          ? _brandController.text.isEmpty
+                          ? (_brandController.text.isEmpty
                               ? 'Otra (escribir)'
-                              : _brandController.text
+                              : _brandController.text)
                           : _selectedBrand),
                   style: TextStyle(
-                    color: _selectedBrand.isEmpty
-                        ? Colors.grey[600]
-                        : Colors.black,
-                  ),
+                      color: _selectedBrand.isEmpty
+                          ? Colors.grey[600]
+                          : Colors.black),
                 ),
               ),
             ),
@@ -1188,13 +1290,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   prefixIcon: Icon(Icons.edit),
                   hintText: 'Escribir nombre de la marca',
                 ),
-                validator: (value) {
-                  if (_selectedBrand == 'Otra' &&
-                      (value == null || value.trim().isEmpty)) {
-                    return 'El nombre de la marca es requerido';
-                  }
-                  return null;
-                },
+                validator: (value) => _selectedBrand == 'Otra' &&
+                        (value == null || value.trim().isEmpty)
+                    ? 'El nombre de la marca es requerido'
+                    : null,
               ),
             ],
             const SizedBox(height: 16),
@@ -1205,12 +1304,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.model_training),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'El modelo es requerido';
-                }
-                return null;
-              },
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'El modelo es requerido'
+                  : null,
             ),
             const SizedBox(height: 16),
             Row(
@@ -1226,12 +1322,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                      if (value == null || value.trim().isEmpty)
                         return 'La capacidad es requerida';
-                      }
-                      if (double.tryParse(value.trim()) == null) {
+                      if (double.tryParse(value.trim()) == null)
                         return 'Ingrese un número válido';
-                      }
                       return null;
                     },
                   ),
@@ -1239,23 +1333,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    initialValue: _selectedCapacityUnit,
+                    value: _selectedCapacityUnit,
                     decoration: const InputDecoration(
-                      labelText: 'Unidad',
-                      border: OutlineInputBorder(),
-                    ),
+                        labelText: 'Unidad', border: OutlineInputBorder()),
                     isExpanded: true,
-                    items: _capacityUnits.map((unit) {
-                      return DropdownMenuItem(
-                        value: unit,
-                        child: Text(unit),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCapacityUnit = value!;
-                      });
-                    },
+                    items: _capacityUnits
+                        .map((unit) =>
+                            DropdownMenuItem(value: unit, child: Text(unit)))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedCapacityUnit = value!),
                   ),
                 ),
               ],
@@ -1284,7 +1371,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           children: [
             if (widget.client.branches.isNotEmpty) ...[
               DropdownButtonFormField<BranchModel?>(
-                initialValue: _selectedBranch,
+                value: _selectedBranch,
                 decoration: const InputDecoration(
                   labelText: 'Sucursal *',
                   border: OutlineInputBorder(),
@@ -1292,17 +1379,11 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 ),
                 items: [
                   DropdownMenuItem<BranchModel?>(
-                    value: null,
-                    child: Text('Oficina Principal - ${widget.client.name}'),
-                  ),
-                  ...widget.client.branches
-                      .where((b) => b.isActive)
-                      .map((branch) {
-                    return DropdownMenuItem<BranchModel?>(
-                      value: branch,
-                      child: Text(branch.name),
-                    );
-                  }),
+                      value: null,
+                      child: Text('Oficina Principal - ${widget.client.name}')),
+                  ...widget.client.branches.where((b) => b.isActive).map(
+                      (branch) => DropdownMenuItem<BranchModel?>(
+                          value: branch, child: Text(branch.name))),
                 ],
                 onChanged: _onBranchChanged,
               ),
@@ -1320,19 +1401,18 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               const SizedBox(height: 16),
             ],
 
-            // ✅ Dropdown de ubicación/departamento con botón de agregar
+            // ── Dropdown ubicación + botón agregar + botón gestionar ──
             _isLoadingLocations
                 ? const Center(
                     child: Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ))
+                        padding: EdgeInsets.all(12),
+                        child: CircularProgressIndicator(strokeWidth: 2)))
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          initialValue: _selectedLocation,
+                          value: _selectedLocation,
                           decoration: const InputDecoration(
                             labelText: 'Ubicación / Departamento *',
                             border: OutlineInputBorder(),
@@ -1346,31 +1426,24 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             style: TextStyle(
                                 fontSize: 14, color: Colors.grey[500]),
                           ),
-                          items: _clientLocations.map((location) {
-                            return DropdownMenuItem(
-                              value: location,
-                              child: Text(
-                                location,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedLocation = value;
-                              _locationController.text = value ?? '';
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Selecciona una ubicación';
-                            }
-                            return null;
-                          },
+                          items: _clientLocations
+                              .map((location) => DropdownMenuItem(
+                                  value: location,
+                                  child: Text(location,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 14))))
+                              .toList(),
+                          onChanged: (value) => setState(() {
+                            _selectedLocation = value;
+                            _locationController.text = value ?? '';
+                          }),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Selecciona una ubicación'
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 8),
+                      // Botón agregar (azul)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Container(
@@ -1382,6 +1455,23 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                             icon: const Icon(Icons.add, color: Colors.white),
                             onPressed: _showAddLocationDialog,
                             tooltip: 'Agregar nueva ubicación',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Botón gestionar (naranja)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.edit_note,
+                                color: Colors.white),
+                            onPressed: _showManageLocationsDialog,
+                            tooltip: 'Gestionar ubicaciones',
                           ),
                         ),
                       ),
@@ -1416,24 +1506,18 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              initialValue: _selectedStatus,
+              value: _selectedStatus,
               decoration: const InputDecoration(
                 labelText: 'Estado *',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.settings),
               ),
               isExpanded: true,
-              items: _statuses.map((status) {
-                return DropdownMenuItem(
-                  value: status,
-                  child: Text(status),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedStatus = value!;
-                });
-              },
+              items: _statuses
+                  .map((status) =>
+                      DropdownMenuItem(value: status, child: Text(status)))
+                  .toList(),
+              onChanged: (value) => setState(() => _selectedStatus = value!),
             ),
             const SizedBox(height: 24),
             Container(
@@ -1449,18 +1533,12 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Vida Útil: $_selectedLifeScale/10',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text('Vida Útil: $_selectedLifeScale/10',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w500)),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: conditionColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -1469,20 +1547,14 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 16,
-                              color: conditionColor,
-                            ),
+                            Icon(Icons.info_outline,
+                                size: 16, color: conditionColor),
                             const SizedBox(width: 4),
-                            Text(
-                              currentCondition,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: conditionColor,
-                              ),
-                            ),
+                            Text(currentCondition,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: conditionColor)),
                           ],
                         ),
                       ),
@@ -1496,11 +1568,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     divisions: 9,
                     label: _selectedLifeScale.toString(),
                     activeColor: conditionColor,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLifeScale = value.round();
-                      });
-                    },
+                    onChanged: (value) =>
+                        setState(() => _selectedLifeScale = value.round()),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -1531,30 +1600,21 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       hintText: '0',
                     ),
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      CurrencyInputFormatter(),
-                    ],
+                    inputFormatters: [CurrencyInputFormatter()],
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    initialValue: _selectedCurrency,
+                    value: _selectedCurrency,
                     decoration: const InputDecoration(
-                      labelText: 'Moneda',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _currencies.map((currency) {
-                      return DropdownMenuItem(
-                        value: currency,
-                        child: Text(currency),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCurrency = value!;
-                      });
-                    },
+                        labelText: 'Moneda', border: OutlineInputBorder()),
+                    items: _currencies
+                        .map((currency) => DropdownMenuItem(
+                            value: currency, child: Text(currency)))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedCurrency = value!),
                   ),
                 ),
               ],
@@ -1573,14 +1633,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+      child: Text(text,
+          style: TextStyle(
+              fontSize: 11, color: color, fontWeight: FontWeight.w500)),
     );
   }
 
@@ -1596,22 +1651,16 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               subtitle:
                   const Text('Notificaciones para mantenimientos programados'),
               value: _enableMaintenanceAlerts,
-              onChanged: (value) {
-                setState(() {
-                  _enableMaintenanceAlerts = value;
-                });
-              },
+              onChanged: (value) =>
+                  setState(() => _enableMaintenanceAlerts = value),
             ),
             const Divider(),
             SwitchListTile(
               title: const Text('Alertas de Fallas'),
               subtitle: const Text('Notificaciones para reportes de fallas'),
               value: _enableFailureAlerts,
-              onChanged: (value) {
-                setState(() {
-                  _enableFailureAlerts = value;
-                });
-              },
+              onChanged: (value) =>
+                  setState(() => _enableFailureAlerts = value),
             ),
             const Divider(),
             SwitchListTile(
@@ -1619,16 +1668,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               subtitle:
                   const Text('Habilitar monitoreo automático de temperatura'),
               value: _hasTemperatureMonitoring,
-              onChanged: (value) {
-                setState(() {
-                  _hasTemperatureMonitoring = value;
-                  if (value) {
-                    _enableTemperatureAlerts = true;
-                  } else {
-                    _enableTemperatureAlerts = false;
-                  }
-                });
-              },
+              onChanged: (value) => setState(() {
+                _hasTemperatureMonitoring = value;
+                _enableTemperatureAlerts = value;
+              }),
             ),
             if (_hasTemperatureMonitoring) ...[
               const Divider(),
@@ -1637,11 +1680,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 subtitle:
                     const Text('Notificaciones por variaciones de temperatura'),
                 value: _enableTemperatureAlerts,
-                onChanged: (value) {
-                  setState(() {
-                    _enableTemperatureAlerts = value;
-                  });
-                },
+                onChanged: (value) =>
+                    setState(() => _enableTemperatureAlerts = value),
               ),
             ],
           ],
@@ -1663,10 +1703,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white)))
                 : Icon(_isEditing ? Icons.save : Icons.add),
             label: Text(
               equipmentProvider.isCreating
@@ -1678,8 +1717,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               backgroundColor: const Color(0xFF2196F3),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         );
