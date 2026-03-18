@@ -796,10 +796,10 @@ class _CompletedMaintenancesScreenState
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 110,
                     child: Text('Programado:',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                   Expanded(
@@ -848,10 +848,10 @@ class _CompletedMaintenancesScreenState
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 110,
                     child: Text('Completado:',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                   Expanded(

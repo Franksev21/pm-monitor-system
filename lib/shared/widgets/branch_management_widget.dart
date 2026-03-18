@@ -556,7 +556,7 @@ class _BranchDialogState extends State<_BranchDialog> {
                             _isActive = value;
                           });
                         },
-                        activeColor: AppTheme.successColor,
+                        activeThumbColor: AppTheme.successColor,
                       ),
                     ],
                   ),

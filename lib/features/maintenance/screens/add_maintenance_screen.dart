@@ -458,7 +458,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedBranchId,
+              initialValue: _selectedBranchId,
               decoration: const InputDecoration(
                 labelText: 'Seleccionar sucursal *',
                 border: OutlineInputBorder(),
@@ -834,7 +834,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<MaintenanceType>(
-              value: _selectedType,
+              initialValue: _selectedType,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.build),
@@ -988,7 +988,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: DropdownButtonFormField<FrequencyType>(
-                                  value: frequency,
+                                  initialValue: frequency,
                                   decoration: InputDecoration(
                                     contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 12,

@@ -137,7 +137,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
               Consumer<ClientProvider>(
                 builder: (context, clientProvider, child) {
                   return DropdownButtonFormField<ClientStatus?>(
-                    value: clientProvider.statusFilter,
+                    initialValue: clientProvider.statusFilter,
                     decoration: const InputDecoration(
                       labelText: 'Filtrar por Estado',
                       border: OutlineInputBorder(),
@@ -183,7 +183,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
               Consumer<ClientProvider>(
                 builder: (context, clientProvider, child) {
                   return DropdownButtonFormField<ClientType?>(
-                    value: clientProvider.typeFilter,
+                    initialValue: clientProvider.typeFilter,
                     decoration: const InputDecoration(
                       labelText: 'Filtrar por Tipo',
                       border: OutlineInputBorder(),

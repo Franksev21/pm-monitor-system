@@ -185,7 +185,7 @@ class _MaintenanceManagementScreenState
       backgroundColor: const Color(0xFFF2F2F7),
       appBar: AppBar(
         title: const Text('Gestión de Mantenimientos'),
-        backgroundColor: Color(0xFF4CAF50),
+        backgroundColor: const Color(0xFF4CAF50),
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [

@@ -173,7 +173,7 @@ class _AddEditTaskTemplateScreenState extends State<AddEditTaskTemplateScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedType,
+              initialValue: _selectedType,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.category),

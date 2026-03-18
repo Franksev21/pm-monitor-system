@@ -895,7 +895,7 @@ class _AdminMaintenanceReviewScreenState
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  skipReason!,
+                                  skipReason,
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.red[900],

@@ -1617,7 +1617,7 @@ class _GlobalEquipmentInventoryScreenState
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: selectedValue,
+          initialValue: selectedValue,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

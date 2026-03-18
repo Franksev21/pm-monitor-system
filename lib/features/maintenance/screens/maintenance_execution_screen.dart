@@ -22,7 +22,7 @@ class _MaintenanceExecutionScreenState
   final ImagePicker _picker = ImagePicker();
 
   // ✅ CAMBIO: Renombrado para que coincida con el servicio
-  Map<String, String> _skipReasons = {}; // antes: taskSkipReasons
+  final Map<String, String> _skipReasons = {}; // antes: taskSkipReasons
 
   Map<String, bool> taskCompletion = {};
   List<File> selectedImages = [];
@@ -1193,7 +1193,7 @@ class _MaintenanceExecutionScreenState
               children: [
                 const Icon(Icons.timeline, color: Color(0xFF1976D2)),
                 const SizedBox(width: 8),
-                Expanded(
+                const Expanded(
                   // ← Expanded en el título
                   child: Text(
                     'Progreso del Mantenimiento',
@@ -1445,7 +1445,7 @@ class _MaintenanceExecutionScreenState
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedSeverity,
+                initialValue: selectedSeverity,
                 decoration: const InputDecoration(
                   labelText: 'Severidad',
                   border: OutlineInputBorder(),

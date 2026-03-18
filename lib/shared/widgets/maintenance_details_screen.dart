@@ -172,7 +172,7 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
                 _buildInfoRow(
                   icon: Icons.location_on,
                   label: 'Sucursal',
-                  value: m.branchName!,
+                  value: m.branchName,
                 ),
                 _buildInfoRow(
                   icon: Icons.build,

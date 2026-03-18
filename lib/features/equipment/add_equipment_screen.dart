@@ -1122,7 +1122,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 )
               else
                 DropdownButtonFormField<String>(
-                  value: _selectedCategory,
+                  initialValue: _selectedCategory,
                   decoration: const InputDecoration(
                     labelText: 'Categoría *',
                     border: OutlineInputBorder(),
@@ -1239,7 +1239,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCapacityUnit,
+                    initialValue: _selectedCapacityUnit,
                     decoration: const InputDecoration(
                       labelText: 'Unidad',
                       border: OutlineInputBorder(),
@@ -1284,7 +1284,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           children: [
             if (widget.client.branches.isNotEmpty) ...[
               DropdownButtonFormField<BranchModel?>(
-                value: _selectedBranch,
+                initialValue: _selectedBranch,
                 decoration: const InputDecoration(
                   labelText: 'Sucursal *',
                   border: OutlineInputBorder(),
@@ -1332,7 +1332,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedLocation,
+                          initialValue: _selectedLocation,
                           decoration: const InputDecoration(
                             labelText: 'Ubicación / Departamento *',
                             border: OutlineInputBorder(),
@@ -1416,7 +1416,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              value: _selectedStatus,
+              initialValue: _selectedStatus,
               decoration: const InputDecoration(
                 labelText: 'Estado *',
                 border: OutlineInputBorder(),
@@ -1539,7 +1539,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCurrency,
+                    initialValue: _selectedCurrency,
                     decoration: const InputDecoration(
                       labelText: 'Moneda',
                       border: OutlineInputBorder(),

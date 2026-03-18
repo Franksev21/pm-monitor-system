@@ -5,7 +5,6 @@ import 'package:pm_monitor/features/maintenance/screens/pending_maintenances_scr
 import 'package:pm_monitor/features/technician/screens/technician_alerts_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_equipment_list_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_faults_screen.dart';
-import 'package:pm_monitor/features/technician/screens/technician_notification_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_profile_screen.dart';
 import 'package:pm_monitor/features/technician/screens/technician_calendar_list_screen.dart';
 import 'package:provider/provider.dart';

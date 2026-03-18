@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/services/simple_backup_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class BackupManagementScreen extends StatefulWidget {
   const BackupManagementScreen({super.key});

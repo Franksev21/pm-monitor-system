@@ -401,7 +401,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                   // Dropdown para tipo de usuario
                   DropdownButtonFormField<UserRole>(
-                    value: _selectedRole,
+                    initialValue: _selectedRole,
                     decoration: InputDecoration(
                       labelText: 'Tipo de Usuario',
                       prefixIcon: const Icon(Icons.badge_outlined),

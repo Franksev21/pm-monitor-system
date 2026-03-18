@@ -237,8 +237,8 @@ class _ScannerOverlayPainter extends CustomPainter {
     canvas.restore();
 
     // Bordes azules
-    final cornerLen = 40.0;
-    final r = 16.0;
+    const cornerLen = 40.0;
+    const r = 16.0;
 
     // Esquina superior izquierda
     canvas.drawPath(

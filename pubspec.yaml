@@ -19,7 +19,8 @@ dependencies:
   share_plus: ^7.2.1
   mobile_scanner: ^7.0.0
 
-
+  #map
+  google_maps_flutter: ^2.9.0
 
   # Time
   timeago: ^3.6.1
