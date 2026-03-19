@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pm_monitor/core/models/fault_report_model.dart';
 import 'package:pm_monitor/core/services/notification_service.dart';
+import 'package:pm_monitor/features/others/screens/qr_scanner_screen.dart';
 
 class ClientFaultReportScreen extends StatefulWidget {
   final String? equipmentId;
@@ -63,6 +64,17 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
     super.dispose();
   }
 
+  Future<void> _scanQRToSelectEquipment() async {
+    // Navegar al scanner y esperar resultado
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+    );
+    // El QRScannerScreen navega a EquipmentDetailScreen directamente.
+    // Si quisiéramos pre-seleccionar el equipo aquí, usaríamos un callback.
+    // Por ahora el flujo es: escanear → ver detalle del equipo → reportar falla desde ahí.
+  }
+
   Future<void> _loadClientEquipments() async {
     try {
       final currentUserId = _auth.currentUser?.uid;
@@ -91,6 +103,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
           'location': d['location'] ?? '',
           'category': d['category'] ?? '',
           'brand': d['brand'] ?? '',
+          'model': d['model'] ?? '',
         };
       }).toList();
 
@@ -284,6 +297,13 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: 'Escanear QR del equipo',
+            onPressed: _scanQRToSelectEquipment,
+          ),
+        ],
       ),
       body: _isLoadingEquipments
           ? const Center(child: CircularProgressIndicator())
@@ -480,8 +500,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                             _buildInfoRow(
                               Icons.business,
                               'Marca',
-                              '${_selectedEquipmentData!['brand']} ${_selectedEquipmentData!['model']}'
-                                  .trim(),
+                              '${_selectedEquipmentData!['brand'] as String}'
                             ),
                             _buildInfoRow(
                               Icons.meeting_room_outlined,

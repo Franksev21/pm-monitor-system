@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/features/equipment/equipment_detail_screen.dart';
+import 'package:pm_monitor/features/others/screens/qr_scanner_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class ClientEquipmentInventoryScreen extends StatefulWidget {
@@ -1032,10 +1033,9 @@ class _ClientEquipmentInventoryScreenState
   }
 
   void _scanQRCode() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Abriendo escáner QR...'),
-          backgroundColor: Color(0xFF4285F4)),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QRScannerScreen()),
     );
   }
 }
