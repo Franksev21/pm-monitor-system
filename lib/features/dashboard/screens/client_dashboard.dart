@@ -513,7 +513,7 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
       crossAxisSpacing: 14,
       mainAxisSpacing: 14,
       shrinkWrap: true,
-      childAspectRatio: 1.0,
+      childAspectRatio: 0.95,
       physics: const NeverScrollableScrollPhysics(),
       children: [
         _buildKpiCard(
@@ -585,7 +585,7 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
