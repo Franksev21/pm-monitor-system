@@ -26,21 +26,18 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos acceso a la cámara para tomar fotos de los equipos y mantenimientos</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Necesitamos acceso para guardar fotos de los mantenimientos</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Necesitamos acceso a tus fotos para adjuntar evidencias de mantenimiento</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-	
-	<!-- Permisos de Cámara y Fotos - CORREGIDO -->
-	<key>NSCameraUsageDescription</key>
-	<string>Necesitamos acceso a la cámara para tomar fotos de los equipos y mantenimientos</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Necesitamos acceso a tus fotos para adjuntar evidencias de mantenimiento</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Necesitamos acceso para guardar fotos de los mantenimientos</string>
-	
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
