@@ -86,8 +86,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   void _navigateTo(int index, BuildContext context) {
     setState(() => _selectedIndex = index);
-    if (!kIsWeb) Navigator.pop(context); // cierra drawer en móvil
-
     final routes = [
       null, // Dashboard — no navega
       () => Navigator.push(
