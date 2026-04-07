@@ -19,13 +19,15 @@ dependencies:
   share_plus: ^7.2.1
   mobile_scanner: ^7.0.0
 
-  #map
+  # Maps — mobile
   google_maps_flutter: ^2.9.0
+  # Maps — web
+  google_maps_flutter_web: ^0.5.4
 
   # Time
   timeago: ^3.6.1
 
-  #pdf
+  # PDF
   pdf: ^3.10.4
   printing: ^5.11.1
   syncfusion_flutter_pdfviewer: ^31.1.19
@@ -37,7 +39,7 @@ dependencies:
   # Image Picker
   image_picker: ^1.0.4
 
-# File Picker
+  # File Picker
   file_picker: ^8.1.4
 
   # Permissions
@@ -68,8 +70,7 @@ dependencies:
   # Navigation
   go_router: ^12.1.3
 
-
-  uuid: ^4.0.0    
+  uuid: ^4.0.0
 
   # Utils
   shared_preferences: ^2.2.2
@@ -79,7 +80,6 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
-
 
 flutter_launcher_icons:
   android: true

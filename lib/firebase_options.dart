@@ -7,10 +7,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -36,6 +33,18 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // ── Web ──────────────────────────────────────────────────────────────────
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyADeSO7mkIJ6pa6Y6ANs-iaXOnPzDQwflU',
+    appId: '1:84858650792:web:77f8e9a181502a8fdfc29d',
+    messagingSenderId: '84858650792',
+    projectId: 'pm-monitor-system-1bef4',
+    authDomain: 'pm-monitor-system-1bef4.firebaseapp.com',
+    storageBucket: 'pm-monitor-system-1bef4.firebasestorage.app',
+    measurementId: 'G-VZJNPJ4HRJ',
+  );
+
+  // ── Android ───────────────────────────────────────────────────────────────
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDmXYr6Ob1bF29ahSSdeRehAWW5Npid-Dw',
     appId: '1:39011928988:android:cf2095c890862f93699659',
@@ -44,6 +53,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'pm-monitor-system.firebasestorage.app',
   );
 
+  // ── iOS ───────────────────────────────────────────────────────────────────
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyB2uKPt143Lv5KPr1rYXHONKXHvOSf3se4',
     appId: '1:39011928988:ios:b068421920cb399f699659',
@@ -53,6 +63,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.pmMonitor',
   );
 
+  // ── macOS ─────────────────────────────────────────────────────────────────
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyB2uKPt143Lv5KPr1rYXHONKXHvOSf3se4',
     appId: '1:39011928988:ios:b068421920cb399f699659',

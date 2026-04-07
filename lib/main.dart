@@ -1,11 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pm_monitor/config/firebase_config.dart';
 import 'package:pm_monitor/core/providers/client_provider.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
 import 'package:pm_monitor/core/providers/technician_provider.dart';
 import 'package:pm_monitor/core/services/equipment_type_service.dart';
+import 'package:pm_monitor/core/services/notifiication_service_web.dart';
 import 'package:provider/provider.dart';
-import 'core/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
@@ -15,35 +15,42 @@ import 'app.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // ── Inicializar Firebase con opciones por plataforma ──
   try {
-    await FirebaseConfig.initialize();
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
     }
   } catch (e) {
-    print('Error inicializando Firebase: $e');
+    debugPrint('Error inicializando Firebase: $e');
   }
 
+  // ── Notificaciones solo en móvil ──
+  if (!kIsWeb) {
+    try {
+      NotificationService notificationService = NotificationService();
+      notificationService.setupMessageListeners();
+    } catch (e) {
+      debugPrint('Error al configurar notificaciones: $e');
+    }
+  }
+
+  // ── Localización ──
   try {
     await initializeDateFormatting('es_ES', null);
   } catch (e) {
-    print('Error inicializando localización: $e');
+    debugPrint('Error inicializando localización: $e');
   }
 
-  try {
-    NotificationService notificationService = NotificationService();
-    notificationService.setupMessageListeners();
-  } catch (e) {
-    print('Error al enviar  notificaciones: $e');
-  }
-
-  try {
-    final typeService = EquipmentTypeService();
-    await typeService.initializeDefaultTypes();
-  } catch (e) {
-    print('❌ Error inicializando tipos: $e');
+  // ── Tipos de equipo solo en móvil ──
+  if (!kIsWeb) {
+    try {
+      final typeService = EquipmentTypeService();
+      await typeService.initializeDefaultTypes();
+    } catch (e) {
+      debugPrint('❌ Error inicializando tipos: $e');
+    }
   }
 
   runApp(
