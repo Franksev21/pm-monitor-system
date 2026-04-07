@@ -40,7 +40,7 @@ class _ClientFaultsHistoryScreenState extends State<ClientFaultsHistoryScreen> {
               stream: _firestore
                   .collection('faultReports')
                   .where('clientId', isEqualTo: currentUserId)
-                  .orderBy('reportedAt', descending: true)
+                  .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
