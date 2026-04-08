@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/providers/auth_provider.dart' as app_auth;
-import 'package:pm_monitor/core/services/notification_service.dart';
 import 'package:pm_monitor/features/auth/screens/forgot_password_screen.dart';
+
+// Solo importar NotificationService en móvil
+import '../../../core/services/notification_service.dart'
+    if (dart.library.html) '../../../core/services/notification_service_web.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,12 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleLogin() async {
     FocusScope.of(context).unfocus();
-
     if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     final authProvider = context.read<app_auth.AuthProvider>();
     final success = await authProvider.login(
@@ -42,22 +42,20 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
-      try {
-        final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser != null) {
-          final notificationService = NotificationService();
-          await notificationService.updateUserFCMToken(currentUser.uid);
-          print('✅ Token FCM actualizado para: ${currentUser.uid}');
+      if (!kIsWeb) {
+        try {
+          final currentUser = FirebaseAuth.instance.currentUser;
+          if (currentUser != null) {
+            final notificationService = NotificationService();
+            await notificationService.updateUserFCMToken(currentUser.uid);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Error actualizando token FCM: $e');
         }
-      } catch (e) {
-        print('⚠️ Error actualizando token FCM: $e');
       }
-
       _navigateToDashboard();
     } else if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       _showErrorMessage();
     }
   }
@@ -65,7 +63,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void _navigateToDashboard() {
     final authProvider = context.read<app_auth.AuthProvider>();
     final user = authProvider.currentUser;
-
     if (user != null) {
       String route;
       switch (user.role) {
@@ -84,7 +81,6 @@ class _LoginScreenState extends State<LoginScreen> {
         default:
           route = '/';
       }
-
       Navigator.pushReplacementNamed(context, route);
     }
   }
@@ -103,37 +99,72 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 48),
-                _buildLoginForm(),
-                const SizedBox(height: 24),
-                _buildLoginButton(),
-                const SizedBox(height: 16),
-                _buildForgotPassword(),
-              ],
+      body: kIsWeb
+          ? Container(
+              color: const Color(0xFFF5F7FA),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Container(
+                    width: 420,
+                    margin: const EdgeInsets.symmetric(vertical: 40),
+                    padding: const EdgeInsets.all(40),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildHeader(100, 28),
+                        const SizedBox(height: 32),
+                        _buildLoginForm(),
+                        const SizedBox(height: 16),
+                        _buildLoginButton(),
+                        const SizedBox(height: 8),
+                        _buildForgotPassword(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildHeader(140, 36),
+                      const SizedBox(height: 48),
+                      _buildLoginForm(),
+                      const SizedBox(height: 24),
+                      _buildLoginButton(),
+                      const SizedBox(height: 16),
+                      _buildForgotPassword(),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(double logoSize, double titleSize) {
     return Column(
       children: [
-        // ✅ Logo Panda
         Container(
-          width: 140,
-          height: 140,
+          width: logoSize,
+          height: logoSize,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(logoSize * 0.2),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF1976D2).withOpacity(0.3),
@@ -143,28 +174,24 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(logoSize * 0.2),
             child: Image.asset(
               'assets/images/app_icon.png',
               fit: BoxFit.cover,
             ),
           ),
         ),
-        const SizedBox(height: 20),
-
-        // ✅ Título PANDA
-        const Text(
+        const SizedBox(height: 16),
+        Text(
           'PANDA',
           style: TextStyle(
-            fontSize: 36,
+            fontSize: titleSize,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1976D2),
+            color: const Color(0xFF1976D2),
             letterSpacing: 2,
           ),
         ),
-        const SizedBox(height: 6),
-
-        // ✅ Subtítulo
+        const SizedBox(height: 4),
         const Text(
           'Sistema de Mantenimiento Preventivo',
           style: TextStyle(
@@ -195,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kIsWeb ? const Color(0xFFF5F7FA) : Colors.white,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -221,17 +248,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kIsWeb ? const Color(0xFFF5F7FA) : Colors.white,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -251,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLoginButton() {
     return SizedBox(
       width: double.infinity,
-      height: 54,
+      height: 50,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
@@ -274,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
             : const Text(
                 'Iniciar Sesión',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -296,7 +320,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: const Text(
           '¿Olvidaste tu contraseña?',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             color: Color(0xFF1976D2),
             fontWeight: FontWeight.w500,
           ),
