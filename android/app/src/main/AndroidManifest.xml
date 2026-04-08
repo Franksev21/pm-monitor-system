@@ -10,6 +10,8 @@
         android:name="${applicationName}"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="com.google.android.geo.API_KEY"
+           android:value="AIzaSyAIAXl7HbL6VxGOOC-AIzaSyB8vYHDlC7y_WE3f1sOse9ccvsoA1zesgo"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -27,8 +29,6 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
-              <meta-data android:name="com.google.android.geo.API_KEY"
-           android:value="AIzaSyAIAXl7HbL6VxGOOC-aFfe4rWvm5xc0e_o"/>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
