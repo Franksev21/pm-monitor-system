@@ -1,13 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pm_monitor/core/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/providers/auth_provider.dart' as app_auth;
 import 'package:pm_monitor/features/auth/screens/forgot_password_screen.dart';
 
-// Solo importar NotificationService en móvil
-import '../../../core/services/notification_service.dart'
-    if (dart.library.html) '../../../core/services/notification_service_web.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

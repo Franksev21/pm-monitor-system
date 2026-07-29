@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:pm_monitor/core/services/maintenance_execution_service.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -21,11 +23,11 @@ class _MaintenanceExecutionScreenState
   final TextEditingController _notesController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
-  // ✅ CAMBIO: Renombrado para que coincida con el servicio
-  final Map<String, String> _skipReasons = {}; // antes: taskSkipReasons
+  final Map<String, String> _skipReasons = {};
 
   Map<String, bool> taskCompletion = {};
-  List<File> selectedImages = [];
+  // ✅ Cambiado de List<File> a List<XFile>
+  List<XFile> selectedImages = [];
   bool isLoading = false;
   bool isSaving = false;
   Map<String, dynamic>? equipmentData;
@@ -52,12 +54,9 @@ class _MaintenanceExecutionScreenState
       debugPrint(
           '🔄 Cargando detalles del mantenimiento ID: ${widget.maintenance['id']}');
 
-      // ✅ SIMPLIFICADO: Cargar tareas desde los datos recibidos
       List<dynamic> tasks = widget.maintenance['tasks'] ?? [];
-
       debugPrint('📋 Tareas recibidas: $tasks (${tasks.length} tareas)');
 
-      // Si no hay tareas, cargar desde Firestore
       if (tasks.isEmpty) {
         debugPrint('⚠️ No hay tareas, cargando desde Firestore...');
         Map<String, dynamic>? details =
@@ -69,7 +68,6 @@ class _MaintenanceExecutionScreenState
         }
       }
 
-      // ✅ Si aún no hay tareas, usar tareas genéricas
       if (tasks.isEmpty) {
         debugPrint('⚠️ Sin tareas específicas, usando genéricas');
         tasks = [
@@ -88,7 +86,6 @@ class _MaintenanceExecutionScreenState
 
       _initializeTaskCompletion(tasks);
 
-      // Cargar datos del equipo
       if (widget.maintenance['equipmentId'] != null) {
         debugPrint(
             '🔧 Cargando datos del equipo ID: ${widget.maintenance['equipmentId']}');
@@ -101,7 +98,6 @@ class _MaintenanceExecutionScreenState
         }
       }
 
-      // Cargar progreso previo guardado
       Map<String, dynamic>? savedProgress =
           await _service.getMaintenanceProgress(widget.maintenance['id']);
 
@@ -149,8 +145,34 @@ class _MaintenanceExecutionScreenState
       _brandController.text = equipmentData!['brand']?.toString() ?? '';
       _locationController.text = equipmentData!['location']?.toString() ?? '';
       _selectedCondition = equipmentData!['condition']?.toString() ?? 'Bueno';
-
       debugPrint('✅ Datos del equipo cargados en controllers');
+    }
+  }
+
+  // ✅ Widget para mostrar imagen compatible con web y móvil
+  Widget _buildImageWidget(XFile xfile) {
+    if (kIsWeb) {
+      return FutureBuilder<Uint8List>(
+        future: xfile.readAsBytes(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Image.memory(
+              snapshot.data!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+            );
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    } else {
+      return Image.file(
+        File(xfile.path),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
     }
   }
 
@@ -364,7 +386,6 @@ class _MaintenanceExecutionScreenState
                     setState(() {
                       final newValue = !allSelected;
                       for (var task in tasks) {
-                        // ✅ CAMBIO: Usar _skipReasons
                         if (!_skipReasons.containsKey(task)) {
                           taskCompletion[task] = newValue;
                         }
@@ -422,7 +443,6 @@ class _MaintenanceExecutionScreenState
 
   Widget _buildTaskItem(String task) {
     final isCompleted = taskCompletion[task] ?? false;
-    // ✅ CAMBIO: Usar _skipReasons
     final isSkipped = _skipReasons.containsKey(task);
 
     return Card(
@@ -458,7 +478,6 @@ class _MaintenanceExecutionScreenState
                     icon: const Icon(Icons.close, color: Colors.red),
                     onPressed: () {
                       setState(() {
-                        // ✅ CAMBIO: Usar _skipReasons
                         _skipReasons.remove(task);
                         taskCompletion[task] = false;
                       });
@@ -497,7 +516,6 @@ class _MaintenanceExecutionScreenState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    // ✅ CAMBIO: Usar _skipReasons
                     _skipReasons[task] ?? '',
                     style: TextStyle(
                       fontSize: 13,
@@ -552,7 +570,6 @@ class _MaintenanceExecutionScreenState
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
                 setState(() {
-                  // ✅ CAMBIO: Usar _skipReasons
                   _skipReasons[task] = controller.text.trim();
                   taskCompletion[task] = false;
                 });
@@ -801,7 +818,6 @@ class _MaintenanceExecutionScreenState
                     url,
                     onDocumentLoadFailed: (details) {
                       debugPrint('❌ Error cargando PDF: ${details.error}');
-                      debugPrint('❌ Descripción: ${details.description}');
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -909,21 +925,6 @@ class _MaintenanceExecutionScreenState
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Icon(Icons.link, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        url,
-                        style: const TextStyle(fontSize: 10),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
@@ -1016,33 +1017,48 @@ class _MaintenanceExecutionScreenState
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _addPhoto(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Tomar Foto'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
-                      foregroundColor: Colors.white,
+            // ✅ En web solo mostrar galería (no hay cámara)
+            if (!kIsWeb)
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _addPhoto(ImageSource.camera),
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Tomar Foto'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1976D2),
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _addPhoto(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Galería'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[600],
-                      foregroundColor: Colors.white,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _addPhoto(ImageSource.gallery),
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text('Galería'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[600],
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
+                ],
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _addPhoto(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Seleccionar Fotos'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1976D2),
+                    foregroundColor: Colors.white,
+                  ),
                 ),
-              ],
-            ),
+              ),
             const SizedBox(height: 12),
             if (selectedImages.isEmpty)
               Container(
@@ -1081,12 +1097,8 @@ class _MaintenanceExecutionScreenState
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          selectedImages[index],
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
+                        // ✅ Usar el helper compatible con web/móvil
+                        child: _buildImageWidget(selectedImages[index]),
                       ),
                       Positioned(
                         top: 4,
@@ -1194,7 +1206,6 @@ class _MaintenanceExecutionScreenState
                 const Icon(Icons.timeline, color: Color(0xFF1976D2)),
                 const SizedBox(width: 8),
                 const Expanded(
-                  // ← Expanded en el título
                   child: Text(
                     'Progreso del Mantenimiento',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -1263,7 +1274,6 @@ class _MaintenanceExecutionScreenState
     int totalTasks = taskCompletion.length;
     int completedTasks =
         taskCompletion.values.where((completed) => completed).length;
-    // ✅ CAMBIO: Usar _skipReasons
     int skippedTasks = _skipReasons.length;
 
     bool hasEnoughPhotos = selectedImages.length >= 3;
@@ -1495,20 +1505,38 @@ class _MaintenanceExecutionScreenState
     );
   }
 
+  // ✅ Actualizado para manejar galería múltiple y cámara
   Future<void> _addPhoto(ImageSource source) async {
     try {
-      final XFile? photo = await _picker.pickImage(
-        source: source,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
-      );
-
-      if (photo != null) {
-        setState(() {
-          selectedImages.add(File(photo.path));
-        });
-        debugPrint('📷 Foto agregada: ${selectedImages.length} fotos totales');
+      if (source == ImageSource.gallery) {
+        // Selección múltiple desde galería
+        final List<XFile> photos = await _picker.pickMultiImage(
+          maxWidth: 1920,
+          maxHeight: 1080,
+          imageQuality: 85,
+        );
+        if (photos.isNotEmpty) {
+          setState(() {
+            selectedImages.addAll(photos);
+          });
+          debugPrint(
+              '📷 ${photos.length} fotos agregadas: ${selectedImages.length} fotos totales');
+        }
+      } else {
+        // Cámara: una foto a la vez (solo móvil)
+        final XFile? photo = await _picker.pickImage(
+          source: source,
+          maxWidth: 1920,
+          maxHeight: 1080,
+          imageQuality: 85,
+        );
+        if (photo != null) {
+          setState(() {
+            selectedImages.add(photo);
+          });
+          debugPrint(
+              '📷 Foto agregada: ${selectedImages.length} fotos totales');
+        }
       }
     } catch (e) {
       debugPrint('❌ Error al capturar foto: $e');
@@ -1554,7 +1582,7 @@ class _MaintenanceExecutionScreenState
       setState(() => isSaving = false);
     }
   }
-  
+
   Future<void> _completeMaintenance() async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -1582,13 +1610,12 @@ class _MaintenanceExecutionScreenState
     debugPrint('🏁 Completando mantenimiento...');
 
     try {
-      // ✅ LLAMADA ACTUALIZADA AL SERVICIO
       bool success = await _service.completeMaintenance(
         widget.maintenance['id'],
         taskCompletion: taskCompletion,
-        photos: selectedImages,
+        photos: selectedImages, // ✅ Ya es List<XFile>
         notes: _notesController.text.trim(),
-        skipReasons: _skipReasons, // ✅ PASANDO skipReasons
+        skipReasons: _skipReasons,
       );
 
       if (success) {

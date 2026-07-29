@@ -6,9 +6,7 @@ class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
-  // ============================================
-  // NOTIFICACIONES DE FALLAS (Ya existente)
-  // ============================================
+
 
   Future<void> sendFaultNotifications({
     required String equipmentName,

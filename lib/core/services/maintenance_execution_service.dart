@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class MaintenanceExecutionService {
@@ -27,27 +28,23 @@ class MaintenanceExecutionService {
       for (QueryDocumentSnapshot doc in querySnapshot.docs) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-        // Obtener información del equipo
         String? equipmentId = data['equipmentId'];
         Map<String, dynamic>? equipmentData;
 
         if (equipmentId != null) {
           DocumentSnapshot equipmentDoc =
               await _firestore.collection('equipments').doc(equipmentId).get();
-
           if (equipmentDoc.exists) {
             equipmentData = equipmentDoc.data() as Map<String, dynamic>;
           }
         }
 
-        // Obtener información del cliente
         String? clientId = data['clientId'];
         Map<String, dynamic>? clientData;
 
         if (clientId != null) {
           DocumentSnapshot clientDoc =
               await _firestore.collection('clients').doc(clientId).get();
-
           if (clientDoc.exists) {
             clientData = clientDoc.data() as Map<String, dynamic>;
           }
@@ -84,12 +81,10 @@ class MaintenanceExecutionService {
 
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-      // Obtener información del equipo
       String? equipmentId = data['equipmentId'];
       if (equipmentId != null) {
         DocumentSnapshot equipmentDoc =
             await _firestore.collection('equipments').doc(equipmentId).get();
-
         if (equipmentDoc.exists) {
           data['equipmentData'] = equipmentDoc.data();
         }
@@ -140,7 +135,6 @@ class MaintenanceExecutionService {
         Map<String, dynamic> data =
             maintenanceDoc.data() as Map<String, dynamic>;
 
-        // Verificar si hay progreso guardado
         if (data.containsKey('taskCompletion') || data.containsKey('notes')) {
           debugPrint('✅ Progreso previo encontrado');
           return {
@@ -185,7 +179,6 @@ class MaintenanceExecutionService {
   Future<bool> updateTaskProgress(
       String maintenanceId, Map<String, bool> taskCompletion) async {
     try {
-      // Calcular porcentaje de completado
       int totalTasks = taskCompletion.length;
       int completedTasks =
           taskCompletion.values.where((completed) => completed).length;
@@ -208,10 +201,10 @@ class MaintenanceExecutionService {
     }
   }
 
-
+  // ✅ Subir fotos — compatible con Web y Mobile
   Future<List<String>> uploadMaintenancePhotos(
     String maintenanceId,
-    List<File> photos,
+    List<XFile> photos,
   ) async {
     List<String> photoUrls = [];
 
@@ -221,18 +214,9 @@ class MaintenanceExecutionService {
 
       for (int i = 0; i < photos.length; i++) {
         try {
-          // Verificar que el archivo existe
-          bool exists = await photos[i].exists();
-          if (!exists) {
-            debugPrint('⚠️ Foto $i no existe, saltando...');
-            continue;
-          }
-
-          // Generar nombre único
           String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
           String fileName = 'maintenance_${maintenanceId}_${timestamp}_$i.jpg';
 
-          // ✅ RUTA CORRECTA: maintenance_photos/{maintenanceId}/{fileName}
           Reference ref = _storage
               .ref()
               .child('maintenance_photos')
@@ -240,23 +224,33 @@ class MaintenanceExecutionService {
               .child(fileName);
 
           debugPrint('📸 Subiendo foto ${i + 1}/${photos.length}: $fileName');
-          debugPrint('📍 Ruta: maintenance_photos/$maintenanceId/$fileName');
 
-          // Subir archivo
-          UploadTask uploadTask = ref.putFile(photos[i]);
+          TaskSnapshot snapshot;
 
-          // Esperar a que termine
-          TaskSnapshot snapshot = await uploadTask;
+          if (kIsWeb) {
+            // ✅ En web: leer bytes y usar putData
+            final bytes = await photos[i].readAsBytes();
+            snapshot = await ref.putData(
+              bytes,
+              SettableMetadata(contentType: 'image/jpeg'),
+            );
+          } else {
+            // ✅ En móvil: usar putFile directamente
+            final file = File(photos[i].path);
+            final exists = await file.exists();
+            if (!exists) {
+              debugPrint('⚠️ Foto $i no existe, saltando...');
+              continue;
+            }
+            snapshot = await ref.putFile(file);
+          }
 
-          // Obtener URL de descarga
           String downloadUrl = await snapshot.ref.getDownloadURL();
-
           photoUrls.add(downloadUrl);
           debugPrint('✅ Foto ${i + 1} subida correctamente');
           debugPrint('🔗 URL: $downloadUrl');
         } catch (e) {
           debugPrint('❌ Error subiendo foto $i: $e');
-          // Continuar con la siguiente foto
         }
       }
 
@@ -273,10 +267,11 @@ class MaintenanceExecutionService {
     }
   }
 
+  // ✅ Completar mantenimiento — compatible con Web y Mobile
   Future<bool> completeMaintenance(
     String maintenanceId, {
     required Map<String, bool> taskCompletion,
-    required List<File> photos,
+    required List<XFile> photos,
     String? notes,
     Map<String, String>? skipReasons,
   }) async {
@@ -284,7 +279,6 @@ class MaintenanceExecutionService {
       debugPrint('🏁 INICIO - Completar mantenimiento: $maintenanceId');
       debugPrint('📸 Fotos recibidas: ${photos.length}');
 
-      // ✅ Subir fotos primero
       List<String> photoUrls = [];
       if (photos.isNotEmpty) {
         debugPrint('🔄 Iniciando subida de fotos...');
@@ -297,7 +291,6 @@ class MaintenanceExecutionService {
         }
       }
 
-      // ✅ Calcular porcentaje
       int totalTasks = taskCompletion.length;
       int completedTasks =
           taskCompletion.values.where((completed) => completed).length;
@@ -306,7 +299,6 @@ class MaintenanceExecutionService {
 
       debugPrint('📊 Progreso: $completedTasks/$totalTasks = $percentage%');
 
-      // ✅ Preparar datos de actualización
       Map<String, dynamic> updateData = {
         'status': 'executed',
         'completedDate': FieldValue.serverTimestamp(),
@@ -317,17 +309,14 @@ class MaintenanceExecutionService {
         'completedBy': _auth.currentUser?.uid,
       };
 
-      // ✅ Agregar notas del técnico si existen
       if (notes != null && notes.isNotEmpty) {
         updateData['technicianNotes'] = notes;
       }
 
-      // ✅ Agregar razones de omisión si existen
       if (skipReasons != null && skipReasons.isNotEmpty) {
         updateData['skipReasons'] = skipReasons;
       }
 
-      // ✅ Actualizar el mantenimiento
       debugPrint('🔄 Actualizando Firestore...');
       await _firestore
           .collection('maintenanceSchedules')
