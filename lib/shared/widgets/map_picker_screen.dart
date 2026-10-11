@@ -87,9 +87,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
           try {
             final pm =
                 await placemarkFromCoordinates(loc.latitude, loc.longitude);
-            placemarks.add(pm.isNotEmpty ? pm.first : Placemark());
+            placemarks.add(pm.isNotEmpty ? pm.first : const Placemark());
           } catch (_) {
-            placemarks.add(Placemark());
+            placemarks.add(const Placemark());
           }
         }
 

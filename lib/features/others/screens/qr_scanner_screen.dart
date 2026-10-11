@@ -246,7 +246,7 @@ class _ScannerOverlayPainter extends CustomPainter {
           ..moveTo(left, top + cornerLen)
           ..lineTo(left, top + r)
           ..arcToPoint(Offset(left + r, top),
-              radius: Radius.circular(r), clockwise: true)
+              radius: const Radius.circular(r), clockwise: true)
           ..lineTo(left + cornerLen, top),
         borderPaint);
 
@@ -256,7 +256,7 @@ class _ScannerOverlayPainter extends CustomPainter {
           ..moveTo(right - cornerLen, top)
           ..lineTo(right - r, top)
           ..arcToPoint(Offset(right, top + r),
-              radius: Radius.circular(r), clockwise: true)
+              radius: const Radius.circular(r), clockwise: true)
           ..lineTo(right, top + cornerLen),
         borderPaint);
 
@@ -266,7 +266,7 @@ class _ScannerOverlayPainter extends CustomPainter {
           ..moveTo(right, bottom - cornerLen)
           ..lineTo(right, bottom - r)
           ..arcToPoint(Offset(right - r, bottom),
-              radius: Radius.circular(r), clockwise: false)
+              radius: const Radius.circular(r), clockwise: false)
           ..lineTo(right - cornerLen, bottom),
         borderPaint);
 
@@ -276,7 +276,7 @@ class _ScannerOverlayPainter extends CustomPainter {
           ..moveTo(left + cornerLen, bottom)
           ..lineTo(left + r, bottom)
           ..arcToPoint(Offset(left, bottom - r),
-              radius: Radius.circular(r), clockwise: false)
+              radius: const Radius.circular(r), clockwise: false)
           ..lineTo(left, bottom - cornerLen),
         borderPaint);
   }

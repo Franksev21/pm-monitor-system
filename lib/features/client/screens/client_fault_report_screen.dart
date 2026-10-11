@@ -113,8 +113,9 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
 
       for (final eq in equipments) {
         if ((eq['branch'] as String).isNotEmpty) branches.add(eq['branch']);
-        if ((eq['location'] as String).isNotEmpty)
+        if ((eq['location'] as String).isNotEmpty) {
           departments.add(eq['location']);
+        }
         if ((eq['tipo'] as String).isNotEmpty) tipos.add(eq['tipo']);
       }
 
@@ -497,11 +498,8 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                               'Descripción',
                               _selectedEquipmentData!['category'] as String,
                             ),
-                            _buildInfoRow(
-                              Icons.business,
-                              'Marca',
-                              '${_selectedEquipmentData!['brand'] as String}'
-                            ),
+                            _buildInfoRow(Icons.business, 'Marca',
+                                _selectedEquipmentData!['brand'] as String),
                             _buildInfoRow(
                               Icons.meeting_room_outlined,
                               'Departamento',
@@ -636,7 +634,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
         ],
       ),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.grey),
           hintText: hintText,

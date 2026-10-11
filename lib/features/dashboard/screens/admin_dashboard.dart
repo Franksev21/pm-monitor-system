@@ -35,16 +35,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   // Items del menú
   final List<_MenuItem> _menuItems = [
-    _MenuItem('Dashboard', Icons.dashboard, Colors.blue),
-    _MenuItem('Equipos', Icons.precision_manufacturing, Colors.blue),
-    _MenuItem('Mantenimientos', Icons.build_circle, Color(0xFF4CAF50)),
-    _MenuItem('Templates', Icons.checklist, Colors.teal),
-    _MenuItem('Técnicos', Icons.engineering, Colors.orange),
-    _MenuItem('Clientes', Icons.business, Colors.purple),
-    _MenuItem('Usuarios', Icons.manage_accounts, Colors.teal),
-    _MenuItem('Indicadores', Icons.analytics, Colors.indigo),
-    _MenuItem('Backup', Icons.backup, Colors.deepOrange),
-    _MenuItem('Configuración', Icons.settings, Colors.blueGrey),
+    const _MenuItem('Dashboard', Icons.dashboard, Colors.blue),
+    const _MenuItem('Equipos', Icons.precision_manufacturing, Colors.blue),
+    const _MenuItem('Mantenimientos', Icons.build_circle, Color(0xFF4CAF50)),
+    const _MenuItem('Templates', Icons.checklist, Colors.teal),
+    const _MenuItem('Técnicos', Icons.engineering, Colors.orange),
+    const _MenuItem('Clientes', Icons.business, Colors.purple),
+    const _MenuItem('Usuarios', Icons.manage_accounts, Colors.teal),
+    const _MenuItem('Indicadores', Icons.analytics, Colors.indigo),
+    const _MenuItem('Backup', Icons.backup, Colors.deepOrange),
+    const _MenuItem('Configuración', Icons.settings, Colors.blueGrey),
   ];
 
   @override

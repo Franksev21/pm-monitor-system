@@ -535,12 +535,17 @@ class _ClientEquipmentInventoryScreenState
                   return false;
                 }
               }
-              if (_selectedBranch != 'Todos' && branch != _selectedBranch)
+              if (_selectedBranch != 'Todos' && branch != _selectedBranch) {
                 return false;
-              if (_selectedCategory != 'Todos' && category != _selectedCategory)
+              }
+              if (_selectedCategory != 'Todos' &&
+                  category != _selectedCategory) {
                 return false;
+              }
               if (_selectedDepartment != 'Todos' &&
-                  department != _selectedDepartment) return false;
+                  department != _selectedDepartment) {
+                return false;
+              }
 
               return true;
             }).toList();
