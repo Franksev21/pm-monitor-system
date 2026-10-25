@@ -80,6 +80,29 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
 
       final uid = userCredential.user!.uid;
 
+      // Todos los roles necesitan un perfil en `users`: el inicio de sesión
+      // consulta esta colección para resolver el rol y cargar la cuenta.
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'id': uid,
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'role': _selectedRole,
+        'isActive': true,
+        'emailVerified': false,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastLogin': FieldValue.serverTimestamp(),
+        'profileImageUrl': null,
+        'photoUrl': null,
+        'hourlyRate': 0.0,
+        'specialization': '',
+        'assignedEquipments': <String>[],
+        'assignedTechnicians': <String>[],
+        'supervisorId': null,
+        'metadata': <String, dynamic>{},
+      });
+
       if (_selectedRole == 'client') {
         // Clientes van a la colección 'clients'
         await FirebaseFirestore.instance.collection('clients').doc(uid).set({

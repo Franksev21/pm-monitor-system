@@ -68,7 +68,9 @@ class _LoginScreenState extends State<LoginScreen> {
           route = '/admin-dashboard';
           break;
         case 'supervisor':
-          route = '/supervisor-dashboard';
+          // El supervisor comparte actualmente el dashboard administrativo;
+          // AuthWrapper también lo dirige allí al restaurar la sesión.
+          route = '/admin-dashboard';
           break;
         case 'technician':
           route = '/technician-dashboard';
