@@ -5,6 +5,7 @@ import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
 import 'package:pm_monitor/core/services/client_service.dart';
 import 'package:pm_monitor/core/services/technician_availability_service.dart';
+import 'package:pm_monitor/core/services/workload_calculator.dart';
 import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
 import 'package:pm_monitor/features/equipment/screens/equipment_type_management_dialog.dart';
 import 'package:pm_monitor/features/maintenance/screens/add_maintenance_screen.dart';
@@ -27,6 +28,7 @@ class _MaintenanceManagementScreenState
   final ClientService _clientService = ClientService();
   final TechnicianAvailabilityService _technicianAvailabilityService =
       TechnicianAvailabilityService();
+  final WorkloadCalculator _workloadCalculator = WorkloadCalculator();
 
   // Selección
   final Set<String> _selectedIds = {};
@@ -2264,65 +2266,230 @@ class _MaintenanceManagementScreenState
     );
   }
 
+  /// Carga los mantenimientos seleccionados y valida la carga semanal del
+  /// técnico (horas regulares/extra por semana) antes de asignar.
+  Future<WorkloadCheckResult> _checkWorkload(String technicianId) async {
+    final maintenances = (await Future.wait(
+      _selectedIds.map(_maintenanceService.getMaintenanceById),
+    ))
+        .whereType<MaintenanceSchedule>()
+        .toList();
+    return _workloadCalculator.checkAssignment(technicianId, maintenances);
+  }
+
   void _confirmAssignment(TechnicianAvailability tech) {
+    final workloadFuture = _checkWorkload(tech.id);
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar Asignación'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-                '¿Asignar ${_selectedIds.length} mantenimiento${_selectedIds.length != 1 ? 's' : ''} a:'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
+      builder: (context) => FutureBuilder<WorkloadCheckResult>(
+        future: workloadFuture,
+        builder: (context, snapshot) {
+          final isChecking = snapshot.connectionState != ConnectionState.done;
+          final result = snapshot.data;
+          final isOverloaded = result != null && !result.canAssign;
+          final hoursToAdd = result != null
+              ? result.weeks.fold<double>(0, (s, w) => s + w.additional.total)
+              : _totalSelectedHours;
+
+          return AlertDialog(
+            title: const Text('Confirmar Asignación'),
+            content: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tech.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      '¿Asignar ${_selectedIds.length} mantenimiento${_selectedIds.length != 1 ? 's' : ''} a:'),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tech.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Horas adicionales (todas las semanas): ${hoursToAdd.toStringAsFixed(1)} hrs',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                      'Horas actuales: ${tech.assignedHours.toStringAsFixed(1)} hrs'),
-                  Text(
-                      'Horas a agregar: ${_totalSelectedHours.toStringAsFixed(1)} hrs'),
-                  const Divider(),
-                  Text(
-                    'Total: ${(tech.assignedHours + _totalSelectedHours).toStringAsFixed(1)} hrs',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const SizedBox(height: 16),
+                  _buildWorkloadSection(snapshot),
                 ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: isChecking
+                    ? null
+                    : () async {
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                        await _performAssignment(tech);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isOverloaded
+                      ? Colors.orange[800]
+                      : const Color(0xFF007AFF),
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(isOverloaded ? 'Asignar igualmente' : 'Confirmar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildWorkloadSection(AsyncSnapshot<WorkloadCheckResult> snapshot) {
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              Navigator.pop(context);
-              await _performAssignment(tech);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF007AFF),
-              foregroundColor: Colors.white,
+          SizedBox(width: 12),
+          Text('Verificando carga semanal...', style: TextStyle(fontSize: 12)),
+        ],
+      );
+    }
+
+    if (snapshot.hasError || snapshot.data == null) {
+      return _buildWorkloadBanner(
+        color: Colors.blueGrey,
+        icon: Icons.info_outline,
+        text: 'No se pudo verificar la carga semanal. '
+            'Puedes asignar de todos modos.',
+      );
+    }
+
+    final result = snapshot.data!;
+    final dateFormat = DateFormat('d MMM', 'es_ES');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Carga semanal (máx. ${result.maxWeeklyHours.toStringAsFixed(0)} hrs)',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        for (final week in result.weeks) _buildWeekRow(week, dateFormat),
+        if (result.totalOvertimeAdded > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              'Incluye ${result.totalOvertimeAdded.toStringAsFixed(1)} hrs fuera de horario regular',
+              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
             ),
-            child: const Text('Confirmar'),
+          ),
+        if (!result.canAssign) ...[
+          const SizedBox(height: 8),
+          _buildWorkloadBanner(
+            color: Colors.red,
+            icon: Icons.warning_amber,
+            text:
+                'Supera el límite semanal en ${result.overloadedWeeks.length} semana${result.overloadedWeeks.length != 1 ? 's' : ''}.',
+          ),
+        ] else if (result.nearLimitWeeks.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _buildWorkloadBanner(
+            color: Colors.orange,
+            icon: Icons.info_outline,
+            text: 'El técnico queda cerca del límite semanal.',
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildWeekRow(WeeklyWorkload week, DateFormat dateFormat) {
+    final color = week.exceedsLimit
+        ? Colors.red
+        : week.isNearLimit
+            ? Colors.orange
+            : Colors.green;
+    final ratio = (week.newTotal / week.maxWeeklyHours).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Sem ${week.isoWeek} · ${dateFormat.format(week.weekStart)} – ${dateFormat.format(week.weekEnd)}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+              Text(
+                '${week.current.total.toStringAsFixed(1)} + ${week.additional.total.toStringAsFixed(1)} = ${week.newTotal.toStringAsFixed(1)} h',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 6,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkloadBanner({
+    required MaterialColor color,
+    required IconData icon,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: color[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color[700]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 11, color: color[800]),
+            ),
           ),
         ],
       ),

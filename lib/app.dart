@@ -16,38 +16,34 @@ class PMMonitorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+    // AuthProvider se provee una sola vez en main.dart (MultiProvider raíz).
+    return MaterialApp(
+      title: 'PANDA',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
       ],
-      child: MaterialApp(
-        title: 'PANDA',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('es'),
-          Locale('en'),
-        ],
-        home: const AuthWrapper(),
-        routes: {
-          '/login': (context) => const LoginScreen(),
-          '/admin-dashboard': (context) => const AdminDashboard(),
-          '/technician-dashboard': (context) => const TechnicianDashboard(),
-          '/client-dashboard': (context) => const ClientDashboard(),
-          '/unified-maintenance': (context) {
-            final int initialTab =
-                ModalRoute.of(context)?.settings.arguments as int? ?? 0;
-            return UnifiedMaintenanceScreen(initialTab: initialTab);
-          }
-        },
-      ),
+      supportedLocales: const [
+        Locale('es'),
+        Locale('en'),
+      ],
+      home: const AuthWrapper(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/admin-dashboard': (context) => const AdminDashboard(),
+        '/technician-dashboard': (context) => const TechnicianDashboard(),
+        '/client-dashboard': (context) => const ClientDashboard(),
+        '/unified-maintenance': (context) {
+          final int initialTab =
+              ModalRoute.of(context)?.settings.arguments as int? ?? 0;
+          return UnifiedMaintenanceScreen(initialTab: initialTab);
+        }
+      },
     );
   }
 }
