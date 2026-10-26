@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pm_monitor/core/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/providers/auth_provider.dart' as app_auth;
+import 'package:pm_monitor/core/models/user_model.dart' show UserRole;
 import 'package:pm_monitor/features/auth/screens/forgot_password_screen.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -62,24 +62,20 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = context.read<app_auth.AuthProvider>();
     final user = authProvider.currentUser;
     if (user != null) {
-      String route;
+      late String route;
       switch (user.role) {
-        case 'admin':
+        case UserRole.admin:
           route = '/admin-dashboard';
           break;
-        case 'supervisor':
-          // El supervisor comparte actualmente el dashboard administrativo;
-          // AuthWrapper también lo dirige allí al restaurar la sesión.
-          route = '/admin-dashboard';
+        case UserRole.supervisor:
+          route = '/supervisor-dashboard';
           break;
-        case 'technician':
+        case UserRole.technician:
           route = '/technician-dashboard';
           break;
-        case 'client':
+        case UserRole.client:
           route = '/client-dashboard';
           break;
-        default:
-          route = '/';
       }
       Navigator.pushReplacementNamed(context, route);
     }

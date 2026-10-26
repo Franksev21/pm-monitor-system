@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:pm_monitor/shared/widgets/liquid_glass_background.dart';
 
 class TechnicianDashboard extends StatefulWidget {
   const TechnicianDashboard({super.key});
@@ -182,7 +183,8 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
       debugPrint('❌ Error cargando equipos: $e');
     }
   }
-Future<void> _loadNotifications() async {
+
+  Future<void> _loadNotifications() async {
     final currentUserId = _auth.currentUser?.uid;
     if (currentUserId == null) return;
 
@@ -204,41 +206,43 @@ Future<void> _loadNotifications() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFE5EEF8),
       appBar: _buildAppBar(),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await _loadMaintenanceCounts();
-            await _loadEquipmentCount();
-            await _loadNotifications();
-            await _loadTechnicianPhoto();
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Datos actualizados'),
-                  duration: Duration(seconds: 1),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildTechnicianHeader(context),
-                const SizedBox(height: 20),
-                _buildQuickStats(),
-                const SizedBox(height: 20),
-                _buildQuickActions(context),
-                const SizedBox(height: 20),
-                _buildMaintenanceStats(context),
-                const SizedBox(height: 20),
-                _buildProgressCard(),
-              ],
+      body: LiquidGlassBackground(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await _loadMaintenanceCounts();
+              await _loadEquipmentCount();
+              await _loadNotifications();
+              await _loadTechnicianPhoto();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Datos actualizados'),
+                    duration: Duration(seconds: 1),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildTechnicianHeader(context),
+                  const SizedBox(height: 20),
+                  _buildQuickStats(),
+                  const SizedBox(height: 20),
+                  _buildQuickActions(context),
+                  const SizedBox(height: 20),
+                  _buildMaintenanceStats(context),
+                  const SizedBox(height: 20),
+                  _buildProgressCard(),
+                ],
+              ),
             ),
           ),
         ),
@@ -875,8 +879,7 @@ Future<void> _loadNotifications() async {
 
   void _showNotifications(BuildContext context) => Navigator.push(
         context,
-        MaterialPageRoute(
-            builder: (_) => const TechnicianAlertsScreen()),
+        MaterialPageRoute(builder: (_) => const TechnicianAlertsScreen()),
       );
 
   void _showLogoutConfirmation(BuildContext context) {

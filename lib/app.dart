@@ -10,6 +10,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/dashboard/screens/admin_dashboard.dart';
 import 'features/dashboard/screens/technician_dashboard.dart';
 import 'features/dashboard/screens/client_dashboard.dart';
+import 'features/dashboard/screens/supervisor_dashboard.dart';
 
 class PMMonitorApp extends StatelessWidget {
   const PMMonitorApp({super.key});
@@ -38,6 +39,7 @@ class PMMonitorApp extends StatelessWidget {
         '/admin-dashboard': (context) => const AdminDashboard(),
         '/technician-dashboard': (context) => const TechnicianDashboard(),
         '/client-dashboard': (context) => const ClientDashboard(),
+        '/supervisor-dashboard': (context) => const SupervisorDashboard(),
         '/unified-maintenance': (context) {
           final int initialTab =
               ModalRoute.of(context)?.settings.arguments as int? ?? 0;
@@ -80,8 +82,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
         final user = authProvider.currentUser!;
         switch (user.role) {
           case UserRole.admin:
-          case UserRole.supervisor:
             return const AdminDashboard();
+          case UserRole.supervisor:
+            return const SupervisorDashboard();
           case UserRole.technician:
             return const GlobalAlertListener(child: TechnicianDashboard());
           case UserRole.client:

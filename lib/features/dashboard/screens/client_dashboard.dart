@@ -8,6 +8,7 @@ import 'package:pm_monitor/features/client/screens/client_faults_history_screen.
 import 'package:pm_monitor/features/client/screens/customer_survey_screen.dart';
 import 'package:pm_monitor/features/others/screens/qr_scanner_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:pm_monitor/shared/widgets/liquid_glass_background.dart';
 
 class ClientDashboard extends StatefulWidget {
   const ClientDashboard({super.key});
@@ -263,7 +264,7 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFE5EEF8),
       appBar: AppBar(
         title: const Text('Dashboard Cliente'),
         backgroundColor: const Color(0xFF1976D2),
@@ -276,31 +277,33 @@ class _ClientDashboardScreenState extends State<ClientDashboard> {
               onPressed: () => _showLogoutDialog(context)),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadDashboardData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeaderCard(),
-                    const SizedBox(height: 16),
-                    _buildKpiGrid(),
-                    const SizedBox(height: 16),
-                    _buildActionButtons(),
-                    const SizedBox(height: 16),
-                    if (_nextMaintenance != null) ...[
-                      _buildNextMaintenanceCard(),
+      body: LiquidGlassBackground(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _loadDashboardData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeaderCard(),
                       const SizedBox(height: 16),
+                      _buildKpiGrid(),
+                      const SizedBox(height: 16),
+                      _buildActionButtons(),
+                      const SizedBox(height: 16),
+                      if (_nextMaintenance != null) ...[
+                        _buildNextMaintenanceCard(),
+                        const SizedBox(height: 16),
+                      ],
+                      const SizedBox(height: 8),
                     ],
-                    const SizedBox(height: 8),
-                  ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 

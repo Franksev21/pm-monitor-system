@@ -14,6 +14,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../config/theme/app_theme.dart';
+import '../../../shared/widgets/liquid_glass_background.dart';
 
 // Solo importar image_picker y dart:io en móvil
 import 'admin_dashboard_upload_stub.dart'
@@ -133,183 +134,186 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildWebLayout(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: Row(
-        children: [
-          // ── Sidebar ──
-          Container(
-            width: 240,
-            color: const Color(0xFF1A1F36),
-            child: Column(
-              children: [
-                // Logo / Header
-                Container(
-                  padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1976D2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.build_circle,
-                            color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'PANDA MT',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Divider(color: Colors.white12, height: 1),
-                const SizedBox(height: 8),
-
-                // Menu items
-                Expanded(
-                  child: ListView.builder(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    itemCount: _menuItems.length,
-                    itemBuilder: (context, index) {
-                      final item = _menuItems[index];
-                      final isSelected = _selectedIndex == index;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ListTile(
-                          dense: true,
-                          leading: Icon(item.icon,
-                              color: isSelected ? item.color : Colors.white60,
-                              size: 20),
-                          title: Text(
-                            item.title,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white60,
-                              fontSize: 14,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                            ),
+      backgroundColor: const Color(0xFFE5EEF8),
+      body: LiquidGlassBackground(
+        child: Row(
+          children: [
+            // ── Sidebar ──
+            Container(
+              width: 240,
+              color: const Color(0xFF1A1F36),
+              child: Column(
+                children: [
+                  // Logo / Header
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1976D2),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          onTap: () => _navigateTo(index, context),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.build_circle,
+                              color: Colors.white, size: 20),
                         ),
-                      );
-                    },
-                  ),
-                ),
-
-                // Logout
-                const Divider(color: Colors.white12, height: 1),
-                ListTile(
-                  leading:
-                      const Icon(Icons.logout, color: Colors.white60, size: 20),
-                  title: const Text('Cerrar Sesión',
-                      style: TextStyle(color: Colors.white60, fontSize: 14)),
-                  onTap: () => _logout(context),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-
-          // ── Content ──
-          Expanded(
-            child: Consumer<AuthProvider>(
-              builder: (context, authProvider, child) {
-                final user = authProvider.currentUser!;
-                return Column(
-                  children: [
-                    // Top bar
-                    Container(
-                      height: 64,
-                      color: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        children: [
-                          Text(
-                            _menuItems[_selectedIndex].title,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1A1F36),
-                            ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'PANDA MT',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const Spacer(),
-                          // Avatar
-                          GestureDetector(
-                            onTap: _pickAndUploadPhoto,
-                            child: CircleAvatar(
-                              radius: 18,
-                              backgroundColor: const Color(0xFF1976D2),
-                              backgroundImage:
-                                  (_photoUrl != null && _photoUrl!.isNotEmpty)
-                                      ? NetworkImage(_photoUrl!)
-                                      : null,
-                              child: (_photoUrl == null || _photoUrl!.isEmpty)
-                                  ? Text(
-                                      user.name[0].toUpperCase(),
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold),
-                                    )
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(user.name,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1A1F36))),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const Divider(height: 1),
+                  ),
 
-                    // Dashboard content
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildWelcomeCard(user.name),
-                            const SizedBox(height: 24),
-                            // Grid más compacto para web
-                            GridView.count(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              childAspectRatio: 3.0,
-                              children: _buildCards(context),
+                  const Divider(color: Colors.white12, height: 1),
+                  const SizedBox(height: 8),
+
+                  // Menu items
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      itemCount: _menuItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _menuItems[index];
+                        final isSelected = _selectedIndex == index;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.white.withOpacity(0.1)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: ListTile(
+                            dense: true,
+                            leading: Icon(item.icon,
+                                color: isSelected ? item.color : Colors.white60,
+                                size: 20),
+                            title: Text(
+                              item.title,
+                              style: TextStyle(
+                                color:
+                                    isSelected ? Colors.white : Colors.white60,
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
                             ),
+                            onTap: () => _navigateTo(index, context),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Logout
+                  const Divider(color: Colors.white12, height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.logout,
+                        color: Colors.white60, size: 20),
+                    title: const Text('Cerrar Sesión',
+                        style: TextStyle(color: Colors.white60, fontSize: 14)),
+                    onTap: () => _logout(context),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+
+            // ── Content ──
+            Expanded(
+              child: Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  final user = authProvider.currentUser!;
+                  return Column(
+                    children: [
+                      // Top bar
+                      Container(
+                        height: 64,
+                        color: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(
+                          children: [
+                            Text(
+                              _menuItems[_selectedIndex].title,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A1F36),
+                              ),
+                            ),
+                            const Spacer(),
+                            // Avatar
+                            GestureDetector(
+                              onTap: _pickAndUploadPhoto,
+                              child: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: const Color(0xFF1976D2),
+                                backgroundImage:
+                                    (_photoUrl != null && _photoUrl!.isNotEmpty)
+                                        ? NetworkImage(_photoUrl!)
+                                        : null,
+                                child: (_photoUrl == null || _photoUrl!.isEmpty)
+                                    ? Text(
+                                        user.name[0].toUpperCase(),
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(user.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1A1F36))),
                           ],
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                      const Divider(height: 1),
+
+                      // Dashboard content
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildWelcomeCard(user.name),
+                              const SizedBox(height: 24),
+                              // Grid más compacto para web
+                              GridView.count(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                childAspectRatio: 3.0,
+                                children: _buildCards(context),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -328,28 +332,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
-          final user = authProvider.currentUser!;
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildWelcomeCard(user.name),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    children: _buildCards(context),
+      body: LiquidGlassBackground(
+        child: Consumer<AuthProvider>(
+          builder: (context, authProvider, child) {
+            final user = authProvider.currentUser!;
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildWelcomeCard(user.name),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      children: _buildCards(context),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
