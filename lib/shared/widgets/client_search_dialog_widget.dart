@@ -154,12 +154,12 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      color: Colors.grey[100],
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Text(
         '${_filteredClients.length} cliente${_filteredClients.length != 1 ? 's' : ''} encontrado${_filteredClients.length != 1 ? 's' : ''}',
         style: TextStyle(
           fontSize: 12,
-          color: Colors.grey[600],
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -204,13 +204,15 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.business, size: 14, color: Colors.grey[600]),
+              Icon(Icons.business,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 4),
               Text(
                 client.type.displayName,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -218,14 +220,16 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
           const SizedBox(height: 2),
           Row(
             children: [
-              Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+              Icon(Icons.location_on,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   client.mainAddress.country,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -268,7 +272,7 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
             Icon(
               Icons.search_off,
               size: 64,
-              color: Colors.grey[400],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
@@ -276,7 +280,7 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
@@ -284,7 +288,7 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
               'Intenta con otro término de búsqueda',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -297,8 +301,10 @@ class _ClientSearchDialogState extends State<ClientSearchDialog> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        border: Border(top: BorderSide(color: Colors.grey[300]!)),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        border: Border(
+            top: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant)),
       ),
       child: SizedBox(
         width: double.infinity,

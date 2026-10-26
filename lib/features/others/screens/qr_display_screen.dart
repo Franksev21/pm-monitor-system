@@ -134,7 +134,9 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
                   title: Text(QRGeneratorService.getQRTypeTitle(type)),
                   subtitle: Text(
                     QRGeneratorService.getQRTypeDescription(type),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   value: type,
                   groupValue: _selectedQRType,
@@ -190,7 +192,7 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
             QRGeneratorService.getQRTypeDescription(_selectedQRType),
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[700],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -418,7 +420,8 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
             const SizedBox(height: 12),
             Text(
               'Diferentes tipos de códigos QR para distintos usos:',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
             _buildFeatureSection(
@@ -498,12 +501,16 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
                 children: [
                   Text(
                     '• ',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12),
                   ),
                   Expanded(
                     child: Text(
                       feature,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12),
                     ),
                   ),
                 ],

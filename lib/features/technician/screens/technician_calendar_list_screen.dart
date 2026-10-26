@@ -110,11 +110,11 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Mi Calendario'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         elevation: 0,
         actions: [
           IconButton(
@@ -135,7 +135,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
 
   Widget _buildMonthSelector() {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -145,7 +145,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.chevron_left, color: Colors.grey),
@@ -153,10 +153,10 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
           ),
           Text(
             DateFormat('MMMM yyyy', 'es').format(_currentMonth),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w600,
-              color: Colors.black,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           GestureDetector(
@@ -164,7 +164,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.chevron_right, color: Colors.grey),
@@ -177,7 +177,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
 
   Widget _buildCalendarGrid() {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
           _buildWeekdayHeaders(),
@@ -200,7 +200,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           );
         }).toList(),
@@ -296,7 +296,9 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                             ? Colors.white
                             : isCurrentMonth
                                 ? Colors.black
-                                : Colors.grey[400],
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                   ),
                 ),
               ),
@@ -330,8 +332,8 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.only(top: 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
@@ -344,7 +346,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
               height: 4,
               margin: const EdgeInsets.only(top: 12),
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Theme.of(context).colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -354,10 +356,10 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                 children: [
                   Text(
                     DateFormat('d', 'es').format(_selectedDate),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -369,14 +371,14 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       Text(
                         DateFormat('MMMM yyyy', 'es').format(_selectedDate),
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[500],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -423,14 +425,14 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
           Icon(
             Icons.event_note,
             size: 64,
-            color: Colors.grey[300],
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
           const SizedBox(height: 16),
           Text(
             'No tienes mantenimientos programados',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey[500],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -439,7 +441,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
             'para este día',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[400],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -486,7 +488,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -505,7 +507,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: _getEventColor(maintenance).withOpacity(0.3),
@@ -545,10 +547,10 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                       children: [
                         Text(
                           maintenance.equipmentName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -558,7 +560,8 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                           maintenance.clientName,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -568,7 +571,8 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                           maintenance.location,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[500],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -601,7 +605,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
                         '${maintenance.estimatedHours ?? 0}h', // ✅ CORREGIDO
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey[500],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -725,16 +729,17 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
             width: 90,
             child: Text(
               '$label:',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Colors.black87,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: Colors.black54),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         ],
@@ -746,7 +751,7 @@ class _TechnicianCalendarScreenState extends State<TechnicianCalendarScreen> {
   Color _getEventColor(MaintenanceSchedule maintenance) {
     switch (maintenance.status) {
       case MaintenanceStatus.generated:
-        return Colors.grey[400]!;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
       case MaintenanceStatus.assigned:
         return Colors.orange[600]!;
       case MaintenanceStatus.executed:

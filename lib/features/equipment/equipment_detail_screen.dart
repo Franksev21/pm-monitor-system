@@ -44,7 +44,6 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
     equipmentProvider.loadEquipmentById(widget.equipment.id!);
   }
 
-
   void _showReportFailureDialog() {
     Navigator.push(
       context,
@@ -258,7 +257,10 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: statusColor ?? Colors.grey[600]),
+          Icon(icon,
+              size: 20,
+              color: statusColor ??
+                  Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 12),
           Expanded(
             flex: 2,
@@ -266,7 +268,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -341,7 +343,9 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
                 ),
                 Text(
                   date,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -387,7 +391,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -423,7 +427,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -445,7 +449,9 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
               label,
               style: TextStyle(
                 fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-                color: isTotal ? Colors.black : Colors.grey[700],
+                color: isTotal
+                    ? Colors.black
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: isTotal ? 16 : 14,
               ),
             ),
@@ -795,9 +801,11 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
                 Container(
                   height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: const Center(
                     child: Column(
@@ -842,9 +850,11 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
                 Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: const Center(
                     child: Text('No hay documentos disponibles',
@@ -852,18 +862,16 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
                   ),
                 )
               else
-                ...equipment.documentUrls
-                    .map((url) => ListTile(
-                          leading: const Icon(Icons.description,
-                              color: Color(0xFF1976D2)),
-                          title: Text(
-                              'Documento ${equipment.documentUrls.indexOf(url) + 1}'),
-                          trailing: const Icon(Icons.download),
-                          onTap: () {
-                            // TODO: Abrir documento
-                          },
-                        ))
-                    ,
+                ...equipment.documentUrls.map((url) => ListTile(
+                      leading: const Icon(Icons.description,
+                          color: Color(0xFF1976D2)),
+                      title: Text(
+                          'Documento ${equipment.documentUrls.indexOf(url) + 1}'),
+                      trailing: const Icon(Icons.download),
+                      onTap: () {
+                        // TODO: Abrir documento
+                      },
+                    )),
             ],
           ),
           const SizedBox(height: 24),
@@ -909,7 +917,8 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),

@@ -156,7 +156,7 @@ class _PendingMaintenancesScreenState extends State<PendingMaintenancesScreen> {
     );
   }
 
-Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
+  Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
     final equipmentName = data['equipmentName'] ?? 'Equipo sin nombre';
     final clientName = data['clientName'] ?? 'Cliente no especificado';
     final type = data['type'] ?? 'preventive';
@@ -200,14 +200,18 @@ Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.business, size: 14, color: Colors.grey[600]),
+                      Icon(Icons.business,
+                          size: 14,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           clientName,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[700],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -406,7 +410,8 @@ Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: Colors.grey[600]),
+          Icon(icon,
+              size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -416,7 +421,7 @@ Widget _buildMaintenanceCard(String id, Map<String, dynamic> data) {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 Text(

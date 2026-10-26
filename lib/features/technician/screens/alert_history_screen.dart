@@ -16,7 +16,7 @@ class AlertHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +61,10 @@ class AlertHistoryScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 16, color: Colors.red[600])),
                   const SizedBox(height: 8),
                   Text('${snapshot.error}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       textAlign: TextAlign.center),
                 ],
               ),
@@ -76,16 +79,20 @@ class AlertHistoryScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.notifications_off,
-                      size: 80, color: Colors.grey[400]),
+                      size: 80,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(height: 16),
                   Text('No hay alertas enviadas',
                       style: TextStyle(
                           fontSize: 18,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500)),
                   const SizedBox(height: 8),
                   Text('Las alertas enviadas a $technicianName aparecerán aquí',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                      style: TextStyle(
+                          fontSize: 14,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       textAlign: TextAlign.center),
                 ],
               ),
@@ -118,8 +125,8 @@ class AlertHistoryScreen extends StatelessWidget {
                 children: [
                   // Encabezado de fecha
                   Padding(
-                    padding: EdgeInsets.only(
-                        bottom: 8, top: index > 0 ? 16 : 0),
+                    padding:
+                        EdgeInsets.only(bottom: 8, top: index > 0 ? 16 : 0),
                     child: Row(
                       children: [
                         Container(
@@ -141,12 +148,15 @@ class AlertHistoryScreen extends StatelessWidget {
                         Text(
                             '${alerts.length} alerta${alerts.length > 1 ? 's' : ''}',
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey[500])),
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
                       ],
                     ),
                   ),
                   // Alertas del día
-                  ...alerts.map((doc) => _buildAlertCard(doc)),
+                  ...alerts.map((doc) => _buildAlertCard(context, doc)),
                 ],
               );
             },
@@ -167,7 +177,7 @@ class AlertHistoryScreen extends StatelessWidget {
     return DateFormat('dd MMM yyyy', 'es').format(date);
   }
 
-  Widget _buildAlertCard(QueryDocumentSnapshot doc) {
+  Widget _buildAlertCard(BuildContext context, QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final message = data['message'] ?? '';
     final priority = data['priority'] ?? 'normal';
@@ -182,10 +192,12 @@ class AlertHistoryScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isRead ? Colors.grey[300]! : priorityConfig['color'] as Color,
+          color: isRead
+              ? Theme.of(context).colorScheme.outlineVariant
+              : priorityConfig['color'] as Color,
           width: isRead ? 0.5 : 1.5,
         ),
         boxShadow: [
@@ -271,7 +283,7 @@ class AlertHistoryScreen extends StatelessWidget {
               message,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[800],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.4,
               ),
             ),
@@ -280,33 +292,45 @@ class AlertHistoryScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.send, size: 13, color: Colors.grey[500]),
+                      Icon(Icons.send,
+                          size: 13,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Text('Enviada por: ',
-                          style:
-                              TextStyle(fontSize: 11, color: Colors.grey[500])),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
                       Text(sentBy,
                           style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[700],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                               fontWeight: FontWeight.w600)),
                       const Spacer(),
                       if (date != null) ...[
                         Icon(Icons.access_time,
-                            size: 13, color: Colors.grey[500]),
+                            size: 13,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Text(
                           DateFormat('hh:mm a').format(date),
                           style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[600],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                               fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -321,7 +345,10 @@ class AlertHistoryScreen extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text('Leída: ',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey[500])),
+                                fontSize: 11,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
                         Text(
                           DateFormat('dd/MM/yyyy hh:mm a')
                               .format(readAt.toDate()),

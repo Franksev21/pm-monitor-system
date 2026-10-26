@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-
 class UnifiedMaintenanceScreen extends StatefulWidget {
   final int initialTab;
 
   const UnifiedMaintenanceScreen({super.key, this.initialTab = 0});
 
   @override
- _UnifiedMaintenanceScreenState createState() =>
+  _UnifiedMaintenanceScreenState createState() =>
       _UnifiedMaintenanceScreenState();
 }
 
@@ -71,7 +70,7 @@ class _InProgressMaintenancesTab extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
@@ -79,7 +78,7 @@ class _InProgressMaintenancesTab extends StatelessWidget {
               'Esta sección estará disponible pronto',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],

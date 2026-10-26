@@ -184,7 +184,7 @@ class _MaintenanceManagementScreenState
     ].where((f) => f).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Gestión de Mantenimientos'),
         backgroundColor: const Color(0xFF4CAF50),
@@ -269,7 +269,7 @@ class _MaintenanceManagementScreenState
   Widget _buildQuickFiltersBar(int activeFiltersCount) {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Row(
         children: [
           Expanded(
@@ -368,7 +368,7 @@ class _MaintenanceManagementScreenState
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Row(
         children: [
           Checkbox(
@@ -442,10 +442,12 @@ class _MaintenanceManagementScreenState
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? Colors.blue : Colors.grey[300]!,
+          color: isSelected
+              ? Colors.blue
+              : Theme.of(context).colorScheme.outlineVariant,
           width: isSelected ? 2 : 1,
         ),
         boxShadow: isSelected
@@ -503,14 +505,19 @@ class _MaintenanceManagementScreenState
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.business, size: 12, color: Colors.grey[600]),
+                        Icon(Icons.business,
+                            size: 12,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             maintenance.clientName,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -522,7 +529,9 @@ class _MaintenanceManagementScreenState
                     Row(
                       children: [
                         Icon(Icons.calendar_today,
-                            size: 12, color: Colors.grey[600]),
+                            size: 12,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -530,20 +539,26 @@ class _MaintenanceManagementScreenState
                                 .format(maintenance.scheduledDate),
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[600],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Icon(Icons.schedule, size: 12, color: Colors.grey[600]),
+                        Icon(Icons.schedule,
+                            size: 12,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Text(
                           '${maintenance.estimatedHours ?? 0}h',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[600],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -681,7 +696,8 @@ class _MaintenanceManagementScreenState
               child: CircularProgressIndicator(
                 value: percentage / 100,
                 strokeWidth: 3,
-                backgroundColor: Colors.grey[200],
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),
             ),
@@ -836,16 +852,21 @@ class _MaintenanceManagementScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assignment_outlined, size: 64, color: Colors.grey[300]),
+          Icon(Icons.assignment_outlined,
+              size: 64, color: Theme.of(context).colorScheme.outlineVariant),
           const SizedBox(height: 16),
           Text(
             'No hay mantenimientos',
-            style: TextStyle(fontSize: 18, color: Colors.grey[500]),
+            style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Text(
             'Ajusta los filtros o crea uno nuevo',
-            style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+            style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -921,8 +942,8 @@ class _MaintenanceManagementScreenState
 
           return Container(
             height: MediaQuery.of(context).size.height * 0.85,
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
@@ -935,7 +956,10 @@ class _MaintenanceManagementScreenState
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Colors.grey[200]!),
+                      bottom: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest),
                     ),
                   ),
                   child: Row(
@@ -1008,7 +1032,10 @@ class _MaintenanceManagementScreenState
                               vertical: 16,
                             ),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
+                              border: Border.all(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant),
                               borderRadius: BorderRadius.circular(8),
                               color: tempClientId != null
                                   ? Colors.blue[50]
@@ -1020,7 +1047,9 @@ class _MaintenanceManagementScreenState
                                   Icons.person,
                                   color: tempClientId != null
                                       ? Colors.blue[700]
-                                      : Colors.grey[600],
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -1035,7 +1064,9 @@ class _MaintenanceManagementScreenState
                                       fontSize: 15,
                                       color: tempClientId != null
                                           ? Colors.blue[700]
-                                          : Colors.grey[700],
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                       fontWeight: tempClientId != null
                                           ? FontWeight.w600
                                           : FontWeight.normal,
@@ -1055,7 +1086,10 @@ class _MaintenanceManagementScreenState
                                     constraints: const BoxConstraints(),
                                   )
                                 else
-                                  Icon(Icons.search, color: Colors.grey[600]),
+                                  Icon(Icons.search,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
                               ],
                             ),
                           ),
@@ -1075,7 +1109,10 @@ class _MaintenanceManagementScreenState
                           const SizedBox(height: 8),
                           Container(
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
+                              border: Border.all(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: DropdownButtonHideUnderline(
@@ -1146,7 +1183,10 @@ class _MaintenanceManagementScreenState
                         const SizedBox(height: 8),
                         Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
+                            border: Border.all(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: DropdownButtonHideUnderline(
@@ -1267,8 +1307,10 @@ class _MaintenanceManagementScreenState
                                 return Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    border:
-                                        Border.all(color: Colors.grey[300]!),
+                                    border: Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outlineVariant),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Center(
@@ -1281,7 +1323,10 @@ class _MaintenanceManagementScreenState
 
                               return Container(
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey[300]!),
+                                  border: Border.all(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: DropdownButtonHideUnderline(
@@ -1381,7 +1426,10 @@ class _MaintenanceManagementScreenState
                         const SizedBox(height: 8),
                         Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
+                            border: Border.all(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
@@ -1415,7 +1463,9 @@ class _MaintenanceManagementScreenState
                                             : Icons.circle_outlined,
                                         color: tempEquipmentType == null
                                             ? Colors.blue[700]
-                                            : Colors.grey[400],
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 12),
@@ -1455,7 +1505,9 @@ class _MaintenanceManagementScreenState
                                           : Colors.white,
                                       border: Border(
                                         top: BorderSide(
-                                            color: Colors.grey[300]!),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outlineVariant),
                                       ),
                                     ),
                                     child: Row(
@@ -1466,7 +1518,9 @@ class _MaintenanceManagementScreenState
                                               : Icons.circle_outlined,
                                           color: isSelected
                                               ? Colors.blue[700]
-                                              : Colors.grey[400],
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                           size: 20,
                                         ),
                                         const SizedBox(width: 12),
@@ -1503,7 +1557,10 @@ class _MaintenanceManagementScreenState
                                         ? Colors.blue[50]
                                         : Colors.white,
                                     border: Border(
-                                      top: BorderSide(color: Colors.grey[300]!),
+                                      top: BorderSide(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant),
                                     ),
                                     borderRadius: const BorderRadius.only(
                                       bottomLeft: Radius.circular(8),
@@ -1518,7 +1575,9 @@ class _MaintenanceManagementScreenState
                                             : Icons.circle_outlined,
                                         color: tempEquipmentType == 'Otro'
                                             ? Colors.blue[700]
-                                            : Colors.grey[400],
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 12),
@@ -1570,7 +1629,10 @@ class _MaintenanceManagementScreenState
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     border: Border(
-                      top: BorderSide(color: Colors.grey[200]!),
+                      top: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest),
                     ),
                   ),
                   child: SizedBox(
@@ -1636,8 +1698,8 @@ class _MaintenanceManagementScreenState
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
@@ -1650,7 +1712,10 @@ class _MaintenanceManagementScreenState
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Colors.grey[200]!),
+                  bottom: BorderSide(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest),
                 ),
               ),
               child: Row(
@@ -1965,8 +2030,8 @@ class _MaintenanceManagementScreenState
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Container(
               height: 400,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
@@ -1990,11 +2055,16 @@ class _MaintenanceManagementScreenState
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.person_off, size: 64, color: Colors.grey[300]),
+                    Icon(Icons.person_off,
+                        size: 64,
+                        color: Theme.of(context).colorScheme.outlineVariant),
                     const SizedBox(height: 16),
                     Text(
                       'No hay técnicos disponibles',
-                      style: TextStyle(fontSize: 18, color: Colors.grey[500]),
+                      style: TextStyle(
+                          fontSize: 18,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -2013,8 +2083,8 @@ class _MaintenanceManagementScreenState
   ) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -2026,7 +2096,9 @@ class _MaintenanceManagementScreenState
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!),
+                bottom: BorderSide(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest),
               ),
             ),
             child: Column(
@@ -2104,10 +2176,12 @@ class _MaintenanceManagementScreenState
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: canAccept ? Colors.grey[300]! : Colors.red[200]!,
+          color: canAccept
+              ? Theme.of(context).colorScheme.outlineVariant
+              : Colors.red[200]!,
           width: 1,
         ),
         boxShadow: [
@@ -2168,7 +2242,8 @@ class _MaintenanceManagementScreenState
                           '${tech.activeMaintenances} activo${tech.activeMaintenances != 1 ? 's' : ''}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -2205,7 +2280,7 @@ class _MaintenanceManagementScreenState
                         '${tech.assignedHours.toStringAsFixed(1)} / ${tech.maxWeeklyHours.toStringAsFixed(0)} hrs',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[700],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -2224,7 +2299,8 @@ class _MaintenanceManagementScreenState
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: tech.utilizationPercentage / 100,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       valueColor:
                           AlwaysStoppedAnimation<Color>(utilizationColor),
                       minHeight: 8,
@@ -2305,7 +2381,8 @@ class _MaintenanceManagementScreenState
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -2400,7 +2477,9 @@ class _MaintenanceManagementScreenState
             padding: const EdgeInsets.only(top: 2),
             child: Text(
               'Incluye ${result.totalOvertimeAdded.toStringAsFixed(1)} hrs fuera de horario regular',
-              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         if (!result.canAssign) ...[
@@ -2460,7 +2539,8 @@ class _MaintenanceManagementScreenState
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 6,
-              backgroundColor: Colors.grey[200],
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),

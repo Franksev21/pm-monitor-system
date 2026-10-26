@@ -31,7 +31,7 @@ class _TechnicianFaultsScreenState extends State<TechnicianFaultsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Reportes de Fallas'),
         backgroundColor: Colors.blue,
@@ -265,7 +265,8 @@ class _TechnicianFaultsScreenState extends State<TechnicianFaultsScreen>
                   const SizedBox(width: 8),
                   _buildStatusBadge(fault.status),
                   const Spacer(),
-                  Icon(Icons.chevron_right, color: Colors.grey[400]),
+                  Icon(Icons.chevron_right,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ],
               ),
               const SizedBox(height: 12),
@@ -273,7 +274,9 @@ class _TechnicianFaultsScreenState extends State<TechnicianFaultsScreen>
               // Equipo
               Row(
                 children: [
-                  Icon(Icons.build_circle, size: 18, color: Colors.grey[600]),
+                  Icon(Icons.build_circle,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -291,13 +294,15 @@ class _TechnicianFaultsScreenState extends State<TechnicianFaultsScreen>
               // Cliente
               Row(
                 children: [
-                  Icon(Icons.business, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.business,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Text(
                     fault.clientName,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[700],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -309,7 +314,7 @@ class _TechnicianFaultsScreenState extends State<TechnicianFaultsScreen>
                 fault.description,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey[700],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -319,13 +324,15 @@ class _TechnicianFaultsScreenState extends State<TechnicianFaultsScreen>
               // Footer
               Row(
                 children: [
-                  Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                  Icon(Icons.access_time,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     'Reportado ${fault.timeElapsed}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const Spacer(),
@@ -527,14 +534,15 @@ class _TechnicianFaultsScreenState extends State<TechnicianFaultsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 80, color: Colors.grey[400]),
+          Icon(icon,
+              size: 80, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text(
             title,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),
@@ -543,7 +551,7 @@ class _TechnicianFaultsScreenState extends State<TechnicianFaultsScreen>
             subtitle,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[500],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),

@@ -55,7 +55,8 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
         const SizedBox(height: 8),
         Text(
           'Agrega las ubicaciones adicionales del cliente',
-          style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600]),
+          style: AppTheme.bodyMedium
+              .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
         if (_branches.isEmpty)
@@ -72,30 +73,33 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: Colors.grey[300]!, width: 2, style: BorderStyle.solid),
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 2,
+            style: BorderStyle.solid),
       ),
       child: Column(
         children: [
           Icon(
             Icons.store_outlined,
             size: 64,
-            color: Colors.grey[400],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
             'Sin sucursales agregadas',
             style: AppTheme.bodyLarge.copyWith(
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Agrega las ubicaciones adicionales de tu cliente',
-            style: AppTheme.bodyMedium.copyWith(color: Colors.grey[500]),
+            style: AppTheme.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ],
@@ -112,7 +116,7 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
         side: BorderSide(
           color: branch.isActive
               ? AppTheme.primaryColor.withOpacity(0.3)
-              : Colors.grey[300]!,
+              : Theme.of(context).colorScheme.outlineVariant,
           width: 1,
         ),
       ),
@@ -129,14 +133,14 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
                   decoration: BoxDecoration(
                     color: branch.isActive
                         ? AppTheme.primaryColor.withOpacity(0.1)
-                        : Colors.grey[200],
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.store,
                     color: branch.isActive
                         ? AppTheme.primaryColor
-                        : Colors.grey[600],
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -148,14 +152,15 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
                         branch.name,
                         style: AppTheme.bodyLarge.copyWith(
                           fontWeight: FontWeight.w600,
-                          color:
-                              branch.isActive ? Colors.black : Colors.grey[600],
+                          color: branch.isActive
+                              ? Colors.black
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       Text(
                         branch.address.city,
                         style: AppTheme.bodySmall.copyWith(
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -167,7 +172,7 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
                   decoration: BoxDecoration(
                     color: branch.isActive
                         ? AppTheme.successColor.withOpacity(0.1)
-                        : Colors.grey[300],
+                        : Theme.of(context).colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -175,7 +180,7 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
                     style: AppTheme.bodySmall.copyWith(
                       color: branch.isActive
                           ? AppTheme.successColor
-                          : Colors.grey[700],
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -189,7 +194,9 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
             // Dirección
             Row(
               children: [
-                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                Icon(Icons.location_on,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -205,7 +212,9 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.person,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -221,7 +230,9 @@ class _BranchManagementWidgetState extends State<BranchManagementWidget> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.phone,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Text(
                     branch.managerPhone!,
@@ -547,8 +558,10 @@ class _BranchDialogState extends State<_BranchDialog> {
                           _isActive
                               ? 'Esta sucursal está operativa'
                               : 'Esta sucursal está inactiva',
-                          style: AppTheme.bodySmall
-                              .copyWith(color: Colors.grey[600]),
+                          style: AppTheme.bodySmall.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                         ),
                         value: _isActive,
                         onChanged: (value) {
@@ -568,7 +581,7 @@ class _BranchDialogState extends State<_BranchDialog> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(16),
                   bottomRight: Radius.circular(16),

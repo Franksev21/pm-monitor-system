@@ -25,7 +25,7 @@ class _ClientFaultsHistoryScreenState extends State<ClientFaultsHistoryScreen> {
     final currentUserId = _auth.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Mis Reportes de Fallas'),
         backgroundColor: Colors.red,
@@ -89,7 +89,7 @@ class _ClientFaultsHistoryScreenState extends State<ClientFaultsHistoryScreen> {
                         Icon(
                           Icons.check_circle_outline,
                           size: 80,
-                          color: Colors.grey[400],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -98,7 +98,8 @@ class _ClientFaultsHistoryScreenState extends State<ClientFaultsHistoryScreen> {
                               : 'No has reportado fallas',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Colors.grey[600],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -107,7 +108,8 @@ class _ClientFaultsHistoryScreenState extends State<ClientFaultsHistoryScreen> {
                           '¡Eso es bueno! Tus equipos están funcionando bien',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[500],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -152,7 +154,7 @@ class _ClientFaultsHistoryScreenState extends State<ClientFaultsHistoryScreen> {
 
   Widget _buildFilters() {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -206,9 +208,9 @@ class _ClientFaultsHistoryScreenState extends State<ClientFaultsHistoryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -277,7 +279,7 @@ class _FaultReportCard extends StatelessWidget {
                   const Spacer(),
                   Icon(
                     Icons.chevron_right,
-                    color: Colors.grey[400],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),
@@ -286,7 +288,9 @@ class _FaultReportCard extends StatelessWidget {
               // Equipo
               Row(
                 children: [
-                  Icon(Icons.build_circle, size: 18, color: Colors.grey[600]),
+                  Icon(Icons.build_circle,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -306,7 +310,7 @@ class _FaultReportCard extends StatelessWidget {
                 report.description,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey[700],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -316,13 +320,15 @@ class _FaultReportCard extends StatelessWidget {
               // Footer con fecha y tiempo de respuesta
               Row(
                 children: [
-                  Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                  Icon(Icons.access_time,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     'Reportado ${report.timeElapsed}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const Spacer(),
@@ -502,7 +508,7 @@ class FaultReportDetailScreen extends StatelessWidget {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Detalle de Falla'),
         backgroundColor: Colors.red,
@@ -516,17 +522,18 @@ class FaultReportDetailScreen extends StatelessWidget {
           children: [
             // Card de información general
             _buildInfoCard(
+              context,
               title: 'Información General',
               children: [
-                _buildInfoRow('Equipo', report.equipmentNumber),
-                _buildInfoRow('Nombre', report.equipmentName),
+                _buildInfoRow(context, 'Equipo', report.equipmentNumber),
+                _buildInfoRow(context, 'Nombre', report.equipmentName),
                 if (report.location.isNotEmpty)
-                  _buildInfoRow('Ubicación', report.location),
+                  _buildInfoRow(context, 'Ubicación', report.location),
                 _buildInfoRow(
-                    'Reportado', dateFormat.format(report.reportedAt)),
-                _buildInfoRow('Estado', _getStatusLabel(report.status),
+                    context, 'Reportado', dateFormat.format(report.reportedAt)),
+                _buildInfoRow(context, 'Estado', _getStatusLabel(report.status),
                     color: _getStatusColor(report.status)),
-                _buildInfoRow('Severidad', report.severity,
+                _buildInfoRow(context, 'Severidad', report.severity,
                     color: _getSeverityColor(report.severity)),
               ],
             ),
@@ -534,12 +541,14 @@ class FaultReportDetailScreen extends StatelessWidget {
 
             // Descripción
             _buildInfoCard(
+              context,
               title: 'Descripción del Problema',
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -553,6 +562,7 @@ class FaultReportDetailScreen extends StatelessWidget {
 
             // Tiempo de respuesta
             _buildInfoCard(
+              context,
               title: 'Tiempo de Respuesta',
               children: [
                 if (report.respondedAt != null) ...[
@@ -613,7 +623,9 @@ class FaultReportDetailScreen extends StatelessWidget {
                               'Reportado ${report.timeElapsed}',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey[600],
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -629,6 +641,7 @@ class FaultReportDetailScreen extends StatelessWidget {
             // Técnico asignado (si existe)
             if (report.assignedTechnicianName != null) ...[
               _buildInfoCard(
+                context,
                 title: 'Técnico Asignado',
                 children: [
                   Row(
@@ -656,6 +669,7 @@ class FaultReportDetailScreen extends StatelessWidget {
             if (report.responseNotes != null &&
                 report.responseNotes!.isNotEmpty) ...[
               _buildInfoCard(
+                context,
                 title: 'Notas del Técnico',
                 children: [
                   Container(
@@ -678,6 +692,7 @@ class FaultReportDetailScreen extends StatelessWidget {
             // Si está resuelto
             if (report.resolvedAt != null) ...[
               _buildInfoCard(
+                context,
                 title: 'Resolución',
                 children: [
                   Row(
@@ -718,14 +733,15 @@ class FaultReportDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard({
+  Widget _buildInfoCard(
+    BuildContext context, {
     required String title,
     required List<Widget> children,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -740,10 +756,10 @@ class FaultReportDetailScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -753,7 +769,8 @@ class FaultReportDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {Color? color}) {
+  Widget _buildInfoRow(BuildContext context, String label, String value,
+      {Color? color}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -765,7 +782,7 @@ class FaultReportDetailScreen extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -775,7 +792,7 @@ class FaultReportDetailScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: color ?? Colors.black87,
+                color: color ?? Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),

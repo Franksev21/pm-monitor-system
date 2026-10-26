@@ -161,7 +161,7 @@ class _ClientEquipmentInventoryScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Mis Equipos'),
         backgroundColor: const Color(0xFF4285F4),
@@ -199,7 +199,7 @@ class _ClientEquipmentInventoryScreenState
   // ─────────────────────────────────────────────────────
   Widget _buildFiltersPanel() {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -326,11 +326,15 @@ class _ClientEquipmentInventoryScreenState
                             : null,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: BorderSide(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: BorderSide(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -338,7 +342,9 @@ class _ClientEquipmentInventoryScreenState
                               color: Color(0xFF4285F4), width: 1.5),
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF5F7FA),
+                        fillColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                         isDense: true,
@@ -372,14 +378,16 @@ class _ClientEquipmentInventoryScreenState
         // Label
         Row(
           children: [
-            Icon(icon, size: 13, color: Colors.grey[600]),
+            Icon(icon,
+                size: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(width: 5),
             Text(
               label.toUpperCase(),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 letterSpacing: 0.4,
               ),
             ),
@@ -393,12 +401,12 @@ class _ClientEquipmentInventoryScreenState
           decoration: BoxDecoration(
             color: isActive
                 ? activeColor.withOpacity(0.06)
-                : const Color(0xFFF5F7FA),
+                : Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isActive
                   ? activeColor.withOpacity(0.5)
-                  : Colors.grey.shade300,
+                  : Theme.of(context).colorScheme.outlineVariant,
               width: isActive ? 1.5 : 1,
             ),
           ),
@@ -426,7 +434,9 @@ class _ClientEquipmentInventoryScreenState
                         Icon(
                           icon,
                           size: 15,
-                          color: isSelected ? activeColor : Colors.grey[400],
+                          color: isSelected
+                              ? activeColor
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 8),
                       ],
@@ -436,7 +446,7 @@ class _ClientEquipmentInventoryScreenState
                           style: TextStyle(
                             fontSize: 14,
                             color: item == 'Todos'
-                                ? Colors.grey[600]
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
                                 : (isSelected ? activeColor : Colors.black87),
                             fontWeight: isSelected
                                 ? FontWeight.w600
@@ -732,7 +742,10 @@ class _ClientEquipmentInventoryScreenState
                         if (brand.isNotEmpty || model.isNotEmpty)
                           Text('$brand $model'.trim(),
                               style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[600]),
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis),
                       ],
@@ -758,11 +771,16 @@ class _ClientEquipmentInventoryScreenState
                   child: Row(
                     children: [
                       Icon(Icons.store_outlined,
-                          size: 13, color: Colors.grey[500]),
+                          size: 13,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(width: 5),
                       Text(branch,
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -874,7 +892,7 @@ class _ClientEquipmentInventoryScreenState
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(hasFilters ? Icons.search_off : Icons.devices_other,
-                size: 80, color: Colors.grey[300]),
+                size: 80, color: Theme.of(context).colorScheme.outlineVariant),
             const SizedBox(height: 16),
             Text(
               hasFilters
@@ -882,7 +900,7 @@ class _ClientEquipmentInventoryScreenState
                   : 'No tienes equipos registrados',
               style: TextStyle(
                   fontSize: 18,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),

@@ -144,7 +144,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           ),
           if (_isProcessing)
             Container(
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

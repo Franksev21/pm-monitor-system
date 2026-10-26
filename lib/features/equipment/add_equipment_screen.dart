@@ -358,7 +358,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Agrega un área o departamento dentro de la sucursal.',
-                style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
@@ -430,7 +432,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: Theme.of(context).colorScheme.outlineVariant,
                         borderRadius: BorderRadius.circular(2)),
                   ),
                 ),
@@ -821,13 +823,18 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text('${filteredBrands.length} marcas',
-                      style: TextStyle(color: Colors.grey[600])),
+                      style: TextStyle(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 8),
                   Expanded(
                     child: filteredBrands.isEmpty
                         ? Center(
                             child: Text('No se encontraron marcas',
-                                style: TextStyle(color: Colors.grey[600])))
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant)))
                         : ListView.builder(
                             itemCount: filteredBrands.length,
                             itemBuilder: (context, index) {
@@ -1099,7 +1106,9 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold)),
                   Text(widget.client.type.displayName,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 14)),
                 ],
               ),
             ),
@@ -1275,7 +1284,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                           : _selectedBrand),
                   style: TextStyle(
                       color: _selectedBrand.isEmpty
-                          ? Colors.grey[600]
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
                           : Colors.black),
                 ),
               ),
@@ -1426,7 +1435,10 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                                 ? 'Agrega una ubicación →'
                                 : 'Seleccionar ubicación...',
                             style: TextStyle(
-                                fontSize: 14, color: Colors.grey[500]),
+                                fontSize: 14,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                           ),
                           items: _clientLocations
                               .map((location) => DropdownMenuItem(
@@ -1526,7 +1538,8 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(

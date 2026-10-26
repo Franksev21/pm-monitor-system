@@ -94,10 +94,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: kIsWeb
           ? Container(
-              color: const Color(0xFFF5F7FA),
+              color: Theme.of(context).scaffoldBackgroundColor,
               child: Center(
                 child: SingleChildScrollView(
                   child: Container(
@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 40),
                     padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -218,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: kIsWeb ? const Color(0xFFF5F7FA) : Colors.white,
+              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -251,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: kIsWeb ? const Color(0xFFF5F7FA) : Colors.white,
+              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {

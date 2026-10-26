@@ -45,7 +45,7 @@ class _AdminMaintenanceReviewScreenState
     final completionPercentage = widget.maintenance.completionPercentage;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Revisión de Mantenimiento'),
         backgroundColor: const Color(0xFF4285F4),
@@ -108,7 +108,7 @@ class _AdminMaintenanceReviewScreenState
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -147,7 +147,7 @@ class _AdminMaintenanceReviewScreenState
                       widget.maintenance.clientName,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -167,7 +167,8 @@ class _AdminMaintenanceReviewScreenState
                     child: CircularProgressIndicator(
                       value: completionPercentage / 100,
                       strokeWidth: 6,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       valueColor:
                           AlwaysStoppedAnimation<Color>(completionColor),
                     ),
@@ -191,7 +192,7 @@ class _AdminMaintenanceReviewScreenState
                       'Completitud del Mantenimiento',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -200,7 +201,9 @@ class _AdminMaintenanceReviewScreenState
                       child: LinearProgressIndicator(
                         value: completionPercentage / 100,
                         minHeight: 12,
-                        backgroundColor: Colors.grey[200],
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         valueColor:
                             AlwaysStoppedAnimation<Color>(completionColor),
                       ),
@@ -428,21 +431,26 @@ class _AdminMaintenanceReviewScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
+                      Icon(Icons.schedule,
+                          size: 14,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(width: 4),
                       Text(
                         realDurationText,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey[700],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -508,7 +516,9 @@ class _AdminMaintenanceReviewScreenState
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.grey[800],
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -527,7 +537,8 @@ class _AdminMaintenanceReviewScreenState
                           _getEfficiencyMessage(efficiency),
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -608,7 +619,9 @@ class _AdminMaintenanceReviewScreenState
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(width: 2),
               Icon(Icons.info_outline, size: 10, color: color.withOpacity(0.7)),
@@ -733,7 +746,9 @@ class _AdminMaintenanceReviewScreenState
               Text(
                 desc,
                 style: TextStyle(
-                    fontSize: 12, color: Colors.grey[600], height: 1.4),
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.4),
               ),
             ],
           ),
@@ -789,14 +804,16 @@ class _AdminMaintenanceReviewScreenState
                     ? Colors.red[50]
                     : isCompleted
                         ? Colors.green[50]
-                        : Colors.grey[50],
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: wasSkipped
                       ? Colors.red[200]!
                       : isCompleted
                           ? Colors.green[200]!
-                          : Colors.grey[200]!,
+                          : Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                 ),
               ),
               child: Column(
@@ -832,7 +849,9 @@ class _AdminMaintenanceReviewScreenState
                               color: wasSkipped
                                   ? Colors.red[800]
                                   : isCompleted
-                                      ? Colors.grey[700]
+                                      ? Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant
                                       : Colors.black87,
                             ),
                           ),
@@ -846,7 +865,9 @@ class _AdminMaintenanceReviewScreenState
                                 ? Colors.red[100]
                                 : isCompleted
                                     ? Colors.green[100]
-                                    : Colors.grey[200],
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -862,7 +883,9 @@ class _AdminMaintenanceReviewScreenState
                                   ? Colors.red[700]
                                   : isCompleted
                                       ? Colors.green[700]
-                                      : Colors.grey[600],
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -939,7 +962,8 @@ class _AdminMaintenanceReviewScreenState
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'No hay evidencias fotográficas',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
             )
@@ -960,7 +984,7 @@ class _AdminMaintenanceReviewScreenState
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
-                        color: Colors.grey[300],
+                        color: Theme.of(context).colorScheme.outlineVariant,
                         child: const Icon(Icons.error),
                       );
                     },
@@ -994,7 +1018,8 @@ class _AdminMaintenanceReviewScreenState
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'El técnico no dejó notas',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
             ),
@@ -1015,7 +1040,7 @@ class _AdminMaintenanceReviewScreenState
             'Estas notas son solo para uso interno y no serán visibles para el cliente.',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -1030,7 +1055,9 @@ class _AdminMaintenanceReviewScreenState
                 borderRadius: BorderRadius.circular(8),
               ),
               filled: true,
-              fillColor: isApproved ? Colors.grey[100] : Colors.white,
+              fillColor: isApproved
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Colors.white,
             ),
           ),
           if (isApproved)
@@ -1064,7 +1091,7 @@ class _AdminMaintenanceReviewScreenState
             'Observaciones: ',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -1080,7 +1107,9 @@ class _AdminMaintenanceReviewScreenState
                 borderRadius: BorderRadius.circular(8),
               ),
               filled: true,
-              fillColor: isApproved ? Colors.grey[100] : Colors.white,
+              fillColor: isApproved
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Colors.white,
             ),
           ),
           if (isApproved) ...[
@@ -1110,7 +1139,7 @@ class _AdminMaintenanceReviewScreenState
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(

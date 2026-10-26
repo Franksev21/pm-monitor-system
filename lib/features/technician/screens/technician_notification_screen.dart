@@ -15,7 +15,6 @@ class _TechnicianNotificationsScreenState
     extends State<TechnicianNotificationsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-
   @override
   void initState() {
     super.initState();
@@ -26,7 +25,7 @@ class _TechnicianNotificationsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Notificaciones'),
         backgroundColor: const Color(0xFF4285F4),
@@ -98,14 +97,14 @@ class _TechnicianNotificationsScreenState
                   Icon(
                     Icons.notifications_off_outlined,
                     size: 80,
-                    color: Colors.grey[400],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No hay notificaciones',
                     style: TextStyle(
                       fontSize: 18,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -114,7 +113,7 @@ class _TechnicianNotificationsScreenState
                     'Aquí aparecerán tus alertas y avisos',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[500],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -256,7 +255,7 @@ class _TechnicianNotificationsScreenState
                         message,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey[700],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           height: 1.4,
                         ),
                       ),
@@ -266,14 +265,17 @@ class _TechnicianNotificationsScreenState
                           Icon(
                             Icons.access_time,
                             size: 14,
-                            color: Colors.grey[500],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             timeago.format(createdAt, locale: 'es'),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[500],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -284,7 +286,7 @@ class _TechnicianNotificationsScreenState
                 const SizedBox(width: 8),
                 Icon(
                   Icons.chevron_right,
-                  color: Colors.grey[400],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ],
             ),

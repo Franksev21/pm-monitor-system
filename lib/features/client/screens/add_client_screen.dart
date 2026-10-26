@@ -170,11 +170,13 @@ class _AddClientScreenState extends State<AddClientScreen> {
                   ? AppTheme.successColor
                   : isActive
                       ? AppTheme.primaryColor
-                      : Colors.grey[300],
+                      : Theme.of(context).colorScheme.outlineVariant,
             ),
             child: Icon(
               isCompleted ? Icons.check : icon,
-              color: isCompleted || isActive ? Colors.white : Colors.grey[600],
+              color: isCompleted || isActive
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               size: 18,
             ),
           ),
@@ -183,7 +185,9 @@ class _AddClientScreenState extends State<AddClientScreen> {
             title,
             style: AppTheme.bodySmall.copyWith(
               fontSize: 11,
-              color: isActive ? AppTheme.primaryColor : Colors.grey[600],
+              color: isActive
+                  ? AppTheme.primaryColor
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
             ),
             textAlign: TextAlign.center,
@@ -201,7 +205,9 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: Container(
         height: 2,
         margin: const EdgeInsets.only(bottom: 24),
-        color: isCompleted ? AppTheme.successColor : Colors.grey[300],
+        color: isCompleted
+            ? AppTheme.successColor
+            : Theme.of(context).colorScheme.outlineVariant,
       ),
     );
   }
@@ -216,7 +222,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
           const Text('Información Básica', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
           Text('Ingresa los datos principales del cliente',
-              style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
+              style: AppTheme.bodyMedium.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 24),
 
           // ── Empresa ──
@@ -268,7 +275,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
           const SizedBox(height: 4),
           Text(
             'Aparecerá en el dashboard y perfil del cliente',
-            style: AppTheme.bodySmall.copyWith(color: Colors.grey[500]),
+            style: AppTheme.bodySmall.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           CustomTextField(
@@ -379,7 +387,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
           const Text('Dirección Principal', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
           Text('Ubicación de la oficina principal del cliente',
-              style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
+              style: AppTheme.bodyMedium.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 16),
 
           // ── Botón seleccionar en mapa ──
@@ -402,7 +411,9 @@ class _AddClientScreenState extends State<AddClientScreen> {
           Center(
             child: Text(
               'o ingresa la dirección manualmente',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           const SizedBox(height: 16),
@@ -528,7 +539,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
           const Text('Resumen del Cliente', style: AppTheme.headingMedium),
           const SizedBox(height: 8),
           Text('Revisa la información antes de guardar',
-              style: AppTheme.bodyMedium.copyWith(color: Colors.grey[600])),
+              style: AppTheme.bodyMedium.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 24),
           _buildSummaryCard(),
         ],
@@ -639,8 +651,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style:
-                        AppTheme.bodySmall.copyWith(color: Colors.grey[600])),
+                    style: AppTheme.bodySmall.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 Text(value,
                     style: AppTheme.bodyMedium
                         .copyWith(fontWeight: FontWeight.w500)),
@@ -657,7 +669,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),

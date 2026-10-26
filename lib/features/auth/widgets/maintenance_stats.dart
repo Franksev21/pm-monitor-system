@@ -37,6 +37,7 @@ class MaintenanceStatsWidget extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _buildStatItem(
+                      context,
                       'Total',
                       stats['total'].toString(),
                       Icons.calendar_today,
@@ -45,6 +46,7 @@ class MaintenanceStatsWidget extends StatelessWidget {
                   ),
                   Expanded(
                     child: _buildStatItem(
+                      context,
                       'Programados',
                       stats['scheduled'].toString(),
                       Icons.schedule,
@@ -58,6 +60,7 @@ class MaintenanceStatsWidget extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _buildStatItem(
+                      context,
                       'Completados',
                       stats['completed'].toString(),
                       Icons.check_circle,
@@ -66,6 +69,7 @@ class MaintenanceStatsWidget extends StatelessWidget {
                   ),
                   Expanded(
                     child: _buildStatItem(
+                      context,
                       'Vencidos',
                       stats['overdue'].toString(),
                       Icons.warning,
@@ -76,7 +80,8 @@ class MaintenanceStatsWidget extends StatelessWidget {
               ),
               if (stats['efficiency'] != null) ...[
                 const SizedBox(height: 16),
-                _buildEfficiencyIndicator(stats['efficiency'] as double),
+                _buildEfficiencyIndicator(
+                    context, stats['efficiency'] as double),
               ],
             ],
           ),
@@ -85,8 +90,8 @@ class MaintenanceStatsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(
-      String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(BuildContext context, String label, String value,
+      IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -110,7 +115,7 @@ class MaintenanceStatsWidget extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),
@@ -119,7 +124,7 @@ class MaintenanceStatsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildEfficiencyIndicator(double efficiency) {
+  Widget _buildEfficiencyIndicator(BuildContext context, double efficiency) {
     Color efficiencyColor;
     String efficiencyText;
 
@@ -156,7 +161,7 @@ class MaintenanceStatsWidget extends StatelessWidget {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: efficiency,
-          backgroundColor: Colors.grey[300],
+          backgroundColor: Theme.of(context).colorScheme.outlineVariant,
           valueColor: AlwaysStoppedAnimation<Color>(efficiencyColor),
         ),
         const SizedBox(height: 4),
@@ -164,7 +169,7 @@ class MaintenanceStatsWidget extends StatelessWidget {
           '${(efficiency * 100).toInt()}% de mantenimientos completados a tiempo',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],

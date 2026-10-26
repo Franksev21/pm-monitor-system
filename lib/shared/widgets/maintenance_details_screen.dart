@@ -45,8 +45,8 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Detalle del Mantenimiento'),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           elevation: 0,
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -57,8 +57,8 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Detalle del Mantenimiento'),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           elevation: 0,
         ),
         body: const Center(
@@ -73,11 +73,11 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
     final statusName = MaintenanceSchedule.getStatusDisplayName(m.status);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Detalle del Mantenimiento'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         elevation: 0,
         actions: [
           // Botón editar
@@ -230,7 +230,8 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
             if (m.tasks.isNotEmpty)
               _buildSection(
                 title: 'Tareas a Realizar',
-                children: m.tasks.toList()
+                children: m.tasks
+                    .toList()
                     .map((task) => _buildTaskItem(task))
                     .toList(),
               ),
@@ -311,7 +312,7 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -356,7 +357,8 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
+          Icon(icon,
+              size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 12),
           Expanded(
             flex: 2,
@@ -364,7 +366,7 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -389,7 +391,8 @@ class _MaintenanceDetailScreenState extends State<MaintenanceDetailScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(Icons.check_circle_outline, size: 18, color: Colors.grey[400]),
+          Icon(Icons.check_circle_outline,
+              size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

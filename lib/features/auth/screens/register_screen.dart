@@ -191,7 +191,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -255,7 +255,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                           'Completa tus datos para crear tu cuenta',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -279,12 +280,14 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: AppTheme.primaryColor, width: 2),
+                        borderSide: const BorderSide(
+                            color: AppTheme.primaryColor, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -327,7 +330,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                             borderSide: BorderSide(
                               color: emailError != null
                                   ? Colors.red.shade300
-                                  : Colors.grey.shade300,
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -375,12 +380,14 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: AppTheme.primaryColor, width: 2),
+                        borderSide: const BorderSide(
+                            color: AppTheme.primaryColor, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -410,12 +417,14 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: AppTheme.primaryColor, width: 2),
+                        borderSide: const BorderSide(
+                            color: AppTheme.primaryColor, width: 2),
                       ),
                     ),
                     hint: const Text('Selecciona tu rol'),
@@ -484,7 +493,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                             borderSide: BorderSide(
                               color: passwordError != null
                                   ? Colors.red.shade300
-                                  : Colors.grey.shade300,
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -545,12 +556,14 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: AppTheme.primaryColor, width: 2),
+                        borderSide: const BorderSide(
+                            color: AppTheme.primaryColor, width: 2),
                       ),
                     ),
                     validator: (value) {

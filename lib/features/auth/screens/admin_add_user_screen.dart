@@ -256,7 +256,9 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
             const SizedBox(height: 8),
             Text(
               'Comparte estas credenciales con el usuario para que pueda iniciar sesión.',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -323,7 +325,7 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
     final roleColor = _getRoleColor(_selectedRole);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Nuevo ${_getRoleLabel(_selectedRole)}'),
         backgroundColor: const Color(0xFF1976D2),
@@ -365,7 +367,10 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'El usuario podrá iniciar sesión con las credenciales que definas',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -396,7 +401,7 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
                         labelStyle: TextStyle(
                           color: _selectedRole == role
                               ? _getRoleColor(role)
-                              : Colors.grey[700],
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: _selectedRole == role
                               ? FontWeight.bold
                               : FontWeight.normal,
@@ -613,8 +618,10 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey[700],
-                    side: BorderSide(color: Colors.grey[300]!),
+                    foregroundColor:
+                        Theme.of(context).colorScheme.onSurfaceVariant,
+                    side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
@@ -634,7 +641,7 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -674,7 +681,8 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide:
+              BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),

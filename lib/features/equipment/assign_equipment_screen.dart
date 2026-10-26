@@ -222,7 +222,7 @@ class _AssignEquipmentScreenState extends State<AssignEquipmentScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,7 +330,7 @@ class _AssignEquipmentScreenState extends State<AssignEquipmentScreen>
                 )
               : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -538,7 +538,9 @@ class _AssignEquipmentScreenState extends State<AssignEquipmentScreen>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.grey[100],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -574,10 +576,10 @@ class _AssignEquipmentScreenState extends State<AssignEquipmentScreen>
                       const SizedBox(height: 8),
                       Text(
                         equipment.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -713,14 +715,14 @@ class _AssignEquipmentScreenState extends State<AssignEquipmentScreen>
           Icon(
             icon,
             size: 80,
-            color: Colors.grey[400],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
             title,
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -729,7 +731,8 @@ class _AssignEquipmentScreenState extends State<AssignEquipmentScreen>
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
               subtitle,
-              style: TextStyle(color: Colors.grey[500]),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ),

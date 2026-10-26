@@ -206,7 +206,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE5EEF8),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: _buildAppBar(),
       body: LiquidGlassBackground(
         child: FadeTransition(
@@ -582,7 +582,9 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -725,7 +727,9 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ],
@@ -774,7 +778,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 8,
-                backgroundColor: Colors.grey[300],
+                backgroundColor: Theme.of(context).colorScheme.outlineVariant,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   progress > 0.7
                       ? Colors.green
@@ -938,7 +942,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard>
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Theme.of(context).colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

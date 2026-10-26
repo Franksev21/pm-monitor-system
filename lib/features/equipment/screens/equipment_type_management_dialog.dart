@@ -158,20 +158,23 @@ class _EquipmentTypeManagementDialogState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.category_outlined, size: 80, color: Colors.grey[300]),
+            Icon(Icons.category_outlined,
+                size: 80, color: Theme.of(context).colorScheme.outlineVariant),
             const SizedBox(height: 16),
             Text(
               'No hay tipos de equipos',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Agrega el primer tipo para comenzar',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -220,7 +223,9 @@ class _EquipmentTypeManagementDialogState
             const SizedBox(height: 4),
             Text(
               '${type.categories.length} categoría${type.categories.length != 1 ? 's' : ''}',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             if (type.categories.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -252,7 +257,9 @@ class _EquipmentTypeManagementDialogState
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -274,7 +281,7 @@ class _EquipmentTypeManagementDialogState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.grey[200],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -336,8 +343,10 @@ class _EquipmentTypeManagementDialogState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        border: Border(
+            top: BorderSide(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest)),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),
@@ -719,11 +728,15 @@ class _CategoriesDialogState extends State<_CategoriesDialog> {
                 padding: const EdgeInsets.all(32),
                 child: Column(
                   children: [
-                    Icon(Icons.inbox, size: 48, color: Colors.grey[400]),
+                    Icon(Icons.inbox,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(height: 8),
                     Text(
                       'Sin categorías',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),

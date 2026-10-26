@@ -147,7 +147,7 @@ class _CustomerSurveyScreenState extends State<CustomerSurveyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Encuesta de Satisfacción'),
         backgroundColor: const Color(0xFF4285F4),
@@ -264,12 +264,12 @@ class _CustomerSurveyScreenState extends State<CustomerSurveyScreen> {
               const SizedBox(height: 24),
 
               // Comentarios adicionales
-              const Text(
+              Text(
                 'Comentarios adicionales (opcional)',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -295,7 +295,8 @@ class _CustomerSurveyScreenState extends State<CustomerSurveyScreen> {
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     contentPadding: const EdgeInsets.all(16),
                   ),
                 ),
@@ -350,7 +351,7 @@ class _CustomerSurveyScreenState extends State<CustomerSurveyScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -365,10 +366,10 @@ class _CustomerSurveyScreenState extends State<CustomerSurveyScreen> {
         children: [
           Text(
             question,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -383,8 +384,9 @@ class _CustomerSurveyScreenState extends State<CustomerSurveyScreen> {
                   child: Icon(
                     starValue <= rating ? Icons.star : Icons.star_border,
                     size: 40,
-                    color:
-                        starValue <= rating ? Colors.amber : Colors.grey[300],
+                    color: starValue <= rating
+                        ? Colors.amber
+                        : Theme.of(context).colorScheme.outlineVariant,
                   ),
                 ),
               );
@@ -398,14 +400,14 @@ class _CustomerSurveyScreenState extends State<CustomerSurveyScreen> {
                 'Muy malo',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 'Excelente',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

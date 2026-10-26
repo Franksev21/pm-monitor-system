@@ -33,7 +33,6 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late Future<_SupervisorOverview> _overviewFuture;
 
-  static const _background = Color(0xFFE5EEF8);
   static const _primary = Color(0xFF1976D2);
   static const _maxWeeklyHours = TechnicianAvailabilityService.MAX_WEEKLY_HOURS;
 
@@ -122,6 +121,8 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().currentUser;
+    final colorScheme = Theme.of(context).colorScheme;
+    final background = colorScheme.surface;
     final name =
         user?.name.trim().isNotEmpty == true ? user!.name : 'Supervisor';
     final width = MediaQuery.sizeOf(context).width;
@@ -132,15 +133,14 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
             : 2;
 
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1F36),
-        surfaceTintColor: Colors.white,
+        backgroundColor: colorScheme.surfaceContainer,
+        foregroundColor: colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
         title: const Text(
           'Panel de supervisor',
           style: TextStyle(
-            color: Color(0xFF1A1F36),
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
@@ -159,7 +159,7 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
         ],
       ),
       body: LiquidGlassBackground(
-        backgroundColor: _background,
+        backgroundColor: background,
         child: RefreshIndicator(
           onRefresh: _refresh,
           child: FutureBuilder<_SupervisorOverview>(
@@ -393,8 +393,11 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
                     Text(value.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style:
-                            TextStyle(fontSize: 11, color: Colors.grey[700])),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -462,11 +465,15 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
                   style: const TextStyle(fontSize: 13),
                 ),
                 if (overview.overdueCount > 0)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 4),
                     child: Text(
                         'Los vencidos se cuentan en una ventana de 30 días.',
-                        style: TextStyle(fontSize: 11, color: Colors.black54)),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ),
               ],
             ),
@@ -592,7 +599,8 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 6,
-              backgroundColor: Colors.grey[200],
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
               color: hours >= _maxWeeklyHours
                   ? Colors.red
                   : hours >= _maxWeeklyHours * 0.9
@@ -609,7 +617,7 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
 
   Widget _buildToolCard(_AdminTool tool) {
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: () => _openTool(tool),
@@ -665,11 +673,13 @@ class _SupervisorDashboardState extends State<SupervisorDashboard> {
         decoration: _cardDecoration,
         child: Text(text,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13)),
       );
 
   BoxDecoration get _cardDecoration => BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
         boxShadow: const [
           BoxShadow(

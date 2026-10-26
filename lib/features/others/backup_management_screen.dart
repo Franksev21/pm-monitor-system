@@ -102,7 +102,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Gestión de Backups'),
         backgroundColor: const Color(0xFF1976D2),
@@ -180,7 +180,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
             label,
             style: TextStyle(
               fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           Text(
@@ -218,7 +218,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
             Text(
               'Respalda todos los datos importantes: mantenimientos, equipos, clientes y usuarios.',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,
               ),
             ),
@@ -285,13 +285,13 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                     Icon(
                       Icons.folder_off,
                       size: 48,
-                      color: Colors.grey[400],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'No hay backups disponibles',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 16,
                       ),
                     ),
@@ -299,7 +299,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
                     Text(
                       'Crea tu primer backup usando el botón de arriba',
                       style: TextStyle(
-                        color: Colors.grey[500],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
@@ -320,7 +320,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
@@ -345,7 +345,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
           '${backup.formattedSize} • ${backup.fileName}',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         trailing: PopupMenuButton<String>(
@@ -424,7 +424,7 @@ class _BackupManagementScreenState extends State<BackupManagementScreen> {
               'Esto eliminará backups antiguos, manteniendo solo los 5 más recientes para ahorrar espacio.',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],

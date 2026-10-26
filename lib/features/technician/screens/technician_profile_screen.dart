@@ -86,7 +86,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Mi Perfil'),
         backgroundColor: const Color(0xFF4285F4),
@@ -422,7 +422,8 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
+        Icon(icon,
+            size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -430,7 +431,9 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 4),
               Text(
@@ -511,7 +514,9 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
       onTap: onTap,
@@ -656,7 +661,9 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
             const SizedBox(height: 16),
             Text(
               'Sistema de gestión de mantenimiento preventivo para técnicos y clientes.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14),
             ),
             const SizedBox(height: 16),
             const Text(

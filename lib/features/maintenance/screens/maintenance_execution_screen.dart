@@ -327,19 +327,21 @@ class _MaintenanceExecutionScreenState
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey[600]),
+          Icon(icon,
+              size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 4),
           Text(
             '$label ',
             style: TextStyle(
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
           Expanded(
             child: Text(
               value ?? 'No especificado',
-              style: TextStyle(color: Colors.grey[800]),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         ],
@@ -469,7 +471,9 @@ class _MaintenanceExecutionScreenState
                 decoration: isCompleted ? TextDecoration.lineThrough : null,
                 color: isSkipped
                     ? Colors.red[700]
-                    : (isCompleted ? Colors.grey[600] : Colors.black87),
+                    : (isCompleted
+                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                        : Colors.black87),
               ),
             ),
             trailing: isSkipped
@@ -590,9 +594,9 @@ class _MaintenanceExecutionScreenState
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -634,7 +638,7 @@ class _MaintenanceExecutionScreenState
             'Documentos adjuntados por el administrador',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
@@ -642,18 +646,20 @@ class _MaintenanceExecutionScreenState
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                border: Border.all(color: Colors.grey[300]!),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.grey[600]),
+                  Icon(Icons.info_outline,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 12),
                   Text(
                     'No hay archivos adjuntos',
                     style: TextStyle(
-                      color: Colors.grey[700],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,
                     ),
                   ),
@@ -682,10 +688,16 @@ class _MaintenanceExecutionScreenState
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: isPdf ? Colors.red[50] : Colors.grey[200],
+                          color: isPdf
+                              ? Colors.red[50]
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isPdf ? Colors.red[200]! : Colors.grey[300]!,
+                            color: isPdf
+                                ? Colors.red[200]!
+                                : Theme.of(context).colorScheme.outlineVariant,
                           ),
                         ),
                         child: isPdf
@@ -951,7 +963,7 @@ class _MaintenanceExecutionScreenState
                 Text(
                   'Opcional',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
@@ -1038,7 +1050,8 @@ class _MaintenanceExecutionScreenState
                       icon: const Icon(Icons.photo_library),
                       label: const Text('Galería'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[600],
+                        backgroundColor:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -1164,7 +1177,7 @@ class _MaintenanceExecutionScreenState
                 Text(
                   'Opcional',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
@@ -1227,7 +1240,7 @@ class _MaintenanceExecutionScreenState
             const SizedBox(height: 12),
             LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.grey[300],
+              backgroundColor: Theme.of(context).colorScheme.outlineVariant,
               valueColor: AlwaysStoppedAnimation<Color>(
                 progress == 1.0 ? Colors.green : const Color(0xFF1976D2),
               ),
@@ -1236,12 +1249,14 @@ class _MaintenanceExecutionScreenState
             if (totalTasks > 0)
               Text(
                 '$completedTasks de $totalTasks tareas completadas',
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               )
             else
               Text(
                 'Sin tareas definidas - Agregar fotos y notas',
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             const SizedBox(height: 8),
             Row(
@@ -1257,7 +1272,9 @@ class _MaintenanceExecutionScreenState
                       ? '${selectedImages.length} foto(s) adjunta(s)'
                       : 'Fotos requeridas',
                   style: TextStyle(
-                    color: hasPhotos ? Colors.green : Colors.grey[600],
+                    color: hasPhotos
+                        ? Colors.green
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),

@@ -19,7 +19,7 @@ class TechnicianAlertsScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Mis Alertas',
             style: TextStyle(
@@ -86,17 +86,21 @@ class TechnicianAlertsScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.notifications_off,
-                      size: 80, color: Colors.grey[400]),
+                      size: 80,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(height: 16),
                   Text('No tienes alertas',
                       style: TextStyle(
                           fontSize: 18,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500)),
                   const SizedBox(height: 8),
                   Text(
                       'Cuando el administrador te envíe una alerta aparecerá aquí',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                      style: TextStyle(
+                          fontSize: 14,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       textAlign: TextAlign.center),
                 ],
               ),
@@ -122,7 +126,8 @@ class TechnicianAlertsScreen extends StatelessWidget {
 
               // No leídas
               if (unread.isNotEmpty) ...[
-                _buildSectionHeader('No leídas', unread.length, Colors.red),
+                _buildSectionHeader(
+                    context, 'No leídas', unread.length, Colors.red),
                 const SizedBox(height: 8),
                 ...unread
                     .map((doc) => _buildAlertCard(context, doc, isNew: true)),
@@ -131,7 +136,8 @@ class TechnicianAlertsScreen extends StatelessWidget {
 
               // Leídas
               if (read.isNotEmpty) ...[
-                _buildSectionHeader('Leídas', read.length, Colors.grey),
+                _buildSectionHeader(
+                    context, 'Leídas', read.length, Colors.grey),
                 const SizedBox(height: 8),
                 ...read
                     .map((doc) => _buildAlertCard(context, doc, isNew: false)),
@@ -187,7 +193,8 @@ class TechnicianAlertsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title, int count, Color color) {
+  Widget _buildSectionHeader(
+      BuildContext context, String title, int count, Color color) {
     return Row(
       children: [
         Container(
@@ -203,7 +210,7 @@ class TechnicianAlertsScreen extends StatelessWidget {
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700])),
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -246,11 +253,14 @@ class TechnicianAlertsScreen extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: isNew ? Colors.white : Colors.grey[50],
+          color: isNew
+              ? Colors.white
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color:
-                isNew ? (priorityConfig['color'] as Color) : Colors.grey[300]!,
+            color: isNew
+                ? (priorityConfig['color'] as Color)
+                : Theme.of(context).colorScheme.outlineVariant,
             width: isNew ? 1.5 : 0.5,
           ),
           boxShadow: isNew
@@ -316,7 +326,10 @@ class TechnicianAlertsScreen extends StatelessWidget {
                   if (date != null)
                     Text(
                       _formatRelativeTime(date),
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                 ],
               ),
@@ -326,7 +339,9 @@ class TechnicianAlertsScreen extends StatelessWidget {
                 message,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isNew ? Colors.grey[800] : Colors.grey[600],
+                  color: isNew
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: isNew ? FontWeight.w500 : FontWeight.normal,
                   height: 1.4,
                 ),
@@ -335,18 +350,27 @@ class TechnicianAlertsScreen extends StatelessWidget {
               // Footer
               Row(
                 children: [
-                  Icon(Icons.person, size: 13, color: Colors.grey[400]),
+                  Icon(Icons.person,
+                      size: 13,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(sentBy,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                   const Spacer(),
                   if (date != null) ...[
                     Icon(Icons.calendar_today,
-                        size: 11, color: Colors.grey[400]),
+                        size: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       DateFormat('dd/MM/yyyy hh:mm a').format(date),
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                   if (isNew) ...[

@@ -134,7 +134,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildWebLayout(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE5EEF8),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: LiquidGlassBackground(
         child: Row(
           children: [
@@ -524,7 +524,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                       Text(
                         title,
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                        style: TextStyle(
+                            fontSize: 10,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

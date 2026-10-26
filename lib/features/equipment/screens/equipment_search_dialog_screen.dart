@@ -179,12 +179,12 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: Colors.grey[100],
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Text(
         '${_filteredTypes.length} tipo${_filteredTypes.length != 1 ? 's' : ''} encontrado${_filteredTypes.length != 1 ? 's' : ''}',
         style: TextStyle(
           fontSize: 13,
-          color: Colors.grey[600],
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -218,7 +218,7 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
       separatorBuilder: (context, index) => Divider(
         height: 1,
         indent: 76,
-        color: Colors.grey[200],
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
       itemBuilder: (context, index) {
         final type = _filteredTypes[index];
@@ -244,7 +244,10 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
                 gradient: LinearGradient(
                   colors: isSelected
                       ? [const Color(0xFF2196F3), const Color(0xFF1976D2)]
-                      : [Colors.grey[300]!, Colors.grey[400]!],
+                      : [
+                          Theme.of(context).colorScheme.outlineVariant,
+                          Theme.of(context).colorScheme.onSurfaceVariant
+                        ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -287,7 +290,7 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
                       '${type.categories.length} categoría${type.categories.length != 1 ? 's' : ''}',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -312,7 +315,7 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: Colors.grey[400],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
           ],
         ),
@@ -330,13 +333,13 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.search_off,
                 size: 64,
-                color: Colors.grey[400],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 24),
@@ -345,7 +348,7 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
@@ -353,7 +356,7 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
               'Intenta con otro término',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             if (widget.showManagementButton) ...[
@@ -383,8 +386,10 @@ class _EquipmentTypeSearchDialogState extends State<EquipmentTypeSearchDialog> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        border: Border(
+            top: BorderSide(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest)),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),

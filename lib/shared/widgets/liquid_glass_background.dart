@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 class LiquidGlassBackground extends StatefulWidget {
   const LiquidGlassBackground({
     required this.child,
-    this.backgroundColor = const Color(0xFFE5EEF8),
+    this.backgroundColor,
     super.key,
   });
 
   final Widget child;
-  final Color backgroundColor;
+  final Color? backgroundColor;
 
   @override
   State<LiquidGlassBackground> createState() => _LiquidGlassBackgroundState();
@@ -40,7 +40,8 @@ class _LiquidGlassBackgroundState extends State<LiquidGlassBackground>
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return ColoredBox(
-      color: widget.backgroundColor,
+      color:
+          widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
       child: Stack(
         fit: StackFit.expand,
         children: [

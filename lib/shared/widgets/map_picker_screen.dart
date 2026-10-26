@@ -395,7 +395,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Buscar dirección...',
-                      hintStyle: TextStyle(color: Colors.grey[500]),
+                      hintStyle: TextStyle(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       prefixIcon: _isSearching
                           ? const Padding(
                               padding: EdgeInsets.all(12),
@@ -425,7 +427,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 14),
                     ),
@@ -512,7 +515,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                       height: 4,
                       margin: const EdgeInsets.only(bottom: 14),
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: Theme.of(context).colorScheme.outlineVariant,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -529,12 +532,12 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                             color: Color(0xFF1976D2), size: 20),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
+                      Text(
                         'Dirección seleccionada',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
-                            color: Colors.black87),
+                            color: Theme.of(context).colorScheme.onSurface),
                       ),
                       const Spacer(),
                       if (_isGeocoding)
@@ -550,13 +553,17 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   Text(
                     _addressPreview,
                     style: TextStyle(
-                        fontSize: 14, color: Colors.grey[700], height: 1.4),
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${_selectedPosition.latitude.toStringAsFixed(6)}, '
                     '${_selectedPosition.longitude.toStringAsFixed(6)}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -576,7 +583,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        disabledBackgroundColor: Colors.grey[300],
+                        disabledBackgroundColor:
+                            Theme.of(context).colorScheme.outlineVariant,
                       ),
                     ),
                   ),

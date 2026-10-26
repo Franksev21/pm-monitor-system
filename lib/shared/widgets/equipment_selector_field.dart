@@ -44,12 +44,14 @@ class EquipmentTypeSelectorField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: enabled ? Colors.white : Colors.grey[100],
+          color: enabled
+              ? Colors.white
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selectedType != null
                 ? const Color(0xFF2196F3)
-                : Colors.grey[300]!,
+                : Theme.of(context).colorScheme.outlineVariant,
             width: selectedType != null ? 2 : 1,
           ),
           boxShadow: selectedType != null
@@ -72,7 +74,10 @@ class EquipmentTypeSelectorField extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: selectedType != null
                       ? [const Color(0xFF2196F3), const Color(0xFF1976D2)]
-                      : [Colors.grey[300]!, Colors.grey[400]!],
+                      : [
+                          Theme.of(context).colorScheme.outlineVariant,
+                          Theme.of(context).colorScheme.onSurfaceVariant
+                        ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -96,7 +101,7 @@ class EquipmentTypeSelectorField extends StatelessWidget {
                       labelText!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -108,7 +113,7 @@ class EquipmentTypeSelectorField extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: selectedType != null
                           ? Colors.black87
-                          : Colors.grey[400],
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -117,7 +122,7 @@ class EquipmentTypeSelectorField extends StatelessWidget {
             // Icono de acción
             Icon(
               enabled ? Icons.arrow_drop_down : Icons.lock,
-              color: Colors.grey[400],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               size: 28,
             ),
           ],

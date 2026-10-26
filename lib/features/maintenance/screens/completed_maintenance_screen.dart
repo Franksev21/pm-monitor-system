@@ -188,7 +188,7 @@ class _CompletedMaintenancesScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         boxShadow: [
           BoxShadow(
               color: Colors.grey.withOpacity(0.1),
@@ -252,13 +252,15 @@ class _CompletedMaintenancesScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 80, color: Colors.grey[400]),
+            Icon(Icons.check_circle_outline,
+                size: 80,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
             Text(
               'No hay mantenimientos completados',
               style: TextStyle(
                   fontSize: 18,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
@@ -267,7 +269,9 @@ class _CompletedMaintenancesScreenState
               selectedPeriod == 'all'
                   ? 'Los mantenimientos completados aparecerán aquí'
                   : 'No hay mantenimientos en el período seleccionado',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -417,21 +421,30 @@ class _CompletedMaintenancesScreenState
                         const SizedBox(height: 2),
                         Text(
                           maintenance['clientName'] ?? 'Cliente',
-                          style:
-                              TextStyle(fontSize: 13, color: Colors.grey[600]),
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                         ),
                         const SizedBox(height: 8),
                         // Ubicación
                         Row(
                           children: [
                             Icon(Icons.location_on,
-                                size: 14, color: Colors.grey[600]),
+                                size: 14,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 maintenance['location'] ?? 'Sin ubicación',
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.grey[600]),
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -443,12 +456,18 @@ class _CompletedMaintenancesScreenState
                           Row(
                             children: [
                               Icon(Icons.schedule,
-                                  size: 14, color: Colors.grey[600]),
+                                  size: 14,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
                               const SizedBox(width: 4),
                               Text(
                                 'Programado: ${DateFormat('dd/MM/yy HH:mm').format(scheduledDate)}',
                                 style: TextStyle(
-                                    fontSize: 11, color: Colors.grey[600]),
+                                    fontSize: 11,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
                               ),
                             ],
                           ),
@@ -458,13 +477,18 @@ class _CompletedMaintenancesScreenState
                           Row(
                             children: [
                               Icon(Icons.check_circle,
-                                  size: 14, color: Colors.grey[600]),
+                                  size: 14,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
                               const SizedBox(width: 4),
                               Text(
                                 'Completado: ${DateFormat('dd/MM/yy HH:mm').format(completedDate)}',
                                 style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey[600],
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                     fontWeight: FontWeight.w600),
                               ),
                             ],
@@ -504,7 +528,9 @@ class _CompletedMaintenancesScreenState
                               child: CircularProgressIndicator(
                                 value: (cardEfficiency / 100).clamp(0.0, 1.5),
                                 strokeWidth: 5,
-                                backgroundColor: Colors.grey[200],
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
                                 valueColor:
                                     AlwaysStoppedAnimation<Color>(cardEffColor),
                               ),
@@ -572,19 +598,26 @@ class _CompletedMaintenancesScreenState
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.note, size: 14, color: Colors.grey[600]),
+                      Icon(Icons.note,
+                          size: 14,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           notes,
-                          style:
-                              TextStyle(fontSize: 11, color: Colors.grey[700]),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -644,7 +677,7 @@ class _CompletedMaintenancesScreenState
           child: LinearProgressIndicator(
             value: percentage / 100,
             minHeight: 6,
-            backgroundColor: Colors.grey[300],
+            backgroundColor: Theme.of(context).colorScheme.outlineVariant,
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
         ),
@@ -870,22 +903,31 @@ class _CompletedMaintenancesScreenState
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.schedule,
-                                size: 13, color: Colors.grey[600]),
+                                size: 13,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                             const SizedBox(width: 4),
                             Text(
                               dText,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[700],
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -978,7 +1020,8 @@ class _CompletedMaintenancesScreenState
                     child: CircularProgressIndicator(
                       value: (efficiency / 100).clamp(0.0, 1.5),
                       strokeWidth: 5,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
                   ),
@@ -1025,7 +1068,7 @@ class _CompletedMaintenancesScreenState
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Colors.grey[800],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1036,7 +1079,9 @@ class _CompletedMaintenancesScreenState
                 Text(
                   _efficiencyDescription(efficiency),
                   style: TextStyle(
-                      fontSize: 11, color: Colors.grey[600], height: 1.4),
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.4),
                 ),
               ],
             ),
@@ -1107,14 +1152,14 @@ class _CompletedMaintenancesScreenState
               ? Colors.red[50]
               : completed
                   ? Colors.green[50]
-                  : Colors.grey[50],
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: wasSkipped
                 ? Colors.red[200]!
                 : completed
                     ? Colors.green[200]!
-                    : Colors.grey[200]!,
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
         ),
         child: Column(
@@ -1147,7 +1192,7 @@ class _CompletedMaintenancesScreenState
                         color: wasSkipped
                             ? Colors.red[800]
                             : completed
-                                ? Colors.grey[600]
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
                                 : Colors.black87,
                       ),
                     ),
@@ -1161,7 +1206,9 @@ class _CompletedMaintenancesScreenState
                           ? Colors.red[100]
                           : completed
                               ? Colors.green[100]
-                              : Colors.grey[200],
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -1177,7 +1224,9 @@ class _CompletedMaintenancesScreenState
                             ? Colors.red[700]
                             : completed
                                 ? Colors.green[700]
-                                : Colors.grey[600],
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                       ),
                     ),
                   ),

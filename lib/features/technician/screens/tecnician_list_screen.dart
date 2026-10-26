@@ -49,7 +49,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Técnicos',
             style: TextStyle(
@@ -147,7 +147,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                 )
               : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none),
@@ -185,7 +185,8 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     if (technicians.isEmpty) {
       return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.engineering, size: 80, color: Colors.grey[400]),
+          Icon(Icons.engineering,
+              size: 80, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text(
             provider.searchQuery.isEmpty
@@ -193,7 +194,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                 : 'No se encontraron técnicos',
             style: TextStyle(
                 fontSize: 18,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500),
           ),
           if (provider.searchQuery.isEmpty) ...[
@@ -305,10 +306,12 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                         children: [
                           Expanded(
                             child: Text(technician.fullName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.black87)),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface)),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -456,7 +459,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                               Text('Enviar Alerta',
                                   style: TextStyle(color: Colors.red)),
                             ])),
-                            const PopupMenuItem(
+                        const PopupMenuItem(
                             value: 'alert_history',
                             child: Row(children: [
                               Icon(Icons.history,
@@ -506,7 +509,9 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
                       Text(technician.fullName,
                           style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                               fontWeight: FontWeight.normal)),
                     ]),
               ),
@@ -654,7 +659,7 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
       case 'send_alert':
         _showSendAlertDialog(technician);
         break;
-        case 'alert_history':
+      case 'alert_history':
         _showAlertHistory(technician);
         break;
     }

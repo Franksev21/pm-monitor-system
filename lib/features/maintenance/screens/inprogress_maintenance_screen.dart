@@ -94,7 +94,9 @@ class _InProgressMaintenancesScreenState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.work_outline, size: 80, color: Colors.grey[400]),
+                  Icon(Icons.work_outline,
+                      size: 80,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(height: 16),
                   const Text(
                     'No hay mantenimientos en proceso',
@@ -225,12 +227,17 @@ class _InProgressMaintenancesScreenState
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.business, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.business,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       clientName,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      style: TextStyle(
+                          fontSize: 14,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -240,12 +247,17 @@ class _InProgressMaintenancesScreenState
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.location_on,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       location,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      style: TextStyle(
+                          fontSize: 14,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -255,11 +267,15 @@ class _InProgressMaintenancesScreenState
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.access_time,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 6),
                   Text(
                     timeElapsed,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -275,7 +291,7 @@ class _InProgressMaintenancesScreenState
                         'Progreso',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -292,7 +308,8 @@ class _InProgressMaintenancesScreenState
                   const SizedBox(height: 6),
                   LinearProgressIndicator(
                     value: completionPercentage / 100,
-                    backgroundColor: Colors.grey[300],
+                    backgroundColor:
+                        Theme.of(context).colorScheme.outlineVariant,
                     valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                   ),
                 ],

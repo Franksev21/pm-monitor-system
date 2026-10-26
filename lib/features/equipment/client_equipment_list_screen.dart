@@ -279,14 +279,15 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                         Icon(
                           Icons.error_outline,
                           size: 64,
-                          color: Colors.grey[400],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Error al cargar equipos',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Colors.grey[600],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -294,7 +295,10 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 32),
                           child: Text(
                             equipmentProvider.errorMessage!,
-                            style: TextStyle(color: Colors.grey[500]),
+                            style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -499,7 +503,8 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
       selectedColor: color.withOpacity(0.2),
       checkmarkColor: color,
       labelStyle: TextStyle(
-        color: isSelected ? color : Colors.grey[700],
+        color:
+            isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
@@ -529,7 +534,8 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -599,7 +605,8 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                           '${equipment.brand} ${equipment.model}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -608,7 +615,9 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                             Icon(
                               Icons.place,
                               size: 14,
-                              color: Colors.grey[500],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                             const SizedBox(width: 4),
                             Expanded(
@@ -616,7 +625,9 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                                 equipment.location,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[500],
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -644,7 +655,8 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                           'Próximo mantenimiento',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[500],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -659,7 +671,9 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                                 ? (equipment.isOverdue
                                     ? Colors.red
                                     : Colors.orange)
-                                : Colors.grey[700],
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -675,7 +689,7 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                         'Condición',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey[500],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -758,7 +772,7 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
             Icon(
               hasFilters ? Icons.search_off : Icons.build_circle_outlined,
               size: 80,
-              color: Colors.grey[300],
+              color: Theme.of(context).colorScheme.outlineVariant,
             ),
             const SizedBox(height: 16),
             Text(
@@ -767,7 +781,7 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                   : 'No hay equipos registrados',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -777,7 +791,7 @@ class _ClientEquipmentListScreenState extends State<ClientEquipmentListScreen> {
                   ? 'Intenta con otros filtros de búsqueda'
                   : 'Agrega el primer equipo de ${widget.client.displayName}',
               style: TextStyle(
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),

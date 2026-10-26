@@ -173,7 +173,7 @@ class _TaskTemplatesScreenState extends State<TaskTemplatesScreen> {
             side: BorderSide(
               color: isSelected
                   ? (filter['color'] as Color)
-                  : Colors.grey.shade300,
+                  : Theme.of(context).colorScheme.outlineVariant,
             ),
           );
         },
@@ -282,7 +282,9 @@ class _TaskTemplatesScreenState extends State<TaskTemplatesScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: template.isActive ? Colors.transparent : Colors.grey.shade300,
+          color: template.isActive
+              ? Colors.transparent
+              : Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: InkWell(
@@ -312,7 +314,7 @@ class _TaskTemplatesScreenState extends State<TaskTemplatesScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: Theme.of(context).colorScheme.outlineVariant,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
@@ -374,7 +376,7 @@ class _TaskTemplatesScreenState extends State<TaskTemplatesScreen> {
                 template.description,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -439,16 +441,21 @@ class _TaskTemplatesScreenState extends State<TaskTemplatesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.checklist, size: 64, color: Colors.grey[400]),
+          Icon(Icons.checklist,
+              size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text(
             'No hay tareas',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Text(
             'Crea tu primera tarea',
-            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),

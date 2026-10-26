@@ -252,7 +252,7 @@ class _GlobalEquipmentInventoryScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Inventario Global de Equipos',
@@ -356,7 +356,7 @@ class _GlobalEquipmentInventoryScreenState
                 )
               : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -550,10 +550,11 @@ class _GlobalEquipmentInventoryScreenState
   }
 
   Widget _buildStatCard(String title, int value, IconData icon, Color color) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
@@ -571,9 +572,9 @@ class _GlobalEquipmentInventoryScreenState
           ),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: Colors.grey,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -707,7 +708,7 @@ class _GlobalEquipmentInventoryScreenState
   }
 
   // ← ACTUALIZADO: Tarjeta con badge de tipo
- Widget _buildEquipmentCard(Equipment equipment) {
+  Widget _buildEquipmentCard(Equipment equipment) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -731,7 +732,9 @@ class _GlobalEquipmentInventoryScreenState
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -785,7 +788,7 @@ class _GlobalEquipmentInventoryScreenState
                         icon: Icon(
                           Icons.more_vert,
                           size: 20,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         onSelected: (value) =>
                             _handleCardAction(value, equipment),
@@ -876,15 +879,19 @@ class _GlobalEquipmentInventoryScreenState
                         const SizedBox(height: 4),
                         Text(
                           '${equipment.brand} ${equipment.model}',
-                          style:
-                              TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           equipment.category,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[500],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -898,7 +905,10 @@ class _GlobalEquipmentInventoryScreenState
                               child: Text(
                                 '${_getClientName(equipment.clientId)} • ${equipment.branch}',
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.grey[500]),
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -914,7 +924,10 @@ class _GlobalEquipmentInventoryScreenState
                               child: Text(
                                 '${equipment.country}, ${equipment.region}',
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.grey[500]),
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -937,7 +950,10 @@ class _GlobalEquipmentInventoryScreenState
                     children: [
                       Text(
                         'Técnico asignado',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       Text(
                         equipment.assignedTechnicianName ?? 'Sin asignar',
@@ -995,7 +1011,6 @@ class _GlobalEquipmentInventoryScreenState
       ),
     );
   }
-
 
   Widget _buildStatisticsTab() {
     return Consumer<EquipmentProvider>(
@@ -1429,13 +1444,17 @@ class _GlobalEquipmentInventoryScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory, size: 80, color: Colors.grey[400]),
+          Icon(Icons.inventory,
+              size: 80, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text('No se encontraron equipos',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+              style: TextStyle(
+                  fontSize: 18,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 8),
-          const Text('Intenta ajustar los filtros de búsqueda',
-              style: TextStyle(color: Colors.grey)),
+          Text('Intenta ajustar los filtros de búsqueda',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
     );

@@ -57,28 +57,36 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(widget.equipment.status,
-                      style: const TextStyle(color: Colors.green, fontSize: 12)),
+                      style:
+                          const TextStyle(color: Colors.green, fontSize: 12)),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text('${widget.equipment.brand} ${widget.equipment.model}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             Text(widget.equipment.name,
-                style: TextStyle(color: Colors.grey[600])),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                Icon(Icons.location_on,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 4),
                 Text('${widget.equipment.location}, ${widget.equipment.branch}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 14)),
               ],
             ),
           ],
@@ -130,28 +138,26 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
                 'title': 'Crítica',
                 'color': Colors.red[800]!
               },
-            ]
-                .map((option) => RadioListTile<String>(
-                      value: option['value'] as String,
-                      groupValue: _selectedSeverity,
-                      onChanged: (value) =>
-                          setState(() => _selectedSeverity = value!),
-                      title: Row(
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: option['color'] as Color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(option['title'] as String),
-                        ],
+            ].map((option) => RadioListTile<String>(
+                  value: option['value'] as String,
+                  groupValue: _selectedSeverity,
+                  onChanged: (value) =>
+                      setState(() => _selectedSeverity = value!),
+                  title: Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: option['color'] as Color,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ))
-                ,
+                      const SizedBox(width: 8),
+                      Text(option['title'] as String),
+                    ],
+                  ),
+                )),
           ],
         ),
       ),
@@ -198,7 +204,7 @@ class _FaultReportScreenState extends State<FaultReportScreen> {
         equipmentId: widget.equipment.id!,
         equipmentName: widget.equipment.name,
         equipmentNumber: widget.equipment.equipmentNumber,
-        clientName: widget.equipment.branch ,
+        clientName: widget.equipment.branch,
         clientId: widget.equipment.clientId,
         description: _descriptionController.text.trim(),
         severity: _selectedSeverity,

@@ -292,7 +292,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Reportar Falla'),
         backgroundColor: Colors.red,
@@ -466,9 +466,12 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color:
+                              Theme.of(context).colorScheme.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant),
                           boxShadow: [
                             BoxShadow(
                                 color: Colors.black.withOpacity(0.03),
@@ -514,29 +517,36 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                     // ── Nota (opcional) ──
                     Row(
                       children: [
-                        const Text('Nota',
+                        Text('Nota',
                             style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black87)),
+                                color:
+                                    Theme.of(context).colorScheme.onSurface)),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text('Opcional',
                               style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[600])),
+                                  fontSize: 11,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color:
+                            Theme.of(context).colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
@@ -551,12 +561,17 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
                         decoration: InputDecoration(
                           hintText:
                               'Agrega una nota adicional sobre la falla...',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          hintStyle: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                           contentPadding: const EdgeInsets.all(16),
                         ),
                       ),
@@ -609,8 +624,10 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
   Widget _buildFilterLabel(String label) {
     return Text(
       label,
-      style: const TextStyle(
-          fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+      style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.onSurface),
     );
   }
 
@@ -624,7 +641,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -642,7 +659,7 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         ),
         isExpanded: true,
         items: customItems ??
@@ -662,12 +679,13 @@ class _ClientFaultReportScreenState extends State<ClientFaultReportScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 15, color: Colors.grey[500]),
+          Icon(icon,
+              size: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Text('$label: ',
               style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[500],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500)),
           Expanded(
             child: Text(value,

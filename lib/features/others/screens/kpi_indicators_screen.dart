@@ -340,7 +340,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Indicadores KPI'),
         backgroundColor: const Color(0xFF2196F3),
@@ -356,7 +356,8 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'week', child: Text('Esta Semana')),
               const PopupMenuItem(value: 'month', child: Text('Este Mes')),
-              const PopupMenuItem(value: 'quarter', child: Text('Este Trimestre')),
+              const PopupMenuItem(
+                  value: 'quarter', child: Text('Este Trimestre')),
               const PopupMenuItem(value: 'year', child: Text('Este Año')),
             ],
           ),
@@ -394,7 +395,9 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey[800],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -500,7 +503,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             child: CircularProgressIndicator(
               value: overallScore / 100,
               strokeWidth: 12,
-              backgroundColor: Colors.grey[300],
+              backgroundColor: Theme.of(context).colorScheme.outlineVariant,
               valueColor:
                   AlwaysStoppedAnimation<Color>(_getScoreColor(overallScore)),
             ),
@@ -520,7 +523,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                 'Rendimiento General',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -545,7 +548,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -563,7 +566,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
             maxLines: 3,
@@ -583,7 +586,8 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                   child: CircularProgressIndicator(
                     value: percentage / 100,
                     strokeWidth: 8,
-                    backgroundColor: Colors.grey[300],
+                    backgroundColor:
+                        Theme.of(context).colorScheme.outlineVariant,
                     valueColor: AlwaysStoppedAnimation<Color>(
                         _getGaugeColor(percentage)),
                   ),
@@ -598,7 +602,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -654,7 +658,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -749,7 +753,7 @@ class _KPIIndicatorsScreenState extends State<KPIIndicatorsScreen> {
                   title,
                   style: TextStyle(
                     fontSize: 10,
-                    color: Colors.grey[700],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

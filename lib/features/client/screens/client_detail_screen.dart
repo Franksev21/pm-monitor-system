@@ -241,7 +241,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -417,24 +417,30 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 28),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(10),
-          border:
-              Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
+          border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              style: BorderStyle.solid),
         ),
         child: Column(
           children: [
             Icon(Icons.add_photo_alternate_outlined,
-                size: 48, color: Colors.grey[400]),
+                size: 48,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 10),
             Text(
               'Toca para agregar fotos',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(
               'Instalaciones, oficinas, equipos...',
-              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12),
             ),
           ],
         ),
@@ -509,13 +515,17 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                       loadingBuilder: (_, child, progress) {
                         if (progress == null) return child;
                         return Container(
-                          color: Colors.grey[200],
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                           child: const Center(
                               child: CircularProgressIndicator(strokeWidth: 2)),
                         );
                       },
                       errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey[200],
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         child:
                             const Icon(Icons.broken_image, color: Colors.grey),
                       ),
@@ -546,7 +556,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         const SizedBox(height: 6),
         Text(
           '${_photoUrls.length} foto${_photoUrls.length != 1 ? 's' : ''} · Mantén presionado para eliminar',
-          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+          style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -1025,7 +1037,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                Icon(Icons.location_on,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Expanded(
                     child: Text(branch.address.fullAddress,
@@ -1035,7 +1049,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
             if (branch.managerName != null) ...[
               const SizedBox(height: 6),
               Row(children: [
-                Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                Icon(Icons.person,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Text('Gerente: ${branch.managerName}',
                     style: AppTheme.bodyMedium),
@@ -1044,7 +1060,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
             if (branch.managerPhone != null) ...[
               const SizedBox(height: 6),
               Row(children: [
-                Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                Icon(Icons.phone,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Text(branch.managerPhone!, style: AppTheme.bodyMedium),
               ]),
@@ -1075,8 +1093,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor:
-                  contact.isPrimary ? AppTheme.primaryColor : Colors.grey[400],
+              backgroundColor: contact.isPrimary
+                  ? AppTheme.primaryColor
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               child: Text(contact.name[0].toUpperCase(),
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold)),
@@ -1109,17 +1128,22 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                     ],
                   ),
                   Text(contact.position,
-                      style: AppTheme.bodyMedium
-                          .copyWith(color: Colors.grey[600])),
+                      style: AppTheme.bodyMedium.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 4),
                   Row(children: [
-                    Icon(Icons.email, size: 14, color: Colors.grey[600]),
+                    Icon(Icons.email,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Expanded(
                         child: Text(contact.email, style: AppTheme.bodySmall)),
                   ]),
                   Row(children: [
-                    Icon(Icons.phone, size: 14, color: Colors.grey[600]),
+                    Icon(Icons.phone,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(contact.phone, style: AppTheme.bodySmall),
                   ]),
@@ -1191,7 +1215,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1246,8 +1270,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style:
-                        AppTheme.bodySmall.copyWith(color: Colors.grey[600])),
+                    style: AppTheme.bodySmall.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 Text(value,
                     style: AppTheme.bodyMedium
                         .copyWith(fontWeight: FontWeight.w500)),
@@ -1417,8 +1441,9 @@ class _PhotoViewerScreenState extends State<_PhotoViewerScreen> {
                     width: i == _currentIndex ? 16 : 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color:
-                          i == _currentIndex ? Colors.white : Colors.grey[600],
+                      color: i == _currentIndex
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),

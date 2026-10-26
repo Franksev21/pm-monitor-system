@@ -413,7 +413,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                       : _selectedClient!.displayName,
                   style: TextStyle(
                     color: _selectedClient == null
-                        ? Colors.grey[600]
+                        ? Theme.of(context).colorScheme.onSurfaceVariant
                         : Colors.black,
                   ),
                 ),
@@ -523,12 +523,14 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                    Icon(Icons.location_on,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -618,7 +620,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                         : '${_selectedEquipment!.name} - ${_selectedEquipment!.location}',
                     style: TextStyle(
                       color: _selectedEquipment == null
-                          ? Colors.grey[600]
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
                           : Colors.black,
                     ),
                   ),
@@ -702,7 +704,8 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                   const SizedBox(height: 12),
                   Text(
                     '${filteredEquipments.length} equipos encontrados',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 8),
                   Expanded(
@@ -712,10 +715,16 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.search_off,
-                                    size: 64, color: Colors.grey[400]),
+                                    size: 64,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
                                 const SizedBox(height: 16),
                                 Text('No se encontraron equipos',
-                                    style: TextStyle(color: Colors.grey[600])),
+                                    style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant)),
                               ],
                             ),
                           )
@@ -940,11 +949,15 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: isSelected ? Colors.blue : Colors.grey[300]!,
+                      color: isSelected
+                          ? Colors.blue
+                          : Theme.of(context).colorScheme.outlineVariant,
                       width: isSelected ? 2 : 1,
                     ),
                     borderRadius: BorderRadius.circular(12),
-                    color: isSelected ? Colors.blue[50] : Colors.white,
+                    color: isSelected
+                        ? Colors.blue.withValues(alpha: 0.1)
+                        : Theme.of(context).colorScheme.surfaceContainerLow,
                   ),
                   child: Column(
                     children: [
@@ -998,7 +1011,9 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     filled: true,
-                                    fillColor: Colors.white,
+                                    fillColor: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
                                   ),
                                   items: FrequencyType.values.map((freq) {
                                     return DropdownMenuItem(
@@ -1087,12 +1102,12 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                   decoration: BoxDecoration(
                     color: _estimatedHours > 0
                         ? Colors.blue[50]
-                        : Colors.grey[100],
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: _estimatedHours > 0
                           ? Colors.blue[300]!
-                          : Colors.grey[300]!,
+                          : Theme.of(context).colorScheme.outlineVariant,
                     ),
                   ),
                   child: Text(
@@ -1102,7 +1117,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                       fontWeight: FontWeight.bold,
                       color: _estimatedHours > 0
                           ? Colors.blue[700]
-                          : Colors.grey[600],
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
@@ -1113,7 +1128,9 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
             const SizedBox(height: 4),
             Text(
               'Duración estimada para completar este mantenimiento',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
 
@@ -1169,10 +1186,14 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2196F3) : Colors.grey[100],
+          color: isSelected
+              ? const Color(0xFF2196F3)
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF2196F3) : Colors.grey[300]!,
+            color: isSelected
+                ? const Color(0xFF2196F3)
+                : Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Text(
@@ -1180,7 +1201,9 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : Colors.grey[700],
+            color: isSelected
+                ? Colors.white
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -1243,7 +1266,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                   'Sube imágenes o PDFs con instrucciones del mantenimiento',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 if (_attachedFiles.isNotEmpty) ...[
@@ -1263,20 +1286,26 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
+                      border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.info_outline,
-                            size: 20, color: Colors.grey[600]),
+                            size: 20,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'No hay archivos adjuntos',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                               fontSize: 13,
                             ),
                           ),
@@ -1398,9 +1427,9 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         children: [
@@ -1430,7 +1459,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
                 Text(
                   fileSizeText,
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),

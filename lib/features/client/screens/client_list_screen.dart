@@ -100,7 +100,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
   Widget _buildSearchAndFilters() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Colors.grey[50],
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Column(
         children: [
           // Barra de búsqueda
@@ -122,7 +122,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
             onChanged: (value) {
               context.read<ClientProvider>().setSearchQuery(value);
@@ -138,11 +138,12 @@ class _ClientListScreenState extends State<ClientListScreen> {
                 builder: (context, clientProvider, child) {
                   return DropdownButtonFormField<ClientStatus?>(
                     initialValue: clientProvider.statusFilter,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Filtrar por Estado',
                       border: OutlineInputBorder(),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
@@ -184,11 +185,12 @@ class _ClientListScreenState extends State<ClientListScreen> {
                 builder: (context, clientProvider, child) {
                   return DropdownButtonFormField<ClientType?>(
                     initialValue: clientProvider.typeFilter,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Filtrar por Tipo',
                       border: OutlineInputBorder(),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
@@ -226,15 +228,16 @@ class _ClientListScreenState extends State<ClientListScreen> {
     );
   }
 
- Widget _buildStatsRow() {
+  Widget _buildStatsRow() {
     return Consumer<ClientProvider>(
       builder: (context, clientProvider, child) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
             border: Border(
-              bottom: BorderSide(color: Colors.grey[200]!),
+              bottom: BorderSide(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest),
             ),
           ),
           // ✅ FIX: Column para que los chips y el texto no compitan en el mismo Row
@@ -257,7 +260,8 @@ class _ClientListScreenState extends State<ClientListScreen> {
               const SizedBox(height: 4),
               Text(
                 '${clientProvider.clients.length} resultados',
-                style: AppTheme.bodySmall.copyWith(color: Colors.grey[600]),
+                style: AppTheme.bodySmall.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -426,7 +430,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
               // Información de contacto
               Row(
                 children: [
-                  Icon(Icons.email, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.email,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -442,7 +448,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
 
               Row(
                 children: [
-                  Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.phone,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Text(
                     client.phone,
@@ -455,7 +463,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
 
               Row(
                 children: [
-                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.location_on,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -523,20 +533,20 @@ class _ClientListScreenState extends State<ClientListScreen> {
             Icon(
               Icons.business_outlined,
               size: 64,
-              color: Colors.grey[400],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
               'No hay clientes registrados',
               style: AppTheme.headingMedium.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Agrega tu primer cliente para comenzar',
               style: AppTheme.bodyMedium.copyWith(
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
