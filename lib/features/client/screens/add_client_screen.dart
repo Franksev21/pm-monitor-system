@@ -44,6 +44,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
   ClientType _selectedType = ClientType.small;
   ClientStatus _selectedStatus = ClientStatus.active;
   List<BranchModel> _branches = [];
+  double? _latitude;
+  double? _longitude;
 
   @override
   void initState() {
@@ -67,6 +69,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
     _stateController.text = client.mainAddress.state;
     _countryController.text = client.mainAddress.country;
     _zipCodeController.text = client.mainAddress.zipCode;
+    _latitude = client.mainAddress.latitude;
+    _longitude = client.mainAddress.longitude;
 
     _selectedType = client.type;
     _selectedStatus = client.status;
@@ -514,6 +518,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
         _countryController.text =
             result.country.isNotEmpty ? result.country : 'República Dominicana';
         _zipCodeController.text = result.zipCode;
+        _latitude = result.latitude;
+        _longitude = result.longitude;
       });
     }
   }
@@ -747,6 +753,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
       state: _stateController.text.trim(),
       country: _countryController.text.trim(),
       zipCode: _zipCodeController.text.trim(),
+      latitude: _latitude,
+      longitude: _longitude,
     );
 
     // Construir lista de contactos con el representante principal

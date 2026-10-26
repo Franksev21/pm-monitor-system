@@ -5,6 +5,8 @@ import 'package:pm_monitor/features/others/screens/qr_display_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:pm_monitor/core/models/equipment_model.dart';
 import 'package:pm_monitor/core/providers/equipment_provider.dart';
+import 'package:pm_monitor/core/services/maintenance_schedule_service.dart';
+import 'package:pm_monitor/features/calendar/screens/maintenance_model.dart';
 import 'package:qr_flutter/qr_flutter.dart'; // NUEVA IMPORTACIÓN
 
 class EquipmentDetailScreen extends StatefulWidget {
@@ -23,6 +25,8 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Equipment? _currentEquipment;
+  final MaintenanceScheduleService _maintenanceService =
+      MaintenanceScheduleService();
 
   @override
   void initState() {
@@ -469,13 +473,13 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
     );
   }
 
-  Widget _buildStatsCards(Equipment equipment) {
+  Widget _buildStatsCards(int preventive, int corrective, double efficiency) {
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             'Total PM',
-            '${equipment.totalMaintenances}',
+            '$preventive',
             Icons.build,
             Colors.green,
           ),
@@ -484,7 +488,7 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
         Expanded(
           child: _buildStatCard(
             'Total CM',
-            '${equipment.totalFailures}',
+            '$corrective',
             Icons.warning,
             Colors.orange,
           ),
@@ -493,11 +497,9 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
         Expanded(
           child: _buildStatCard(
             'Eficiencia',
-            '${equipment.maintenanceEfficiency.toStringAsFixed(0)}%',
+            '${efficiency.toStringAsFixed(0)}%',
             Icons.trending_up,
-            equipment.maintenanceEfficiency >= 80
-                ? Colors.green
-                : Colors.orange,
+            efficiency >= 80 ? Colors.green : Colors.orange,
           ),
         ),
       ],
@@ -681,48 +683,112 @@ class _EquipmentDetailScreenState extends State<EquipmentDetailScreen>
   }
 
   Widget _buildHistoryTab(Equipment equipment) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildStatsCards(equipment),
-          const SizedBox(height: 24),
-          _buildInfoSection(
-            'Historial de Mantenimientos Preventivos (PM)',
-            [
-              _buildHistoryItem(
-                'Mantenimiento Mensual',
-                'Completado',
-                _formatDate(DateTime.now().subtract(const Duration(days: 15))),
-                Icons.build_circle,
-                Colors.green,
+    final equipmentId = equipment.id;
+    if (equipmentId == null || equipmentId.isEmpty) {
+      return const Center(
+          child: Text('Este equipo no tiene un identificador válido.'));
+    }
+
+    return StreamBuilder<List<MaintenanceSchedule>>(
+      stream: _maintenanceService.getMaintenancesByEquipment(equipmentId),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('No se pudo cargar el historial: ${snapshot.error}'),
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final completed = (snapshot.data ?? [])
+            .where((item) => item.status == MaintenanceStatus.executed)
+            .toList()
+          ..sort((a, b) => (b.completedDate ?? b.scheduledDate)
+              .compareTo(a.completedDate ?? a.scheduledDate));
+        final preventive = completed
+            .where((item) =>
+                item.type == MaintenanceType.preventive ||
+                item.type == MaintenanceType.inspection)
+            .toList();
+        final corrective = completed
+            .where((item) =>
+                item.type != MaintenanceType.preventive &&
+                item.type != MaintenanceType.inspection)
+            .toList();
+        final efficiency = completed.isEmpty
+            ? 0.0
+            : completed.length * 100 / (snapshot.data?.length ?? 0);
+
+        List<Widget> historyItems(
+          List<MaintenanceSchedule> items, {
+          required IconData icon,
+          required Color color,
+        }) {
+          if (items.isEmpty) {
+            return [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No hay mantenimientos completados para este equipo.',
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
               ),
-              _buildHistoryItem(
-                'Inspección Trimestral',
-                'Completado',
-                _formatDate(DateTime.now().subtract(const Duration(days: 45))),
-                Icons.search,
-                Colors.green,
+            ];
+          }
+          return items
+              .map((item) => _buildHistoryItem(
+                    item.notes?.trim().isNotEmpty == true
+                        ? item.notes!.trim()
+                        : _maintenanceTypeLabel(item.type),
+                    'Completado',
+                    _formatDate(item.completedDate ?? item.scheduledDate),
+                    icon,
+                    color,
+                  ))
+              .toList();
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatsCards(
+                  preventive.length, corrective.length, efficiency),
+              const SizedBox(height: 24),
+              _buildInfoSection(
+                'Historial de Mantenimientos Preventivos (PM)',
+                historyItems(preventive,
+                    icon: Icons.build_circle, color: Colors.green),
+              ),
+              const SizedBox(height: 24),
+              _buildInfoSection(
+                'Historial de Mantenimientos Correctivos (CM)',
+                historyItems(corrective,
+                    icon: Icons.warning, color: Colors.orange),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          _buildInfoSection(
-            'Historial de Mantenimientos Correctivos (CM)',
-            [
-              _buildHistoryItem(
-                'Reparación de compresor',
-                'Completado',
-                _formatDate(DateTime.now().subtract(const Duration(days: 60))),
-                Icons.warning,
-                Colors.orange,
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  String _maintenanceTypeLabel(MaintenanceType type) {
+    switch (type) {
+      case MaintenanceType.preventive:
+        return 'Mantenimiento preventivo';
+      case MaintenanceType.corrective:
+        return 'Mantenimiento correctivo';
+      case MaintenanceType.emergency:
+        return 'Mantenimiento de emergencia';
+      case MaintenanceType.inspection:
+        return 'Inspección';
+      case MaintenanceType.technicalAssistance:
+        return 'Asistencia técnica';
+    }
   }
 
   Widget _buildCostsTab(Equipment equipment) {

@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 /// Servicio para sincronizar clientes con usuarios
 class ClientUserSyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Crear usuario para un cliente existente
   Future<bool> createUserForClient({
@@ -22,10 +23,14 @@ class ClientUserSyncService {
           .get();
 
       if (existingUser.docs.isNotEmpty) {
-        print('⚠️ Ya existe un usuario para este cliente');
-        // Actualizar el clientId en el usuario existente
-        await existingUser.docs.first.reference.update({
+        final existing = existingUser.docs.first;
+        if (existing.data()['role'] != 'client') return false;
+        await existing.reference.update({
           'clientId': clientId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        await _firestore.collection('clients').doc(clientId).update({
+          'userId': existing.id,
           'updatedAt': FieldValue.serverTimestamp(),
         });
         return true;
@@ -35,30 +40,35 @@ class ClientUserSyncService {
       final temporaryPassword = _generateTemporaryPassword();
 
       // Generar ID único para el usuario
-      String userId = _generateUserId();
+      late String userId;
 
-      // ✅ CREAR USUARIO EN AUTH (pero sin interferir con la sesión actual)
-      // Guardamos el usuario actual
-      final currentUser = _auth.currentUser;
-
+      // A secondary Firebase app keeps customer account creation isolated from
+      // the administrator's active Firebase Auth session.
+      FirebaseApp? secondaryApp;
       try {
-        // Intentar crear en Firebase Auth
-        final userCredential = await _auth.createUserWithEmailAndPassword(
+        secondaryApp = await Firebase.initializeApp(
+          name: 'client_signup_${DateTime.now().millisecondsSinceEpoch}',
+          options: Firebase.app().options,
+        );
+        final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+        final userCredential =
+            await secondaryAuth.createUserWithEmailAndPassword(
           email: clientEmail,
           password: temporaryPassword,
         );
-
         userId = userCredential.user!.uid;
-
-        // Si se creó exitosamente, cerrar su sesión y restaurar la del admin
-        await _auth.signOut();
-
-        // Si había un usuario anterior, no intentamos restaurarlo aquí
-        // porque causaría problemas
       } catch (authError) {
-        print(
-            '⚠️ No se pudo crear en Auth (probablemente ya existe): $authError');
-        // Continuar con el ID generado
+        debugPrint('No se pudo crear el acceso Auth del cliente: $authError');
+        return false;
+      } finally {
+        if (secondaryApp != null) {
+          try {
+            await FirebaseAuth.instanceFor(app: secondaryApp).signOut();
+            await secondaryApp.delete();
+          } catch (cleanupError) {
+            debugPrint('No se pudo cerrar la sesión secundaria: $cleanupError');
+          }
+        }
       }
 
       // Crear documento en colección users
@@ -82,13 +92,11 @@ class ClientUserSyncService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      print('✅ Usuario creado para cliente: $clientName');
-      print('📧 Email: $clientEmail');
-      print('🔑 Contraseña temporal: $temporaryPassword');
+      debugPrint('Usuario creado para cliente: $clientName');
 
       return true;
     } catch (e) {
-      print('❌ Error creando usuario para cliente: $e');
+      debugPrint('Error creando usuario para cliente: $e');
       return false;
     }
   }
@@ -136,11 +144,6 @@ class ClientUserSyncService {
   String _generateTemporaryPassword() {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     return 'Temp${timestamp.toString().substring(7)}!';
-  }
-
-  /// Generar ID de usuario único
-  String _generateUserId() {
-    return _firestore.collection('users').doc().id;
   }
 
   /// Obtener contraseña temporal de un cliente

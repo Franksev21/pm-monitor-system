@@ -5,6 +5,7 @@ import 'package:pm_monitor/core/services/user_management_service.dart';
 import 'package:pm_monitor/features/auth/screens/admin_add_user_screen.dart';
 import 'package:pm_monitor/features/equipment/assign_equipment_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
+import 'package:pm_monitor/features/client/screens/add_client_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -21,6 +22,10 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
   String _searchQuery = '';
   final Map<String, Map<String, int>> _statsCache = {};
+  final Map<String, Stream<List<UserManagementModel>>> _userStreams = {};
+  final Map<String, List<UserManagementModel>> _usersCache = {};
+  List<ClientModel>? _clientsCache;
+  late final Stream<List<ClientModel>> _clientsStream;
 
   final List<Map<String, dynamic>> _tabs = [
     {
@@ -41,12 +46,23 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       'icon': Icons.business,
       'color': Colors.purple,
     },
+    {
+      'role': 'admin',
+      'title': 'Administradores',
+      'icon': Icons.admin_panel_settings,
+      'color': Colors.red,
+    },
   ];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _clientsStream = _userService.getClients();
+    for (final tab in _tabs.where((item) => item['role'] != 'client')) {
+      final role = tab['role'] as String;
+      _userStreams[role] = _userService.getUsersByRole(role);
+    }
     _loadAllStats();
   }
 
@@ -58,16 +74,22 @@ class _UserManagementScreenState extends State<UserManagementScreen>
   }
 
   Future<void> _loadAllStats() async {
-    for (final tab in _tabs) {
+    final entries = await Future.wait(_tabs.map((tab) async {
+      final role = tab['role'] as String;
       try {
-        final stats = await _userService.getStatsByRole(tab['role']);
-        setState(() {
-          _statsCache[tab['role']] = stats;
-        });
+        return MapEntry(role, await _userService.getStatsByRole(role));
       } catch (e) {
-        debugPrint('Error loading stats for ${tab['role']}: $e');
+        debugPrint('Error loading stats for $role: $e');
+        return null;
       }
-    }
+    }));
+    if (!mounted) return;
+    setState(() {
+      for (final entry
+          in entries.whereType<MapEntry<String, Map<String, int>>>()) {
+        _statsCache[entry.key] = entry.value;
+      }
+    });
   }
 
   @override
@@ -178,7 +200,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           child: role == 'client'
               ? _buildClientsTab()
               : StreamBuilder<List<UserManagementModel>>(
-                  stream: _userService.getUsersByRole(role),
+                  stream: _userStreams[role],
+                  initialData: _usersCache[role],
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return _buildErrorWidget(snapshot.error.toString());
@@ -187,7 +210,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    final users = snapshot.data ?? [];
+                    final users = snapshot.data ?? _usersCache[role] ?? [];
+                    if (snapshot.hasData) _usersCache[role] = users;
                     final filteredUsers = _searchQuery.isEmpty
                         ? users
                         : users
@@ -610,6 +634,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         return Icons.supervisor_account;
       case 'client':
         return Icons.business;
+      case 'admin':
+        return Icons.admin_panel_settings;
       default:
         return Icons.person;
     }
@@ -623,6 +649,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         return 'Supervisor';
       case 'client':
         return 'Cliente';
+      case 'admin':
+        return 'Administrador';
       default:
         return 'Usuario';
     }
@@ -673,7 +701,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
   Widget _buildClientsTab() {
     return StreamBuilder<List<ClientModel>>(
-      stream: _userService.getClients(),
+      stream: _clientsStream,
+      initialData: _clientsCache,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _buildErrorWidget(snapshot.error.toString());
@@ -682,7 +711,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           return const Center(child: CircularProgressIndicator());
         }
 
-        final clients = snapshot.data ?? [];
+        final clients = snapshot.data ?? _clientsCache ?? [];
+        if (snapshot.hasData) _clientsCache = clients;
         final filteredClients = _searchQuery.isEmpty
             ? clients
             : clients
@@ -823,8 +853,24 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios,
-                    size: 16, color: Colors.grey),
+                PopupMenuButton<String>(
+                  tooltip: 'Acciones de ${client.name}',
+                  onSelected: (action) {
+                    if (action == 'edit') _editClient(client);
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18),
+                          SizedBox(width: 8),
+                          Text('Editar compañía'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -906,13 +952,27 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           ),
         ),
         actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.edit),
+            label: const Text('Editar'),
+          ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cerrar'),
           ),
         ],
       ),
+    ).then((shouldEdit) {
+      if (shouldEdit == true && mounted) _editClient(client);
+    });
+  }
+
+  Future<void> _editClient(ClientModel client) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => AddClientScreen(client: client)),
     );
+    if (updated == true) _loadAllStats();
   }
 
   void _handleUserAction(String action, UserManagementModel user) {
@@ -939,12 +999,105 @@ class _UserManagementScreenState extends State<UserManagementScreen>
   }
 
   void _editUser(UserManagementModel user) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Editar ${user.name} - Por implementar'),
-        backgroundColor: Colors.blue,
+    final nameController = TextEditingController(text: user.name);
+    final phoneController = TextEditingController(text: user.phone);
+    var selectedRole = user.role;
+    final formKey = GlobalKey<FormState>();
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Editar ${user.roleInSpanish}'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Nombre'),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'El nombre es requerido'
+                        : null,
+                  ),
+                  TextFormField(
+                    initialValue: user.email,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Correo electrónico',
+                      helperText:
+                          'El correo de acceso no se puede cambiar aquí.',
+                    ),
+                  ),
+                  TextFormField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Teléfono'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedRole,
+                    decoration: const InputDecoration(labelText: 'Rol'),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'technician', child: Text('Técnico')),
+                      DropdownMenuItem(
+                          value: 'supervisor', child: Text('Supervisor')),
+                      DropdownMenuItem(
+                          value: 'admin', child: Text('Administrador')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedRole = value);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  await _userService.updateUserProfile(
+                    user.id,
+                    name: nameController.text,
+                    phone: phoneController.text,
+                    role: selectedRole,
+                  );
+                  if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                  if (mounted) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                          content: Text('Usuario actualizado correctamente')),
+                    );
+                    _loadAllStats();
+                  }
+                } catch (error) {
+                  if (mounted) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('No se pudo actualizar: $error')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
-    );
+    ).whenComplete(() {
+      nameController.dispose();
+      phoneController.dispose();
+    });
   }
 
   void _toggleUserStatus(UserManagementModel user) {

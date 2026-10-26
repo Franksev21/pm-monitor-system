@@ -289,6 +289,8 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
         return 'Supervisor';
       case 'client':
         return 'Cliente';
+      case 'admin':
+        return 'Administrador';
       default:
         return role;
     }
@@ -302,6 +304,8 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
         return Icons.supervisor_account;
       case 'client':
         return Icons.business;
+      case 'admin':
+        return Icons.admin_panel_settings;
       default:
         return Icons.person;
     }
@@ -315,6 +319,8 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
         return Colors.blue;
       case 'client':
         return Colors.purple;
+      case 'admin':
+        return Colors.red;
       default:
         return Colors.grey;
     }
@@ -383,29 +389,33 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
               const Text('Tipo de usuario',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
                 children: [
-                  for (final role in ['technician', 'supervisor', 'client'])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(_getRoleLabel(role)),
-                        selected: _selectedRole == role,
-                        selectedColor: _getRoleColor(role).withOpacity(0.2),
-                        onSelected: (_) => setState(() => _selectedRole = role),
-                        avatar: Icon(_getRoleIcon(role),
-                            size: 16,
-                            color: _selectedRole == role
-                                ? _getRoleColor(role)
-                                : Colors.grey),
-                        labelStyle: TextStyle(
+                  for (final role in [
+                    'technician',
+                    'supervisor',
+                    'client',
+                    'admin',
+                  ])
+                    ChoiceChip(
+                      label: Text(_getRoleLabel(role)),
+                      selected: _selectedRole == role,
+                      selectedColor: _getRoleColor(role).withOpacity(0.2),
+                      onSelected: (_) => setState(() => _selectedRole = role),
+                      avatar: Icon(_getRoleIcon(role),
+                          size: 16,
                           color: _selectedRole == role
                               ? _getRoleColor(role)
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: _selectedRole == role
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
+                              : Colors.grey),
+                      labelStyle: TextStyle(
+                        color: _selectedRole == role
+                            ? _getRoleColor(role)
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: _selectedRole == role
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                 ],

@@ -7,7 +7,7 @@ class UserManagementService {
   final String _collection = 'users';
 
   // Stream de usuarios por rol (incluye clientes de ambas colecciones)
-Stream<List<UserManagementModel>> getUsersByRole(String role) {
+  Stream<List<UserManagementModel>> getUsersByRole(String role) {
     if (role == 'client') {
       // Para clientes, retornar stream vacío ya que se usa getClients() para ClientModel
       // La UI debe usar getClients() en lugar de getUsersByRole('client')
@@ -24,7 +24,6 @@ Stream<List<UserManagementModel>> getUsersByRole(String role) {
               .toList());
     }
   }
-
 
   Stream<List<ClientModel>> getClients() {
     try {
@@ -54,7 +53,6 @@ Stream<List<UserManagementModel>> getUsersByRole(String role) {
       return Stream.value([]);
     }
   }
-
 
   // Stream de todos los usuarios
   Stream<List<UserManagementModel>> getAllUsersStream() {
@@ -206,6 +204,28 @@ Stream<List<UserManagementModel>> getUsersByRole(String role) {
     }
   }
 
+  Future<void> updateUserProfile(
+    String userId, {
+    required String name,
+    required String phone,
+    required String role,
+  }) async {
+    const allowedRoles = {'admin', 'supervisor', 'technician'};
+    if (!allowedRoles.contains(role)) {
+      throw ArgumentError.value(role, 'role', 'Rol no permitido');
+    }
+    try {
+      await _firestore.collection(_collection).doc(userId).update({
+        'name': name.trim(),
+        'phone': phone.trim(),
+        'role': role,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Error al actualizar usuario: $e');
+    }
+  }
+
   Future<Map<String, int>> getStatsByRole(String role) async {
     try {
       if (role == 'client') {
@@ -279,6 +299,7 @@ Stream<List<UserManagementModel>> getUsersByRole(String role) {
       throw Exception('Error al obtener estadísticas: $e');
     }
   }
+
   // Buscar usuarios por nombre o email
   Future<List<UserManagementModel>> searchUsers(String query,
       {String? role}) async {
@@ -392,6 +413,7 @@ Stream<List<UserManagementModel>> getUsersByRole(String role) {
       throw Exception('Error al obtener estadísticas del sistema: $e');
     }
   }
+
   // Asignar técnico individual a supervisor
   Future<void> assignTechnicianToSupervisor(
       String supervisorId, String technicianId) async {

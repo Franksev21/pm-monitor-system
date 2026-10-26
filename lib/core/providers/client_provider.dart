@@ -108,18 +108,23 @@ class ClientProvider extends ChangeNotifier {
           : client.id;
 
       // ✅ Crear usuario automáticamente
-      await _syncService.createUserForClient(
+      final userCreated = await _syncService.createUserForClient(
         clientId: clientId,
         clientName: client.name,
         clientEmail: client.email,
         clientPhone: client.phone,
       );
+      if (!userCreated) {
+        throw Exception(
+            'El cliente se guardó, pero no se pudo crear su acceso. Verifica si el correo ya tiene una cuenta.');
+      }
 
       _clearError();
       _setLoading(false);
       return true;
     } catch (e) {
       _setError(e.toString());
+      _setLoading(false);
       return false;
     }
   }
@@ -134,6 +139,7 @@ class ClientProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       _setError(e.toString());
+      _setLoading(false);
       return false;
     }
   }

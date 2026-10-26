@@ -6,6 +6,7 @@ import 'package:pm_monitor/core/services/alert_service.dart';
 import 'package:pm_monitor/features/equipment/assign_equipment_screen.dart';
 import 'package:pm_monitor/features/auth/widgets/technician_equipment_count.dart';
 import 'package:pm_monitor/features/technician/screens/alert_history_screen.dart';
+import 'package:pm_monitor/features/auth/screens/admin_add_user_screen.dart';
 import 'package:provider/provider.dart';
 
 class TechniciansListScreen extends StatefulWidget {
@@ -747,10 +748,15 @@ class _TechniciansListScreenState extends State<TechniciansListScreen> {
     );
   }
 
-  void _showAddTechnicianDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Redirigir a pantalla de registro de técnico'),
-        backgroundColor: Colors.blue));
+  Future<void> _showAddTechnicianDialog() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const AdminAddUserScreen(preSelectedRole: 'technician'),
+      ),
+    );
+    if (created == true && mounted) {
+      await context.read<TechnicianProvider>().refresh();
+    }
   }
 
   void _editTechnician(
