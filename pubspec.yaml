@@ -1,7 +1,7 @@
 name: pm_monitor
 description: App para mantenimiento preventivo de equipos
 publish_to: "none"
-version: 1.0.1+2
+version: 1.0.2+4
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

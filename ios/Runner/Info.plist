@@ -28,6 +28,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Necesitamos acceso a la cámara para tomar fotos de los equipos y mantenimientos</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Necesitamos tu ubicación para registrar y verificar el lugar de los mantenimientos y equipos</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Necesitamos tu ubicación para registrar y verificar el lugar de los mantenimientos y equipos</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Necesitamos acceso para guardar fotos de los mantenimientos</string>
 	<key>NSPhotoLibraryUsageDescription</key>
