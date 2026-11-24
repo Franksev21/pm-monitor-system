@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pm_monitor/core/models/client_model.dart';
+import 'package:pm_monitor/core/exceptions/auth_exception.dart';
 import 'package:pm_monitor/core/models/user_management_model.dart';
+import 'package:pm_monitor/core/services/firebase_auth_service.dart';
 import 'package:pm_monitor/core/services/user_management_service.dart';
 import 'package:pm_monitor/features/auth/screens/admin_add_user_screen.dart';
 import 'package:pm_monitor/features/equipment/assign_equipment_screen.dart';
@@ -480,6 +482,16 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           ],
         ),
       ),
+      const PopupMenuItem(
+        value: 'reset_password',
+        child: Row(
+          children: [
+            Icon(Icons.lock_reset, size: 18),
+            SizedBox(width: 8),
+            Text('Restablecer contraseña'),
+          ],
+        ),
+      ),
       PopupMenuItem(
         value: 'toggle_status',
         child: Row(
@@ -690,6 +702,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           ),
         ),
         actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _resetUserPassword(user);
+            },
+            icon: const Icon(Icons.lock_reset),
+            label: const Text('Restablecer contraseña'),
+          ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cerrar'),
@@ -980,6 +1000,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       case 'edit':
         _editUser(user);
         break;
+      case 'reset_password':
+        _resetUserPassword(user);
+        break;
       case 'toggle_status':
         _toggleUserStatus(user);
         break;
@@ -995,6 +1018,46 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       case 'update_rate':
         _updateRate(user);
         break;
+    }
+  }
+
+  Future<void> _resetUserPassword(UserManagementModel user) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Restablecer contraseña'),
+        content: Text(
+          'Se enviará un correo a ${user.email} con un enlace para '
+          'que ${user.name} cree una nueva contraseña.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Enviar correo'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await FirebaseAuthService().resetPassword(user.email);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Correo de restablecimiento enviado a ${user.email}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      final message = e is AuthException ? e.message : e.toString();
+      messenger.showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
     }
   }
 
