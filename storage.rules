@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Reglas de Storage para PM Monitor.
+// Usa reglas entre servicios (firestore.get) para leer el rol del usuario;
+// la primera vez que se desplieguen, Firebase pedirá autorizar ese acceso.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function profile() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      return request.auth != null &&
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        profile().get('isActive', true) == true;
+    }
+
+    function isAdmin() {
+      return isActiveUser() && profile().get('role', '') == 'admin';
+    }
+
+    function isStaff() {
+      return isActiveUser() &&
+        profile().get('role', '') in ['admin', 'supervisor', 'technician'];
+    }
+
+    // Backups: contienen TODA la base de datos. Solo administradores.
+    match /backups/{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Archivos de clientes (logo, representante, fotos).
+    match /clients/{clientId}/{allPaths=**} {
+      allow read: if isActiveUser();
+      allow write: if isStaff() &&
+        (request.resource == null || request.resource.size < 15 * 1024 * 1024);
+    }
+
+    // Todo lo demás (fotos de mantenimiento, técnicos, equipos, adjuntos…):
+    // cualquier usuario activo lee; sube el personal.
+    match /{allPaths=**} {
+      allow read: if isActiveUser();
+      allow write: if isStaff() &&
+        (request.resource == null || request.resource.size < 25 * 1024 * 1024);
+    }
+  }
+}

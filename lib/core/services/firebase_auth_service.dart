@@ -44,6 +44,15 @@ class FirebaseAuthService {
           );
         }
 
+        // Bloquear cuentas desactivadas (soft delete)
+        if (!userData.isActive) {
+          await _auth.signOut();
+          throw AuthException(
+            code: 'user-disabled',
+            message: _getSpanishErrorMessage('user-disabled'),
+          );
+        }
+
         // Actualizar último login
         await _updateLastLogin(credential.user!.uid);
 
@@ -99,7 +108,9 @@ class FirebaseAuthService {
           email: email.trim(),
           name: name.trim(),
           phone: phone.trim(),
-          role: role,
+          // El auto-registro nunca otorga privilegios: los roles de personal
+          // se asignan desde AdminAddUserScreen (y lo exige firestore.rules).
+          role: UserRole.client,
           createdAt: DateTime.now(),
           isActive: true,
           emailVerified: false,
@@ -304,66 +315,6 @@ class FirebaseAuthService {
       // Error por defecto
       default:
         return '❓ Error de autenticación. Por favor, intenta de nuevo.';
-    }
-  }
-
-  // Crear usuarios iniciales para pruebas (desarrollo)
-  Future<void> createInitialUsers() async {
-    final users = [
-      {
-        'email': 'admin@pmmonitor.com',
-        'password': '123456',
-        'name': 'Administrador Principal',
-        'phone': '+1-809-555-0001',
-        'role': UserRole.admin,
-      },
-      {
-        'email': 'supervisor@pmmonitor.com',
-        'password': '123456',
-        'name': 'Karen Supervisor',
-        'phone': '+1-809-555-0002',
-        'role': UserRole.supervisor,
-      },
-      {
-        'email': 'tecnico@pmmonitor.com',
-        'password': '123456',
-        'name': 'Francisco Severino',
-        'phone': '+1-829-978-6503',
-        'role': UserRole.technician,
-      },
-      {
-        'email': 'cliente@pmmonitor.com',
-        'password': '123456',
-        'name': 'Xpertcode',
-        'phone': '+1-809-555-0004',
-        'role': UserRole.client,
-      },
-    ];
-
-    for (var userData in users) {
-      try {
-        // Verificar si el usuario ya existe
-        final existingUser = await _firestore
-            .collection('users')
-            .where('email', isEqualTo: userData['email'])
-            .get();
-
-        if (existingUser.docs.isEmpty) {
-          await registerWithEmailAndPassword(
-            email: userData['email'] as String,
-            password: userData['password'] as String,
-            name: userData['name'] as String,
-            phone: userData['phone'] as String,
-            role: userData['role'] as UserRole,
-          );
-          print('✅ Usuario creado: ${userData['email']}');
-        } else {
-          print('⚠️ Usuario ya existe: ${userData['email']}');
-        }
-      } catch (e) {
-        print('❌ Error creando usuario ${userData['email']}: $e');
-        // Continuar con el siguiente usuario
-      }
     }
   }
 

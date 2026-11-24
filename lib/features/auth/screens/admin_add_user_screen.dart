@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -51,8 +53,13 @@ class _AdminAddUserScreenState extends State<AdminAddUserScreen> {
   }
 
   String _generateDefaultPassword() {
-    // Contraseña default: CSC + año actual + !
-    return 'CSC${DateTime.now().year}!';
+    // Contraseña aleatoria por usuario (antes era 'CSC<año>!', igual y
+    // adivinable para todas las cuentas). Se muestra al admin al crearla.
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    final rng = Random.secure();
+    final body =
+        List.generate(10, (_) => chars[rng.nextInt(chars.length)]).join();
+    return '$body!${rng.nextInt(90) + 10}';
   }
 
   Future<void> _createUser() async {

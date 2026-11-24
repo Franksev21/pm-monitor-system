@@ -26,7 +26,8 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _passwordFocusNode = FocusNode();
   final _confirmPasswordFocusNode = FocusNode();
 
-  UserRole? _selectedRole;
+  // El registro público solo crea clientes; los demás roles los asigna un admin.
+  UserRole? _selectedRole = UserRole.client;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -428,7 +429,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                     ),
                     hint: const Text('Selecciona tu rol'),
-                    items: UserRole.values.map((role) {
+                    items: [UserRole.client].map((role) {
                       return DropdownMenuItem(
                         value: role,
                         child: Row(

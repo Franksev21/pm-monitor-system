@@ -1,0 +1,145 @@
+rules_version = '2';
+
+// Reglas de Firestore para PM Monitor.
+//
+// Objetivo de esta primera versión: cerrar los huecos críticos sin romper
+// los flujos actuales de la app.
+//  - Solo usuarios autenticados con perfil activo en /users pueden leer o escribir.
+//  - Nadie puede asignarse ni cambiarse su propio rol o estado (isActive).
+//  - Los clientes solo pueden CREAR reportes de falla, encuestas y
+//    notificaciones; no pueden modificar equipos, mantenimientos ni clientes.
+//  - Gestión de usuarios: admin/supervisor. Solo un admin crea otro admin.
+//
+// Pendiente (requiere cambios en la app antes de endurecer):
+//  - Las lecturas siguen abiertas a cualquier usuario activo, porque la app
+//    filtra en el cliente (p. ej. equipos por `branch == nombre del cliente`
+//    y tokens FCM de técnicos leídos desde la cuenta del cliente). Cuando
+//    los equipos usen `clientId`, limitar la lectura del cliente a lo suyo.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────── Helpers ─────────
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasProfile() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // Los documentos antiguos sin `isActive` cuentan como activos.
+    function isActiveUser() {
+      return hasProfile() && profile().get('isActive', true) == true;
+    }
+
+    function role() {
+      return profile().get('role', '');
+    }
+
+    function isAdmin() {
+      return isActiveUser() && role() == 'admin';
+    }
+
+    function isManager() {
+      return isActiveUser() && role() in ['admin', 'supervisor'];
+    }
+
+    function isStaff() {
+      return isActiveUser() && role() in ['admin', 'supervisor', 'technician'];
+    }
+
+    function unchanged(field) {
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
+    }
+
+    // ───────── Usuarios ─────────
+    match /users/{userId} {
+      // Cada uno puede leer su propio perfil aunque esté desactivado, para
+      // que la app muestre "cuenta deshabilitada" en vez de un error.
+      allow read: if isActiveUser() || (signedIn() && request.auth.uid == userId);
+
+      // Auto-registro: solo el propio documento, como cliente y activo.
+      // Gestión: un supervisor crea técnicos/supervisores/clientes; solo un
+      // admin puede crear otro admin.
+      allow create: if
+        (signedIn() && request.auth.uid == userId &&
+          request.resource.data.role == 'client' &&
+          request.resource.data.get('isActive', true) == true)
+        || (isManager() && request.resource.data.role != 'admin')
+        || isAdmin();
+
+      // El propio usuario puede editar su perfil (foto, token FCM, último
+      // login...) pero no su rol ni su estado.
+      allow update: if
+        (isActiveUser() && request.auth.uid == userId &&
+          unchanged('role') && unchanged('isActive'))
+        || (isManager() && resource.data.get('role', '') != 'admin' &&
+            request.resource.data.get('role', '') != 'admin')
+        || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // ───────── Datos maestros y operativos (escriben admin/supervisor/técnico) ─────────
+    match /clients/{docId} {
+      allow read: if isActiveUser();
+      allow write: if isStaff();
+    }
+
+    match /equipments/{docId} {
+      allow read: if isActiveUser();
+      allow write: if isStaff();
+    }
+
+    match /equipmentTypes/{docId} {
+      allow read: if isActiveUser();
+      allow write: if isStaff();
+    }
+
+    match /maintenance_task_templates/{docId} {
+      allow read: if isActiveUser();
+      allow write: if isStaff();
+    }
+
+    match /maintenanceSchedules/{docId} {
+      allow read: if isActiveUser();
+      allow write: if isStaff();
+    }
+
+    match /maintenance_schedules/{docId} {
+      allow read: if isActiveUser();
+      allow write: if isStaff();
+    }
+
+    function isStaffCollection(collection) {
+      return collection in ['alerts', 'notifications', 'equipmentAlerts',
+                            'equipmentFailures', 'maintenanceIssues',
+                            'sentNotifications', 'emailQueue', 'smsQueue',
+                            'whatsappQueue'];
+    }
+
+    function isClientCreatableCollection(collection) {
+      return collection in ['faultReports', 'customerSurveys',
+                            'pendingNotifications', 'batchNotifications'];
+    }
+
+    // Notificaciones/alertas internas: escribe el personal.
+    // Reportes de falla, encuestas y notificaciones derivadas: también los
+    // crea un cliente; editarlos o borrarlos queda para el personal.
+    match /{collection}/{docId} {
+      allow read: if (isStaffCollection(collection) ||
+                      isClientCreatableCollection(collection)) && isActiveUser();
+      allow create: if (isStaffCollection(collection) && isStaff()) ||
+                       (isClientCreatableCollection(collection) && isActiveUser());
+      allow update, delete: if (isStaffCollection(collection) ||
+                                isClientCreatableCollection(collection)) && isStaff();
+    }
+
+    // Cualquier otra colección queda denegada por defecto.
+  }
+}

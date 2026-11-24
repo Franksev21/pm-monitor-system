@@ -28,7 +28,7 @@ class AuthProvider extends ChangeNotifier {
     _authService.authStateChanges.listen((User? user) async {
       if (user != null) {
         try {
-          _currentUser = await _authService.getUserData(user.uid);
+          _currentUser = await _loadActiveUser(user.uid);
         } catch (e) {
           print('Error getting user data: $e');
           _currentUser = null;
@@ -40,13 +40,24 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
+  // Carga el perfil y cierra la sesión si la cuenta está desactivada,
+  // para que un usuario dado de baja no conserve una sesión ya abierta.
+  Future<UserModel?> _loadActiveUser(String uid) async {
+    final user = await _authService.getUserData(uid);
+    if (user != null && !user.isActive) {
+      await _authService.signOut();
+      return null;
+    }
+    return user;
+  }
+
   // Verificar sesión inicial
   Future<void> initializeAuth() async {
     _setLoading(true);
     try {
       final currentUser = _authService.currentUser;
       if (currentUser != null) {
-        _currentUser = await _authService.getUserData(currentUser.uid);
+        _currentUser = await _loadActiveUser(currentUser.uid);
       }
     } catch (e) {
       _setError('Error al inicializar sesión: $e');
@@ -59,7 +70,7 @@ class AuthProvider extends ChangeNotifier {
     final currentUser = _authService.currentUser;
     if (currentUser != null) {
       try {
-        _currentUser = await _authService.getUserData(currentUser.uid);
+        _currentUser = await _loadActiveUser(currentUser.uid);
         notifyListeners();
       } catch (e) {
         print('Error refrescando usuario: $e');
